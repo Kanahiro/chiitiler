@@ -1,33 +1,41 @@
+/// <reference lib="dom" />
+// for using native fetch in TypeScript
+
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import sharp from 'sharp';
+import type { StyleSpecification } from 'maplibre-gl';
 
 import { getRenderer } from './tiling.js';
 
 const hono = new Hono();
 
-let style;
+let style: StyleSpecification;
 
 hono.get('/tiles/:z/:x/:y', async (c) => {
     // path params
     const z = Number(c.req.param('z'));
     const x = Number(c.req.param('x'));
-    let [y, ext] = c.req.param('y').split('.');
-    y = Number(y);
+    let [_y, ext] = c.req.param('y').split('.');
+    const y = Number(_y);
 
     if (['png', 'jpg', 'webp'].indexOf(ext) === -1) {
         return c.body('Invalid extension', 400);
     }
 
     // query params
-    const tileSize = c.req.query('tileSize') ?? 512;
+    const tileSize = Number(c.req.query('tileSize') ?? 512);
     const useSymbol = c.req.query('useSymbol') ?? false;
     const url = c.req.query('url') ?? null;
 
     if (style === null) {
         return c.body('style is required', 400);
     }
+    if (url === null) {
+        return c.body('url is required', 400);
+    }
 
+    // load style.json
     if (!style) {
         style = await (await fetch(url)).json();
     }

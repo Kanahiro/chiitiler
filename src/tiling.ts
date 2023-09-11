@@ -1,7 +1,12 @@
-import mbgl from '@maplibre/maplibre-gl-native';
-import SphericalMercator from '@mapbox/sphericalmercator';
+/// <reference lib="dom" />
+// for using native fetch in TypeScript
 
-function getTileCenter(z, x, y, tileSize = 256) {
+import mbgl from '@maplibre/maplibre-gl-native';
+// @ts-ignore
+import SphericalMercator from '@mapbox/sphericalmercator';
+import type { StyleSpecification } from 'maplibre-gl';
+
+function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
         size: tileSize,
     });
@@ -11,10 +16,27 @@ function getTileCenter(z, x, y, tileSize = 256) {
     return tileCenter;
 }
 
-const KV = {};
+const KV: Record<string, Buffer> = {};
 
-function getRenderer(style, options = { tileSize: 256 }) {
-    const render = function (z, x, y) {
+type GetRendererOptions = {
+    tileSize: number;
+};
+
+function getRenderer(
+    style: StyleSpecification,
+    options: GetRendererOptions = { tileSize: 256 },
+): {
+    render: (
+        z: number,
+        x: number,
+        y: number,
+    ) => Promise<Uint8Array | undefined>;
+} {
+    const render = function (
+        z: number,
+        x: number,
+        y: number,
+    ): Promise<Uint8Array | undefined> {
         /**
          * zoom(renderingOptions): tileSize=256 -> z-1, 512 -> z, 1024 -> z+1...
          * width, height(renderingOptions): equal to tileSize but:
@@ -41,22 +63,22 @@ function getRenderer(style, options = { tileSize: 256 }) {
             request: function (req, callback) {
                 // TODO: better Caching
                 if (KV[req.url]) {
-                    callback(null, { data: Buffer.from(KV[req.url]) });
+                    callback(undefined, { data: KV[req.url] });
                     return;
                 }
 
                 fetch(req.url)
                     .then((res) => {
                         if (res.status === 200) {
-                            res.arrayBuffer().then((data) => {
-                                callback(null, { data: Buffer.from(data) });
-                                KV[req.url] = data;
+                            res.arrayBuffer().then((data: ArrayBuffer) => {
+                                KV[req.url] = Buffer.from(data);
+                                callback(undefined, { data: KV[req.url] });
                             });
                         } else {
                             callback();
                         }
                     })
-                    .catch((err) => {
+                    .catch((err: any) => {
                         callback(err);
                     });
             },
