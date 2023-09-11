@@ -4,29 +4,68 @@ import sharp from 'sharp';
 
 import { getRenderer } from './tiling.js';
 
-import style from './style.json' assert { type: 'json' };
-const { render } = getRenderer(style);
-
 const hono = new Hono();
 
-hono.get('/tiles/:z/:x/:y/test10.png', async (c) => {
-    const { z, x, y } = c.req.param();
+let style;
+
+hono.get('/tiles/:z/:x/:y', async (c) => {
+    // path params
+    const z = Number(c.req.param('z'));
+    const x = Number(c.req.param('x'));
+    let [y, ext] = c.req.param('y').split('.');
+    y = Number(y);
+
+    if (['png', 'jpg', 'webp'].indexOf(ext) === -1) {
+        return c.body('Invalid extension', 400);
+    }
+
+    // query params
+    const tileSize = c.req.query('tileSize') ?? 512;
+    const useSymbol = c.req.query('useSymbol') ?? false;
+    const url = c.req.query('url') ?? null;
+
+    if (style === null) {
+        return c.body('style is required', 400);
+    }
+
+    if (!style) {
+        style = await (await fetch(url)).json();
+    }
+
+    if (!useSymbol) {
+        // TODO: symbol-layerが厄介。タイルの切れ目で文字が切れたりする
+        style = {
+            ...style,
+            layers: style.layers.filter((layer) => layer.type !== 'symbol'),
+        };
+    }
+
+    const { render } = getRenderer(style, { tileSize });
     const buffer = await render(z, x, y);
 
     const image = sharp(buffer, {
         raw: {
-            width: 256,
-            height: 256,
+            width: tileSize,
+            height: tileSize,
             channels: 4,
         },
     });
 
-    return c.body(await image.png().toBuffer(), 200, {
-        'Content-Type': 'image/png',
+    let imgBuf;
+    if (ext === 'jpg') {
+        imgBuf = await image.jpeg({ quality: 20 }).toBuffer();
+    } else if (ext === 'webp') {
+        imgBuf = await image.webp({ quality: 100 }).toBuffer();
+    } else {
+        imgBuf = await image.png().toBuffer();
+    }
+
+    return c.body(imgBuf, 200, {
+        'Content-Type': `image/${ext}`,
     });
 });
 
-hono.get('/index.html', (c) => {
+hono.get('/debug', (c) => {
     return c.html(`<!-- show tile in MapLibre GL JS-->
 
   <!DOCTYPE html>
@@ -34,10 +73,6 @@ hono.get('/index.html', (c) => {
       <head>
           <meta charset="utf-8" />
           <title>MapLibre GL JS</title>
-          <meta
-              name="viewport"
-              content="initial-scale=1,maximum  -scale=1,user-scalable=no"
-          />
           <!-- maplibre gl js-->
           <script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
           <link
@@ -61,6 +96,7 @@ hono.get('/index.html', (c) => {
           <div id="map" style="height: 100vh"></div>
           <script>
               const map = new maplibregl.Map({
+                  hash: true,
                   container: 'map', // container id
                   style: {
                       version: 8,
@@ -68,9 +104,8 @@ hono.get('/index.html', (c) => {
                           chiitiler: {
                               type: 'raster',
                               tiles: [
-                                  'http://localhost:3000/tiles/{z}/{x}/{y}/test10.png',
+                                  'http://localhost:3000/tiles/{z}/{x}/{y}.png?url=https://tile.openstreetmap.jp/styles/maptiler-toner-ja/style.json',
                               ],
-                              tileSize: 256,
                           },
                       },
                       layers: [
