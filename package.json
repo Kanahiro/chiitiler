@@ -17,11 +17,13 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@hono/node-server": "^1.1.1",
     "@mapbox/sphericalmercator": "^1.2.0",
     "@mapbox/tilebelt": "^1.0.2",
     "@maplibre/maplibre-gl-native": "^5.2.0",
     "@tsconfig/node18": "^18.2.1",
     "fast-png": "^6.2.0",
+    "hono": "^3.6.0",
     "sharp": "^0.32.5"
   }
 }
