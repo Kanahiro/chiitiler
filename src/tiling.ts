@@ -1,10 +1,13 @@
 /// <reference lib="dom" />
 // for using native fetch in TypeScript
 
-import mbgl from '@maplibre/maplibre-gl-native';
+import mbgl, { MapMode } from '@maplibre/maplibre-gl-native';
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
 import type { StyleSpecification } from 'maplibre-gl';
+
+import { getCache } from './cache.js';
+const cache = getCache('none');
 
 function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
@@ -15,8 +18,6 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const tileCenter = mercator.ll([px, py], z);
     return tileCenter;
 }
-
-const KV: Record<string, Buffer> = {};
 
 type GetRendererOptions = {
     tileSize: number;
@@ -62,8 +63,9 @@ function getRenderer(
         const map = new mbgl.Map({
             request: function (req, callback) {
                 // TODO: better Caching
-                if (KV[req.url]) {
-                    callback(undefined, { data: KV[req.url] });
+                const val = cache.get(req.url);
+                if (val !== undefined) {
+                    callback(undefined, { data: val as Buffer });
                     return;
                 }
 
@@ -71,8 +73,10 @@ function getRenderer(
                     .then((res) => {
                         if (res.status === 200) {
                             res.arrayBuffer().then((data: ArrayBuffer) => {
-                                KV[req.url] = Buffer.from(data);
-                                callback(undefined, { data: KV[req.url] });
+                                cache.set(req.url, Buffer.from(data));
+                                callback(undefined, {
+                                    data: Buffer.from(data),
+                                });
                             });
                         } else {
                             callback();
@@ -83,6 +87,7 @@ function getRenderer(
                     });
             },
             ratio: renderingParams.ratio,
+            mode: MapMode.Tile,
         });
 
         map.load(style);

@@ -3,14 +3,14 @@
   "name": "chiitiler",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "ts-node --esm ./test/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "tsc && node ./dist/server.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Kanahiro Iguchi",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.6.0",
     "maplibre-gl": "^3.3.1",

@@ -7,16 +7,16 @@ import sharp from 'sharp';
 import type { StyleSpecification } from 'maplibre-gl';
 
 import { getRenderer } from './tiling.js';
+import { getCache } from './cache.js';
+const cache = getCache('none');
 
 const hono = new Hono();
 
-let style: StyleSpecification;
-
-hono.get('/tiles/:z/:x/:y', async (c) => {
+hono.get('/tiles/:z/:x/:y_ext', async (c) => {
     // path params
     const z = Number(c.req.param('z'));
     const x = Number(c.req.param('x'));
-    let [_y, ext] = c.req.param('y').split('.');
+    let [_y, ext] = c.req.param('y_ext').split('.');
     const y = Number(_y);
 
     if (['png', 'jpg', 'webp'].indexOf(ext) === -1) {
@@ -28,20 +28,21 @@ hono.get('/tiles/:z/:x/:y', async (c) => {
     const useSymbol = c.req.query('useSymbol') ?? false;
     const url = c.req.query('url') ?? null;
 
-    if (style === null) {
-        return c.body('style is required', 400);
-    }
     if (url === null) {
         return c.body('url is required', 400);
     }
 
     // load style.json
-    if (!style) {
+    let style: StyleSpecification;
+    if (cache.get(url) === undefined) {
         style = await (await fetch(url)).json();
+        cache.set(url, JSON.stringify(style));
+    } else {
+        style = JSON.parse(cache.get(url) as string);
     }
 
     if (!useSymbol) {
-        // TODO: symbol-layerが厄介。タイルの切れ目で文字が切れたりする
+        // rendering symbol is very slow so provide option to disable it
         style = {
             ...style,
             layers: style.layers.filter((layer) => layer.type !== 'symbol'),
@@ -112,7 +113,7 @@ hono.get('/debug', (c) => {
                           chiitiler: {
                               type: 'raster',
                               tiles: [
-                                  'http://localhost:3000/tiles/{z}/{x}/{y}.png?url=https://tile.openstreetmap.jp/styles/maptiler-toner-ja/style.json',
+                                  'http://localhost:3000/tiles/{z}/{x}/{y}.png?&url=https://tile.openstreetmap.jp/styles/maptiler-basic-ja/style.json',
                               ],
                           },
                       },
