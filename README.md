@@ -12,3 +12,17 @@ chii-tiler
 ## status
 
 - this project is under development and experiment
+
+## usage
+
+```sh
+npm install
+npm run build
+npm start
+
+# then server will start
+# http://localhost:3000/debug
+```
+
+- You can pass style.json url:
+    - http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
