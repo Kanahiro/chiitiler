@@ -6,8 +6,8 @@ import mbgl, { MapMode } from '@maplibre/maplibre-gl-native';
 import SphericalMercator from '@mapbox/sphericalmercator';
 import type { StyleSpecification } from 'maplibre-gl';
 
-import { getCache } from './cache.js';
-const cache = getCache('none');
+import { getCache } from './cache/index.js';
+const cache = getCache('file');
 
 function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
@@ -63,28 +63,35 @@ function getRenderer(
         const map = new mbgl.Map({
             request: function (req, callback) {
                 // TODO: better Caching
-                const val = cache.get(req.url);
-                if (val !== undefined) {
-                    callback(undefined, { data: val as Buffer });
-                    return;
-                }
-
-                fetch(req.url)
-                    .then((res) => {
-                        if (res.status === 200) {
-                            res.arrayBuffer().then((data: ArrayBuffer) => {
-                                cache.set(req.url, Buffer.from(data));
-                                callback(undefined, {
-                                    data: Buffer.from(data),
-                                });
+                cache.get(req.url).then((val) => {
+                    if (val !== undefined) {
+                        // hit
+                        callback(undefined, { data: val as Buffer });
+                    } else {
+                        fetch(req.url)
+                            .then((res) => {
+                                if (res.status === 200) {
+                                    res.arrayBuffer().then(
+                                        (data: ArrayBuffer) => {
+                                            cache.set(
+                                                req.url,
+                                                Buffer.from(data),
+                                            );
+                                            callback(undefined, {
+                                                data: Buffer.from(data),
+                                            });
+                                        },
+                                    );
+                                } else {
+                                    // empty
+                                    callback();
+                                }
+                            })
+                            .catch((err: any) => {
+                                callback(err);
                             });
-                        } else {
-                            callback();
-                        }
-                    })
-                    .catch((err: any) => {
-                        callback(err);
-                    });
+                    }
+                });
             },
             ratio: renderingParams.ratio,
             mode: MapMode.Tile,
