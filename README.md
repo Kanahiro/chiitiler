@@ -17,7 +17,6 @@ chii-tiler
 
 ```sh
 npm install
-npm run build
 npm start
 
 # then server will start
