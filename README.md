@@ -18,18 +18,17 @@ chii-tiler
 ```sh
 npm install
 npm start
-
-# then server will start
-# http://localhost:3000/debug
+# running server: http://localhost:3000
+# debug page: http://localhost:3000/debug
 ```
 
 - You can pass style.json url:
     - http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 
 
-### Container Image (under development)
+### Container Image
 
 ```sh
 docker pull ghcr.io/kanahiro/chiitiler
-docker run -p 3000:3000 -v ./.cache:/app/.cache ./ghcr.io/kanahiro/chiitiler
+docker run -p 3000:3000 ./ghcr.io/kanahiro/chiitiler tile-server -D
 ```

@@ -2,11 +2,6 @@ name: Build and Deploy
 on:
     release:
         types: [created]
-    workflow_dispatch:
-        inputs:
-            tag:
-                description: 'Docker image tag'
-                required: true
 
 jobs:
     build:
@@ -24,4 +19,4 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: ghcr.io/kanahiro/chiitiler:${{ github.event.inputs.tag }}
+                  tags: ghcr.io/kanahiro/chiitiler:${{ github.event.release.tag_name }}
