@@ -4,21 +4,13 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y \
-  ccache \
-  cmake \
-  ninja-build \
-  pkg-config \
   xvfb \
   libcurl4-openssl-dev \
   libglfw3-dev \
   libuv1-dev \
-  g++-10 \
-  libc++-9-dev \
-  libc++abi-9-dev \
   libjpeg-dev \
   libpng-dev \
   libwebp-dev
-RUN /usr/sbin/update-ccache-symlinks
 
 # Install Node.js
 RUN apt-get install -y ca-certificates curl gnupg
@@ -41,5 +33,4 @@ ENV PORT=3000
 ENV READINESS_CHECK_PATH=/health
 
 # start server
-ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a $@", ""]
-CMD ["node", "./dist/main.js"]
+ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node ./dist/main.js $@", ""]
