@@ -11,6 +11,9 @@ import { getCache } from './cache/index.js';
 const cache = getCache('file');
 
 const hono = new Hono();
+hono.get('/health', (c) => {
+    return c.body('OK', 200);
+});
 
 hono.get('/tiles/:z/:x/:y_ext', async (c) => {
     // path params
@@ -35,6 +38,7 @@ hono.get('/tiles/:z/:x/:y_ext', async (c) => {
 
     // load style.json
     let style: StyleSpecification;
+
     const cachedStyle = await cache.get(url);
     if (cachedStyle === undefined) {
         const res = await fetch(url);

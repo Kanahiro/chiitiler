@@ -1,12 +1,15 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
     "start": "tsc && node ./dist/server.js"
+  },
+  "bin": {
+    "chiitiler": "./dist/server.js"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
