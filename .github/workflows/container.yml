@@ -24,4 +24,4 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: ghcr.io/Kanahiro/chiitiler:${{ github.event.inputs.tag }}
+                  tags: ghcr.io/kanahiro/chiitiler:${{ github.event.inputs.tag }}
