@@ -8,9 +8,12 @@ import type { StyleSpecification } from 'maplibre-gl';
 
 import { getRenderer } from './tiling.js';
 import { type Cache } from './cache/index.js';
+import { getDebugPage } from './debug.js';
 
 type InitServerOptions = {
     cache: Cache;
+    port: number;
+    debug: boolean;
 };
 
 function initServer(options: InitServerOptions) {
@@ -87,74 +90,12 @@ function initServer(options: InitServerOptions) {
         return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });
     });
 
-    hono.get('/debug', (c) => {
-        //demo tile
-        const url =
-            c.req.query('url') ?? 'https://demotiles.maplibre.org/style.json';
-
-        return c.html(`<!-- show tile in MapLibre GL JS-->
-    
-      <!DOCTYPE html>
-      <html>
-          <head>
-              <meta charset="utf-8" />
-              <title>MapLibre GL JS</title>
-              <!-- maplibre gl js-->
-              <script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
-              <link
-                  rel="stylesheet"
-                  href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css"
-              />
-              <style>
-                  body {
-                      margin: 0;
-                      padding: 0;
-                  }
-                  #map {
-                      position: absolute;
-                      top: 0;
-                      bottom: 0;
-                      width: 100%;
-                  }
-              </style>
-          </head>
-          <body>
-              <div id="map" style="height: 100vh"></div>
-              <script>
-                  const map = new maplibregl.Map({
-                      hash: true,
-                      container: 'map', // container id
-                      style: {
-                          version: 8,
-                          sources: {
-                              chiitiler: {
-                                  type: 'raster',
-                                  tiles: [
-                                      'http://localhost:3000/tiles/{z}/{x}/{y}.png?url=${url}',
-                                  ],
-                              }
-                          },
-                          layers: [
-                              {
-                                  id: 'chiitiler',
-                                  type: 'raster',
-                                  source: 'chiitiler',
-                                  minzoom: 0,
-                                  maxzoom: 22,
-                              }
-                          ],
-                      },
-                      center: [0, 0], // starting position [lng, lat]
-                      zoom: 1, // starting zoom
-                  });
-              </script>
-          </body>
-      </html>
-      `);
-    });
+    if (options.debug) {
+        hono.get('/debug', getDebugPage);
+    }
 
     return {
-        start: () => serve({ port: 3000, fetch: hono.fetch }),
+        start: () => serve({ port: options.port, fetch: hono.fetch }),
     };
 }
 
