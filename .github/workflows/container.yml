@@ -19,4 +19,4 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: ghcr.io/kanahiro/chiitiler:${{ github.event.release.tag_name }}
+                  tags: ghcr.io/kanahiro/chiitiler:${{ github.event.release.tag_name }}, ghcr.io/kanahiro/chiitiler:latest
