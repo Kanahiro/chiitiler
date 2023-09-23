@@ -6,7 +6,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "start": "tsc && node ./dist/server.js"
+    "start": "tsc && node ./dist/main.js"
   },
   "bin": {
     "chiitiler": "./dist/server.js"

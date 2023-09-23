@@ -33,6 +33,7 @@ WORKDIR /app/
 COPY package*.json /app/
 RUN npm install
 COPY . .
+RUN npm run build
 
 # Lambda WebAdapter
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.7.1 /lambda-adapter /opt/extensions/lambda-adapter
@@ -41,4 +42,4 @@ ENV READINESS_CHECK_PATH=/health
 
 # start server
 ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a $@", ""]
-CMD ["npm", "start"]
+CMD ["node", "./dist/main.js"]

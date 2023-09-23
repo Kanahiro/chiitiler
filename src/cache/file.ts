@@ -31,6 +31,8 @@ type fileCacheOptions = {
     dir: string;
 };
 const fileCache: (options: fileCacheOptions) => Cache = function (options) {
+    // mkdir
+    if (!fs.existsSync(options.dir)) fs.mkdirSync(options.dir);
     return {
         set: async function (key: string, value: Value) {
             // write file

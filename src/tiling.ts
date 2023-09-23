@@ -6,8 +6,7 @@ import mbgl, { MapMode } from '@maplibre/maplibre-gl-native';
 import SphericalMercator from '@mapbox/sphericalmercator';
 import type { StyleSpecification } from 'maplibre-gl';
 
-import { getCache } from './cache/index.js';
-const cache = getCache('file');
+import type { Cache } from './cache/index.js';
 
 function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
@@ -21,11 +20,12 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
 
 type GetRendererOptions = {
     tileSize: number;
+    cache: Cache;
 };
 
 function getRenderer(
     style: StyleSpecification,
-    options: GetRendererOptions = { tileSize: 256 },
+    options: GetRendererOptions,
 ): {
     render: (
         z: number,
@@ -62,35 +62,29 @@ function getRenderer(
 
         const map = new mbgl.Map({
             request: function (req, callback) {
-                // TODO: better Caching
-                cache.get(req.url).then((val) => {
+                options.cache.get(req.url).then((val) => {
                     if (val !== undefined) {
                         // hit
                         callback(undefined, { data: val as Buffer });
-                    } else {
-                        fetch(req.url)
-                            .then((res) => {
-                                if (res.status === 200) {
-                                    res.arrayBuffer().then(
-                                        (data: ArrayBuffer) => {
-                                            cache.set(
-                                                req.url,
-                                                Buffer.from(data),
-                                            );
-                                            callback(undefined, {
-                                                data: Buffer.from(data),
-                                            });
-                                        },
-                                    );
-                                } else {
-                                    // empty
-                                    callback();
-                                }
-                            })
-                            .catch((err: any) => {
-                                callback(err);
-                            });
+                        return;
                     }
+                    // miss
+                    fetch(req.url)
+                        .then((res) => {
+                            if (res.status === 200) {
+                                res.arrayBuffer().then((data: ArrayBuffer) => {
+                                    const buf = Buffer.from(data);
+                                    callback(undefined, { data: buf });
+                                    options.cache.set(req.url, buf);
+                                });
+                            } else {
+                                // empty data
+                                callback();
+                            }
+                        })
+                        .catch((err: any) => {
+                            callback(err);
+                        });
                 });
             },
             ratio: renderingParams.ratio,

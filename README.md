@@ -25,3 +25,11 @@ npm start
 
 - You can pass style.json url:
     - http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
+
+
+### Container Image (under development)
+
+```sh
+docker pull ghcr.io/kanahiro/chiitiler
+docker run -p 3000:3000 -v ./.cache:/app/.cache ./ghcr.io/kanahiro/chiitiler
+```
