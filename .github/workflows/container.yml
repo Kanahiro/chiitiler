@@ -14,9 +14,15 @@ jobs:
                   registry: ghcr.io
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
-            - name: Docker のビルドと push
-              uses: docker/build-push-action@v2.9.0
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v2
+            - name: Build and push Docker image
+              id: build-and-push
+              uses: docker/build-push-action@v5
               with:
                   context: .
                   push: true
                   tags: ghcr.io/kanahiro/chiitiler:${{ github.event.release.tag_name }}, ghcr.io/kanahiro/chiitiler:latest
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+                  platforms: linux/amd64,linux/arm64
