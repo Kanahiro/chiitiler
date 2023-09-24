@@ -7,6 +7,7 @@ import SphericalMercator from '@mapbox/sphericalmercator';
 import type { StyleSpecification } from 'maplibre-gl';
 
 import type { Cache } from './cache/index.js';
+import { getSource } from './source/index.js';
 
 function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
@@ -69,18 +70,14 @@ function getRenderer(
                         return;
                     }
                     // miss
-                    fetch(req.url)
-                        .then((res) => {
-                            if (res.status === 200) {
-                                res.arrayBuffer().then((data: ArrayBuffer) => {
-                                    const buf = Buffer.from(data);
-                                    callback(undefined, { data: buf });
-                                    options.cache.set(req.url, buf);
-                                });
-                            } else {
-                                // empty data
+                    getSource(req.url)
+                        .then((buf) => {
+                            if (buf === null) {
                                 callback();
+                                return;
                             }
+                            callback(undefined, { data: buf });
+                            options.cache.set(req.url, buf);
                         })
                         .catch((err: any) => {
                             callback(err);

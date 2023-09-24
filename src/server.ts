@@ -9,6 +9,7 @@ import type { StyleSpecification } from 'maplibre-gl';
 import { getRenderer } from './tiling.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
+import { getSource } from './source.js';
 
 type InitServerOptions = {
     cache: Cache;
@@ -43,8 +44,9 @@ function initServer(options: InitServerOptions) {
 
         const cachedStyle = await options.cache.get(url);
         if (cachedStyle === undefined) {
-            const res = await fetch(url);
-            style = await res.json();
+            const buf = await getSource(url);
+            if (buf === null) return c.body('Invalid url', 400);
+            style = (await JSON.parse(buf.toString())) as StyleSpecification;
             options.cache.set(url, Buffer.from(JSON.stringify(style)));
         } else {
             style = (await JSON.parse(
@@ -90,9 +92,7 @@ function initServer(options: InitServerOptions) {
         return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });
     });
 
-    if (options.debug) {
-        hono.get('/debug', getDebugPage);
-    }
+    if (options.debug) hono.get('/debug', getDebugPage);
 
     return {
         start: () => serve({ port: options.port, fetch: hono.fetch }),
