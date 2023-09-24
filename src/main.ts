@@ -5,14 +5,20 @@ import { noneCache, memoryCache, fileCache, s3Cache } from './cache/index.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3',
-    options: { fileCacheDir?: string; s3CacheBucket?: string },
+    options: {
+        fileCacheDir: string;
+        s3CacheBucket: string;
+        s3CacheRegion: string;
+    },
 ) {
     // command-line option
     if (method === 'memory') return memoryCache();
-    if (method === 'file')
-        return fileCache({ dir: options.fileCacheDir ?? './.cache' });
+    if (method === 'file') return fileCache({ dir: options.fileCacheDir });
     if (method === 's3')
-        return s3Cache({ bucket: options.s3CacheBucket ?? '' });
+        return s3Cache({
+            bucket: options.s3CacheBucket,
+            region: options.s3CacheRegion,
+        });
 
     // command-line is not specified -> try to read from env
     const cacheEnv = process.env.CHIITILER_CACHE_METHOD;
@@ -22,7 +28,10 @@ function parseCacheStrategy(
             dir: process.env.CHIITILER_CACHE_FILECACHE_DIR ?? './.cache',
         });
     if (cacheEnv === 's3')
-        return s3Cache({ bucket: process.env.CHIITILER_CACHE_S3BUCKET ?? '' });
+        return s3Cache({
+            bucket: process.env.CHIITILER_CACHE_S3CACHE_BUCKET ?? '',
+            region: process.env.CHIITILER_CACHE_S3CACHE_REGION ?? 'us-east1',
+        });
 
     // undefined or invalid
     return noneCache();
@@ -55,7 +64,13 @@ function parseDebug(debug: boolean) {
 program
     .command('tile-server')
     .option('-c, --cache <type>', 'cache type', 'none')
-    .option('-cd --file-cache-dir <dir>', 'file cache directory', './.cache')
+    .option('-fcd --file-cache-dir <dir>', 'file cache directory', './.cache')
+    .option(
+        '-s3r --s3-cache-region <region-name>',
+        's3 cache bucket region',
+        'us-east1',
+    )
+    .option('-s3b --s3-cache-bucket <bucket-name>', 's3 cache bucket name', '')
     .option('-p --port <port>', 'port number', '3000')
     .option('-D --debug', 'debug mode')
     .action((options) => {
@@ -66,7 +81,7 @@ program
         };
 
         console.log(`running server: http://localhost:${serverOptions.port}`);
-        console.log(`cache method: ${serverOptions.cache}`);
+        console.log(`cache method: ${serverOptions.cache.name}`);
         if (serverOptions.debug)
             console.log(
                 `debug page: http://localhost:${serverOptions.port}/debug`,

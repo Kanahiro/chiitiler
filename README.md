@@ -17,6 +17,8 @@ chii-tiler
 
 ### Local
 
+- Node.js v18
+
 ```sh
 npm install
 npm run build
