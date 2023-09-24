@@ -4,15 +4,27 @@ import { initServer, type InitServerOptions } from './server.js';
 import { noneCache, memoryCache, fileCache, s3Cache } from './cache/index.js';
 
 function parseCacheStrategy(
-    strategy: 'none' | 'memory' | 'file' | 's3',
+    method: 'none' | 'memory' | 'file' | 's3',
     options: { fileCacheDir?: string },
 ) {
-    if (strategy === 'memory') return memoryCache();
-    if (strategy === 'file')
+    // command-line option
+    if (method === 'memory') return memoryCache();
+    if (method === 'file')
         return fileCache({ dir: options.fileCacheDir ?? './.cache' });
 
-    if (strategy === 's3') return s3Cache({ bucket: '' });
+    if (method === 's3') return s3Cache({ bucket: '' });
 
+    // command-line is not specified -> try to read from env
+    const cacheEnv = process.env.CHIITILER_CACHE_METHOD;
+    if (cacheEnv === 'memory') return memoryCache();
+    if (cacheEnv === 'file')
+        return fileCache({
+            dir: process.env.CHIITILER_CACHE_FILECACHE_DIR ?? './.cache',
+        });
+    if (cacheEnv === 's3')
+        return s3Cache({ bucket: process.env.CHIITILER_CACHE_S3BUCKET ?? '' });
+
+    // undefined or invalid
     return noneCache();
 }
 
