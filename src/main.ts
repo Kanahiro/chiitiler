@@ -5,14 +5,14 @@ import { noneCache, memoryCache, fileCache, s3Cache } from './cache/index.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3',
-    options: { fileCacheDir?: string },
+    options: { fileCacheDir?: string; s3CacheBucket?: string },
 ) {
     // command-line option
     if (method === 'memory') return memoryCache();
     if (method === 'file')
         return fileCache({ dir: options.fileCacheDir ?? './.cache' });
-
-    if (method === 's3') return s3Cache({ bucket: '' });
+    if (method === 's3')
+        return s3Cache({ bucket: options.s3CacheBucket ?? '' });
 
     // command-line is not specified -> try to read from env
     const cacheEnv = process.env.CHIITILER_CACHE_METHOD;
