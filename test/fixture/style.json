@@ -1,0 +1,24 @@
+{
+  "version": 8,
+  "glyphs": "https://tile.openstreetmap.jp/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "static": {
+      "type": "vector",
+      "tiles": [
+        "mbtiles://./test/fixture/points.mbtiles/{z}/{x}/{y}"
+      ]
+    }
+  },
+  "layers": [
+    {
+      "id": "static",
+      "type": "circle",
+      "source": "static",
+      "source-layer": "P2921",
+      "paint": {
+        "circle-radius": 5,
+        "circle-color": "red"
+      }
+    }
+  ]
+}

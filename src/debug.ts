@@ -1,6 +1,7 @@
 import { Context } from 'hono';
+import { StyleSpecification } from 'maplibre-gl';
 
-export function getDebugPage(c: Context) {
+function getDebugPage(c: Context) {
     //demo tile
     const url =
         c.req.query('url') ?? 'https://demotiles.maplibre.org/style.json';
@@ -64,3 +65,5 @@ export function getDebugPage(c: Context) {
         </body>
     </html>`);
 }
+
+export { getDebugPage };

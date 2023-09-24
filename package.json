@@ -24,6 +24,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.418.0",
     "@hono/node-server": "^1.1.1",
+    "@mapbox/mbtiles": "^0.12.1",
     "@mapbox/sphericalmercator": "^1.2.0",
     "@mapbox/tilebelt": "^1.0.2",
     "@maplibre/maplibre-gl-native": "^5.2.0",
