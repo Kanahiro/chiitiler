@@ -29,7 +29,7 @@ async function getSource(uri: string): Promise<Buffer | null> {
         const mbtilesPath = uri
             .replace('mbtiles://', '')
             .replace(/\/\d+\/\d+\/\d+$/, '');
-        const [z, x, y] = mbtilesPath.split('/').slice(-3).map(Number);
+        const [z, x, y] = uri.replace('mbtiles://', '').split('/').slice(-3);
 
         return new Promise((resolve, reject) => {
             new MBTiles(`${mbtilesPath}?mode=ro`, (err: any, mbtiles: any) => {
@@ -38,6 +38,7 @@ async function getSource(uri: string): Promise<Buffer | null> {
                     x,
                     y,
                     (err: any, tile: any, headers: any) => {
+                        console.log(x, y, z, tile);
                         if (err) reject(err);
                         if (tile === undefined) {
                             resolve(null);
