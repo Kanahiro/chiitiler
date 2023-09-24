@@ -28,6 +28,30 @@ function parseCacheStrategy(
     return noneCache();
 }
 
+function parsePort(port: string) {
+    // command-line option
+    if (port !== undefined) return Number(port);
+
+    // command-line is not specified -> try to read from env
+    const portEnv = process.env.CHIITILER_PORT;
+    if (portEnv !== undefined) return Number(portEnv);
+
+    // undefined or invalid
+    return 3000;
+}
+
+function parseDebug(debug: boolean) {
+    // command-line option
+    if (debug) return true;
+
+    // command-line is not specified or false -> try to read from env
+    const debugEnv = process.env.CHIITILER_DEBUG;
+    if (debugEnv !== undefined) return debugEnv === 'true';
+
+    // undefined or invalid
+    return false;
+}
+
 program
     .command('tile-server')
     .option('-c, --cache <type>', 'cache type', 'none')
@@ -37,13 +61,16 @@ program
     .action((options) => {
         const serverOptions: InitServerOptions = {
             cache: parseCacheStrategy(options.cache, options),
-            port: Number(options.port),
-            debug: options.debug,
+            port: parsePort(options.port),
+            debug: parseDebug(options.debug),
         };
 
-        console.log(`running server: http://localhost:${options.port}`);
-        if (options.debug)
-            console.log(`debug page: http://localhost:${options.port}/debug`);
+        console.log(`running server: http://localhost:${serverOptions.port}`);
+        console.log(`cache method: ${serverOptions.cache}`);
+        if (serverOptions.debug)
+            console.log(
+                `debug page: http://localhost:${serverOptions.port}/debug`,
+            );
 
         const { start } = initServer(serverOptions);
         start();

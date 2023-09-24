@@ -15,13 +15,33 @@ chii-tiler
 
 ## usage
 
+### Local
+
 ```sh
 npm install
-npm start
+npm run build
+node dist/main.js tile-server
+# running server: http://localhost:3000
+
+# develop
+npm start # tsc && node dist/main.js tiler-server -D
 # running server: http://localhost:3000
 # debug page: http://localhost:3000/debug
 ```
 
+#### options
+
+```sh
+node dist/main.js tile-server -p 8000 -c file -cd cachedir -D
+# -p: port number
+# -c: cache method
+# -cd: cache directory
+# -D: debug mode
+```
+
+#### debug page
+
+- in debug mode, you can access debug page: http://localhost:3000/debug
 - You can pass style.json url:
     - http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 
@@ -30,5 +50,17 @@ npm start
 
 ```sh
 docker pull ghcr.io/kanahiro/chiitiler
-docker run -p 3000:3000 ./ghcr.io/kanahiro/chiitiler tile-server -D
+docker run -p 3000:3000 ghcr.io/kanahiro/chiitiler # -> chiitiler tile-server
 ```
+
+#### Environment Variables
+
+you can pass server options via environment variables
+
+| env var | default | description |
+| --- | --- | --- |
+| CHIITILER_PORT | 3000 | port number |
+| CHIITILER_DEBUG | false | debug mode |
+| CHIITILER_CACHE_METHOD | none | cache method |
+| CHIITILER_CACHE_FILECACHE_DIR | .cache | filecache directory |
+| CHIITILER_CACHE_S3CACHE_BUCKET |  | s3cache bucket name |

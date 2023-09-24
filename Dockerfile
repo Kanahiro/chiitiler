@@ -34,3 +34,4 @@ ENV READINESS_CHECK_PATH=/health
 
 # start server
 ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node ./dist/main.js $@", ""]
+CMD ["tile-server"]
