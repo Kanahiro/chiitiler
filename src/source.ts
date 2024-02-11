@@ -38,7 +38,6 @@ async function getSource(uri: string): Promise<Buffer | null> {
                     x,
                     y,
                     (err: any, tile: any, headers: any) => {
-                        console.log(x, y, z, tile);
                         if (err) reject(err);
                         if (tile === undefined) {
                             resolve(null);
