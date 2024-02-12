@@ -6,18 +6,18 @@ chii-tiler
 
 ## motivation
 
-- In this type of server, there is a de-facto - [maptiler/tileserver-gl](https://github.com/maptiler/tileserver-gl), but this is too big for me.
-- I want a server accept style.json-url and respond raster tile, inspired by [developmentseed/titiler](https://github.com/developmentseed/titiler)
+-   In this type of server, there is a de-facto - [maptiler/tileserver-gl](https://github.com/maptiler/tileserver-gl), but this is too big for me.
+-   I want a server accept style.json-url and respond raster tile, inspired by [developmentseed/titiler](https://github.com/developmentseed/titiler)
 
 ## status
 
-- this project is under development and experiment
+-   this project is under development and experiment
 
 ## usage
 
 ### Local
 
-- Node.js v18 or v20
+-   Node.js v18 or v20
 
 ```sh
 npm install
@@ -26,7 +26,7 @@ node dist/main.js tile-server
 # running server: http://localhost:3000
 
 # develop
-npm start
+npm run dev
 # running server: http://localhost:3000
 # debug page: http://localhost:3000/debug
 ```
@@ -47,9 +47,9 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 
 #### debug page
 
-- in debug mode, you can access debug page: http://localhost:3000/debug
-- You can pass style.json url:
-  - http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
+-   in debug mode, you can access debug page: http://localhost:3000/debug
+-   You can pass style.json url:
+    -   http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 
 ### Container Image
 
@@ -62,15 +62,15 @@ docker run -p 3000:3000 ghcr.io/kanahiro/chiitiler # -> chiitiler tile-server
 
 you can pass server options via environment variables
 
-| env var                        | default  | description           |
-| ------------------------------ | -------- | --------------------- |
-| CHIITILER_PORT                 | 3000     | port number           |
-| CHIITILER_DEBUG                | false    | debug mode            |
-| CHIITILER_CACHE_METHOD         | none     | cache method          |
-| CHIITILER_CACHE_FILECACHE_DIR  | .cache   | filecache directory   |
-| CHIITILER_CACHE_S3CACHE_BUCKET |          | s3cache bucket name   |
-| CHIITILER_CACHE_S3CACHE_REGION | us-east1 | s3cache bucket region |
+| env var                        | default  | description                                    |
+| ------------------------------ | -------- | ---------------------------------------------- |
+| CHIITILER_PORT                 | 3000     | port number                                    |
+| CHIITILER_DEBUG                | false    | debug mode                                     |
+| CHIITILER_CACHE_METHOD         | none     | cache method, `none`, `memory`, `file` or `s3` |
+| CHIITILER_CACHE_FILECACHE_DIR  | .cache   | filecache directory                            |
+| CHIITILER_CACHE_S3CACHE_BUCKET |          | s3cache bucket name                            |
+| CHIITILER_CACHE_S3CACHE_REGION | us-east1 | s3cache bucket region                          |
 
 ## development
 
-- to develop, all you need is run `docker compose up`
+-   to develop, all you need is run `docker compose up`
