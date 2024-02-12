@@ -1,4 +1,16 @@
 services:
+    app:
+        build: ./
+        volumes:
+            - ./:/app
+        ports:
+            - 3000:3000
+        entrypoint: /bin/sh
+        command:
+            - -c
+            - |
+                npm install
+                /usr/bin/xvfb-run -a npm run dev
     minio:
         image: minio/minio:latest
         ports:

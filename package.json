@@ -6,7 +6,8 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "tsc && node ./dist/main.js tile-server -D"
+    "dev": "tsx watch src/main.ts tile-server -D --cache file",
+    "start": "tsc && node ./dist/main.js tile-server"
   },
   "bin": {
     "chiitiler": "./dist/server.js"
@@ -19,6 +20,7 @@
     "@types/node": "^20.6.0",
     "maplibre-gl": "^3.3.1",
     "ts-node": "^10.9.1",
+    "tsx": "^4.7.1",
     "typescript": "^5.2.2"
   },
   "dependencies": {
@@ -27,7 +29,7 @@
     "@mapbox/mbtiles": "^0.12.1",
     "@mapbox/sphericalmercator": "^1.2.0",
     "@mapbox/tilebelt": "^1.0.2",
-    "@maplibre/maplibre-gl-native": "^5.2.0",
+    "@maplibre/maplibre-gl-native": "^5.3.0",
     "commander": "^11.0.0",
     "hono": "^3.6.0",
     "sharp": "^0.32.5"
