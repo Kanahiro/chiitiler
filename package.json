@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/main.ts tile-server -D --cache file",
+    "dev": "tsx watch src/main.ts tile-server -D",
     "start": "tsc && node ./dist/main.js tile-server"
   },
   "bin": {

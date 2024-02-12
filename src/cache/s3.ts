@@ -17,12 +17,16 @@ function s3Cache(options: S3CacheOptions): Cache {
     return {
         name: 's3',
         set: async function (key: string, value: Value) {
-            const cmd = new PutObjectCommand({
-                Bucket: options.bucket,
-                Key: escapeFileName(key),
-                Body: value,
-            });
-            await s3Client.send(cmd);
+            try {
+                const cmd = new PutObjectCommand({
+                    Bucket: options.bucket,
+                    Key: escapeFileName(key),
+                    Body: value,
+                });
+                await s3Client.send(cmd);
+            } catch (e) {
+                console.log(`[error]: ${e}`);
+            }
         },
         get: async function (key: string): Promise<Value | undefined> {
             const cmd = new GetObjectCommand({
@@ -52,7 +56,7 @@ const getS3Client = function (options: S3CacheOptions) {
                 secretAccessKey: 'minioadmin',
             },
             forcePathStyle: true, // special option for minio
-            endpoint: 'http://localhost:9000',
+            endpoint: 'http://minio:9000',
         };
     }
     const s3Client = new S3Client(s3ClientConfig);

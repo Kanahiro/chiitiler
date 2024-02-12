@@ -11,6 +11,11 @@ services:
             - |
                 npm install
                 /usr/bin/xvfb-run -a npm run dev
+        environment:
+            - NODE_ENV=development
+            - CHIITILER_CACHE_METHOD=s3
+            - CHIITILER_CACHE_S3CACHE_BUCKET=chiitiler
+            - CHIITILER_CACHE_S3CACHE_REGION=ap-northeast-1
     minio:
         image: minio/minio:latest
         ports:
@@ -26,3 +31,11 @@ services:
             interval: 1s
             timeout: 20s
             retries: 3
+    createbuckets:
+        image: minio/mc:RELEASE.2022-12-24T15-21-38Z
+        depends_on:
+            - minio
+        entrypoint: >
+            /bin/sh -c "
+            mc alias set myminio http://minio:9000 minioadmin minioadmin;
+            mc mb myminio/chiitiler;"
