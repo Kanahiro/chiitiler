@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 // for using native fetch in TypeScript
 
-import mbgl, { MapMode } from '@maplibre/maplibre-gl-native';
+import mbgl from '@maplibre/maplibre-gl-native';
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
 import type { StyleSpecification } from 'maplibre-gl';
@@ -85,7 +85,8 @@ function getRenderer(
                 });
             },
             ratio: renderingParams.ratio,
-            mode: MapMode.Tile,
+            // @ts-ignore
+            mode: 'tile',
         });
 
         map.load(style);

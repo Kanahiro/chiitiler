@@ -12,9 +12,9 @@ async function getSource(uri: string): Promise<Buffer | null> {
         return Buffer.from(await res.arrayBuffer());
     }
 
-    if (uri.startsWith('file://')) {
+    if (uri.startsWith('file:///')) {
         return new Promise((resolve, reject) => {
-            fs.readFile(uri.replace('file://', ''), (err, data) => {
+            fs.readFile(uri.replace('file:///', ''), (err, data) => {
                 if (err) reject(err);
                 resolve(data);
             });
@@ -38,7 +38,6 @@ async function getSource(uri: string): Promise<Buffer | null> {
                     x,
                     y,
                     (err: any, tile: any, headers: any) => {
-                        console.log(x, y, z, tile);
                         if (err) reject(err);
                         if (tile === undefined) {
                             resolve(null);
