@@ -24,6 +24,8 @@ type GetRendererOptions = {
     cache: Cache;
 };
 
+const mapDict = {};
+
 function getRenderer(
     style: StyleSpecification,
     options: GetRendererOptions,
@@ -61,35 +63,37 @@ function getRenderer(
                       ratio: 1,
                   };
 
-        const map = new mbgl.Map({
-            request: function (req, callback) {
-                options.cache.get(req.url).then((val) => {
-                    if (val !== undefined) {
-                        // hit
-                        callback(undefined, { data: val as Buffer });
-                        return;
-                    }
-                    // miss
-                    getSource(req.url)
-                        .then((buf) => {
-                            if (buf === null) {
-                                callback();
-                                return;
-                            }
-                            callback(undefined, { data: buf });
-                            options.cache.set(req.url, buf);
-                        })
-                        .catch((err: any) => {
-                            callback(err);
-                        });
-                });
-            },
-            ratio: renderingParams.ratio,
-            // @ts-ignore
-            mode: 'tile',
-        });
-
-        map.load(style);
+        const styleJson = JSON.stringify(style);
+        if (mapDict[styleJson] === undefined) {
+            mapDict[styleJson] = new mbgl.Map({
+                request: function (req, callback) {
+                    options.cache.get(req.url).then((val) => {
+                        if (val !== undefined) {
+                            // hit
+                            callback(undefined, { data: val as Buffer });
+                            return;
+                        }
+                        // miss
+                        getSource(req.url)
+                            .then((buf) => {
+                                if (buf === null) {
+                                    callback();
+                                    return;
+                                }
+                                callback(undefined, { data: buf });
+                                options.cache.set(req.url, buf);
+                            })
+                            .catch((err: any) => {
+                                callback(err);
+                            });
+                    });
+                },
+                ratio: renderingParams.ratio,
+                // @ts-ignore
+                mode: 'tile',
+            });
+            mapDict[styleJson].load(style);
+        }
 
         const renderOptions = {
             zoom: renderingParams.zoom,
@@ -98,13 +102,14 @@ function getRenderer(
             center: getTileCenter(z, x, y, options.tileSize),
         };
 
-        return new Promise((resolve, reject) => {
-            map.render(renderOptions, function (err, buffer) {
+        const render: Promise<Uint8Array> = new Promise((resolve, reject) => {
+            mapDict[styleJson].render(renderOptions, function (err, buffer) {
                 if (err) reject(err);
                 resolve(buffer);
-                map.release();
             });
         });
+
+        return render;
     };
 
     return {
@@ -112,4 +117,4 @@ function getRenderer(
     };
 }
 
-export { getRenderer };
+export { getRenderer, renderPool };
