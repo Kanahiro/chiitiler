@@ -24,7 +24,7 @@ type GetRendererOptions = {
     cache: Cache;
 };
 
-const mapDict = {};
+const mapDict: Record<string, any> = {};
 
 function getRenderer(
     style: StyleSpecification,
@@ -103,10 +103,13 @@ function getRenderer(
         };
 
         const render: Promise<Uint8Array> = new Promise((resolve, reject) => {
-            mapDict[styleJson].render(renderOptions, function (err, buffer) {
-                if (err) reject(err);
-                resolve(buffer);
-            });
+            mapDict[styleJson].render(
+                renderOptions,
+                function (err: any, buffer: Uint8Array) {
+                    if (err) reject(err);
+                    resolve(buffer);
+                },
+            );
         });
 
         return render;
@@ -117,4 +120,4 @@ function getRenderer(
     };
 }
 
-export { getRenderer, renderPool };
+export { getRenderer };
