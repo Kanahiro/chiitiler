@@ -25,7 +25,6 @@ type GetRendererOptions = {
 };
 
 const mapDict = {};
-const renderPool: Array<Promise<void>> = [];
 
 function getRenderer(
     style: StyleSpecification,
