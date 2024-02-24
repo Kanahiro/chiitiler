@@ -33,8 +33,6 @@ function initServer(options: InitServerOptions) {
 
         // query params
         const tileSize = Number(c.req.query('tileSize') ?? 512);
-        const noSymbol = c.req.query('noSymbol') ?? false; // rendering symbol is very slow so provide option to disable it
-        const onlySymbol = c.req.query('onlySymbol') ?? false;
         const url = c.req.query('url') ?? null;
 
         if (url === null) return c.body('url is required', 400);
@@ -52,18 +50,6 @@ function initServer(options: InitServerOptions) {
             style = (await JSON.parse(
                 cachedStyle.toString(),
             )) as StyleSpecification;
-        }
-
-        if (noSymbol) {
-            style = {
-                ...style,
-                layers: style.layers.filter((layer) => layer.type !== 'symbol'),
-            };
-        } else if (onlySymbol) {
-            style = {
-                ...style,
-                layers: style.layers.filter((layer) => layer.type === 'symbol'),
-            };
         }
 
         const { render } = getRenderer(style, {
