@@ -26,11 +26,9 @@ async function getSource(uri: string): Promise<Buffer | null> {
             Key: key,
         });
         try {
-            console.log(uri);
             const obj = await s3Client.send(cmd);
             if (obj.Body === undefined) return null;
             const buf = Buffer.from(await obj.Body.transformToByteArray());
-            console.log(buf);
             return buf;
         } catch (e) {
             console.log(e);
