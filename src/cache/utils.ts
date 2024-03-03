@@ -1,6 +1,5 @@
 function escapeFileName(url: string) {
     return url
-        .replace(/https?:\/\//, '') // remove protocol
         .replace(/\//g, '_') // replace slashes with underscores
         .replace(/\?/g, '-') // replace question marks with dashes
         .replace(/&/g, '-') // replace ampersands with dashes
