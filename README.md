@@ -9,10 +9,6 @@ chii-tiler
 -   In this type of server, there is a de-facto - [maptiler/tileserver-gl](https://github.com/maptiler/tileserver-gl), but this is too big for me.
 -   I want a server accept style.json-url and respond raster tile, inspired by [developmentseed/titiler](https://github.com/developmentseed/titiler)
 
-## status
-
--   this project is under development and experiment
-
 ## usage
 
 ### Local
@@ -57,6 +53,8 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 docker pull ghcr.io/kanahiro/chiitiler
 docker run -p 3000:3000 ghcr.io/kanahiro/chiitiler # -> chiitiler tile-server
 docker run -p 8000:8000 ghcr.io/kanahiro/chiitiler tile-server -p 8000 -c s3 -s3b bucketname -s3r ap-northeast-1
+# http://localhost:3000/debug
+# http://localhost:3000/debug?url=s3://tiles/style.json
 ```
 
 #### Environment Variables
@@ -70,7 +68,7 @@ you can pass server options via environment variables
 | CHIITILER_CACHE_METHOD         | none     | cache method, `none`, `memory`, `file` or `s3` |
 | CHIITILER_CACHE_FILECACHE_DIR  | .cache   | filecache directory                            |
 | CHIITILER_CACHE_S3CACHE_BUCKET |          | s3cache bucket name                            |
-| CHIITILER_CACHE_S3CACHE_REGION | us-east1 | s3cache bucket region                          |
+| CHIITILER_S3_REGION            | us-east1 | s3 bucket region for get/put                   |
 
 ## development
 

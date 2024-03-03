@@ -37,20 +37,10 @@ function initServer(options: InitServerOptions) {
 
         if (url === null) return c.body('url is required', 400);
 
-        // load style.json
-        let style: StyleSpecification;
-
-        const cachedStyle = await options.cache.get(url);
-        if (cachedStyle === undefined) {
-            const buf = await getSource(url);
-            if (buf === null) return c.body('Invalid url', 400);
-            style = (await JSON.parse(buf.toString())) as StyleSpecification;
-            options.cache.set(url, Buffer.from(JSON.stringify(style)));
-        } else {
-            style = (await JSON.parse(
-                cachedStyle.toString(),
-            )) as StyleSpecification;
-        }
+        // load style.json, without cache
+        const buf = await getSource(url);
+        if (buf === null) return c.body('Invalid url', 400);
+        const style = (await JSON.parse(buf.toString())) as StyleSpecification;
 
         const { render } = getRenderer(style, {
             tileSize,
