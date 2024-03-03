@@ -5,6 +5,7 @@ import mbgl from '@maplibre/maplibre-gl-native';
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
 import type { StyleSpecification } from 'maplibre-gl';
+import genericPool from 'generic-pool';
 
 import type { Cache } from './cache/index.js';
 import { getSource } from './source.js';
@@ -24,7 +25,8 @@ type GetRendererOptions = {
     cache: Cache;
 };
 
-const mapDict: Record<string, any> = {};
+// key:value = styleJsonString:Pooled Map Instance
+const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
 
 function getRenderer(
     style: StyleSpecification,
@@ -64,35 +66,48 @@ function getRenderer(
                   };
 
         const styleJson = JSON.stringify(style);
-        if (mapDict[styleJson] === undefined) {
-            mapDict[styleJson] = new mbgl.Map({
-                request: function (req, callback) {
-                    options.cache.get(req.url).then((val) => {
-                        if (val !== undefined) {
-                            // hit
-                            callback(undefined, { data: val as Buffer });
-                            return;
-                        }
-                        // miss
-                        getSource(req.url)
-                            .then((buf) => {
-                                if (buf === null) {
-                                    callback();
+        if (mapPoolDict[styleJson] === undefined) {
+            // MapLibre Native Instance can render only ONE Image simultaneously
+            // Then we need to create a pool of Instances
+            const pool = genericPool.createPool({
+                create: async () => {
+                    const map = new mbgl.Map({
+                        request: function (req, callback) {
+                            options.cache.get(req.url).then((val) => {
+                                if (val !== undefined) {
+                                    // hit
+                                    callback(undefined, {
+                                        data: val as Buffer,
+                                    });
                                     return;
                                 }
-                                callback(undefined, { data: buf });
-                                options.cache.set(req.url, buf);
-                            })
-                            .catch((err: any) => {
-                                callback(err);
+                                // miss
+                                getSource(req.url)
+                                    .then((buf) => {
+                                        if (buf === null) {
+                                            callback();
+                                            return;
+                                        }
+                                        callback(undefined, { data: buf });
+                                        options.cache.set(req.url, buf);
+                                    })
+                                    .catch((err: any) => {
+                                        callback(err);
+                                    });
                             });
+                        },
+                        ratio: renderingParams.ratio,
+                        // @ts-ignore
+                        mode: 'tile',
                     });
+                    map.load(style);
+                    return map;
                 },
-                ratio: renderingParams.ratio,
-                // @ts-ignore
-                mode: 'tile',
+                destroy: async (map: mbgl.Map) => {
+                    map.release();
+                },
             });
-            mapDict[styleJson].load(style);
+            mapPoolDict[styleJson] = pool;
         }
 
         const renderOptions = {
@@ -103,12 +118,22 @@ function getRenderer(
         };
 
         const render: Promise<Uint8Array> = new Promise((resolve, reject) => {
-            mapDict[styleJson].render(
-                renderOptions,
-                function (err: any, buffer: Uint8Array) {
-                    if (err) reject(err);
-                    resolve(buffer);
-                },
+            mapPoolDict[styleJson].acquire().then((map) =>
+                map.render(
+                    renderOptions,
+                    function (err: any, buffer: Uint8Array | undefined) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        if (buffer === undefined) {
+                            reject('buffer is undefined');
+                            return;
+                        }
+                        resolve(buffer);
+                        mapPoolDict[styleJson].release(map);
+                    },
+                ),
             );
         });
 
