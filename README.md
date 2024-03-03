@@ -53,6 +53,8 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 docker pull ghcr.io/kanahiro/chiitiler
 docker run -p 3000:3000 ghcr.io/kanahiro/chiitiler # -> chiitiler tile-server
 docker run -p 8000:8000 ghcr.io/kanahiro/chiitiler tile-server -p 8000 -c s3 -s3b bucketname -s3r ap-northeast-1
+# http://localhost:3000/debug
+# http://localhost:3000/debug?url=s3://tiles/style.json
 ```
 
 #### Environment Variables
