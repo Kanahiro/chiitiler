@@ -1,19 +1,15 @@
-import {
-    PutObjectCommand,
-    S3Client,
-    S3ClientConfig,
-    GetObjectCommand,
-} from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 
 import { type Cache, type Value } from './index.js';
 import { escapeFileName } from './utils.js';
+import { getS3Client } from '../s3.js';
 
 type S3CacheOptions = {
     bucket: string;
     region: string;
 };
 function s3Cache(options: S3CacheOptions): Cache {
-    const s3Client = getS3Client(options);
+    const s3Client = getS3Client(options.region);
     return {
         name: 's3',
         set: async function (key: string, value: Value) {
@@ -45,22 +41,5 @@ function s3Cache(options: S3CacheOptions): Cache {
         },
     };
 }
-
-const getS3Client = function (options: S3CacheOptions) {
-    let s3ClientConfig: S3ClientConfig = { region: options.region };
-    if (process.env.NODE_ENV === 'development') {
-        s3ClientConfig = {
-            region: options.region,
-            credentials: {
-                accessKeyId: 'minioadmin',
-                secretAccessKey: 'minioadmin',
-            },
-            forcePathStyle: true, // special option for minio
-            endpoint: 'http://minio:9000',
-        };
-    }
-    const s3Client = new S3Client(s3ClientConfig);
-    return s3Client;
-};
 
 export { s3Cache };
