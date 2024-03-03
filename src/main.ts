@@ -30,7 +30,7 @@ function parseCacheStrategy(
     if (cacheEnv === 's3')
         return s3Cache({
             bucket: process.env.CHIITILER_CACHE_S3CACHE_BUCKET ?? '',
-            region: process.env.CHIITILER_CACHE_S3CACHE_REGION ?? 'us-east1',
+            region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
         });
 
     // undefined or invalid
@@ -66,8 +66,8 @@ program
     .option('-c, --cache <type>', 'cache type', 'none')
     .option('-fcd --file-cache-dir <dir>', 'file cache directory', './.cache')
     .option(
-        '-s3r --s3-cache-region <region-name>',
-        's3 cache bucket region',
+        '-s3r --s3-region <region-name>',
+        's3 bucket region for get/put',
         'us-east1',
     )
     .option('-s3b --s3-cache-bucket <bucket-name>', 's3 cache bucket name', '')

@@ -15,7 +15,7 @@ services:
             - NODE_ENV=development
             - CHIITILER_CACHE_METHOD=s3
             - CHIITILER_CACHE_S3CACHE_BUCKET=chiitiler
-            - CHIITILER_CACHE_S3CACHE_REGION=ap-northeast-1
+            - CHIITILER_S3_REGION=ap-northeast-1
     minio:
         image: minio/minio:latest
         ports:
