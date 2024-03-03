@@ -122,6 +122,7 @@ function getRenderer(
                 map.render(
                     renderOptions,
                     function (err: any, buffer: Uint8Array | undefined) {
+                        mapPoolDict[styleJson].release(map);
                         if (err) {
                             reject(err);
                             return;
@@ -131,7 +132,6 @@ function getRenderer(
                             return;
                         }
                         resolve(buffer);
-                        mapPoolDict[styleJson].release(map);
                     },
                 ),
             );
