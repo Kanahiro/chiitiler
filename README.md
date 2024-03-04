@@ -9,6 +9,14 @@ chii-tiler
 -   In this type of server, there is a de-facto - [maptiler/tileserver-gl](https://github.com/maptiler/tileserver-gl), but this is too big for me.
 -   I want a server accept style.json-url and respond raster tile, inspired by [developmentseed/titiler](https://github.com/developmentseed/titiler)
 
+chiitiler provides you with `/tiles` raster-tile endpoint. Once server launched, you can use like this:
+
+```planetext
+http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
+http://localhost:3000/tiles/0/0/0.webp?url=https://tile.openstreetmap.jp/styles/maptiler-toner-en/style.json
+http://localhost:3000/tiles/1/1/1.jpg?tileSize=256&url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
+```
+
 ## usage
 
 ### Local
