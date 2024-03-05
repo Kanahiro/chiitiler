@@ -8,9 +8,9 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Client } from './s3.js';
 
 async function getSource(uri: string): Promise<Buffer | null> {
-    if (uri.startsWith('file:///')) {
+    if (uri.startsWith('file://')) {
         return new Promise((resolve, reject) => {
-            fs.readFile(uri.replace('file:///', ''), (err, data) => {
+            fs.readFile(uri.replace('file://', ''), (err, data) => {
                 if (err) reject(err);
                 resolve(data);
             });
