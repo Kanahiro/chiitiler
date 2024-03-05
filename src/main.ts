@@ -6,23 +6,35 @@ import { noneCache, memoryCache, fileCache, s3Cache } from './cache/index.js';
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3',
     options: {
+        cacheTtl: number;
+        memoryCacheMaxItemCount: number;
         fileCacheDir: string;
         s3CacheBucket: string;
-        s3CacheRegion: string;
+        s3Region: string;
     },
 ) {
     // command-line option
-    if (method === 'memory') return memoryCache();
+    if (method === 'memory')
+        return memoryCache({
+            ttl: options.cacheTtl,
+            maxItemCount: options.memoryCacheMaxItemCount,
+        });
     if (method === 'file') return fileCache({ dir: options.fileCacheDir });
     if (method === 's3')
         return s3Cache({
             bucket: options.s3CacheBucket,
-            region: options.s3CacheRegion,
+            region: options.s3Region,
         });
 
     // command-line is not specified -> try to read from env
     const cacheEnv = process.env.CHIITILER_CACHE_METHOD;
-    if (cacheEnv === 'memory') return memoryCache();
+    if (cacheEnv === 'memory')
+        return memoryCache({
+            ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
+            maxItemCount: Number(
+                process.env.CHIITILER_CACHE_MEMORYCACHE_MAXITEMCOUNT ?? '1000',
+            ),
+        });
     if (cacheEnv === 'file')
         return fileCache({
             dir: process.env.CHIITILER_CACHE_FILECACHE_DIR ?? './.cache',
@@ -64,6 +76,12 @@ function parseDebug(debug: boolean) {
 program
     .command('tile-server')
     .option('-c, --cache <type>', 'cache type', 'none')
+    .option('-ctl --cache-ttl', 'cache ttl', '3600')
+    .option(
+        '-mci --memory-cache-max-item-count',
+        'memory cache max item count',
+        '1000',
+    )
     .option('-fcd --file-cache-dir <dir>', 'file cache directory', './.cache')
     .option(
         '-s3r --s3-region <region-name>',
