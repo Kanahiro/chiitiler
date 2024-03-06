@@ -32,6 +32,7 @@
     "@mapbox/tilebelt": "^1.0.2",
     "@maplibre/maplibre-gl-native": "^5.3.0",
     "commander": "^11.0.0",
+    "file-system-cache": "^2.4.4",
     "generic-pool": "^3.9.0",
     "hono": "^3.6.0",
     "memory-cache-node": "^1.4.0",

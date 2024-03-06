@@ -19,7 +19,8 @@ function parseCacheStrategy(
             ttl: options.cacheTtl,
             maxItemCount: options.memoryCacheMaxItemCount,
         });
-    if (method === 'file') return fileCache({ dir: options.fileCacheDir });
+    if (method === 'file')
+        return fileCache({ dir: options.fileCacheDir, ttl: options.cacheTtl });
     if (method === 's3')
         return s3Cache({
             bucket: options.s3CacheBucket,
@@ -38,6 +39,7 @@ function parseCacheStrategy(
     if (cacheEnv === 'file')
         return fileCache({
             dir: process.env.CHIITILER_CACHE_FILECACHE_DIR ?? './.cache',
+            ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
         });
     if (cacheEnv === 's3')
         return s3Cache({
