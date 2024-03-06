@@ -74,15 +74,16 @@ docker run -p 8000:8000 ghcr.io/kanahiro/chiitiler tile-server -p 8000 -c s3 -s3
 
 you can pass server options via environment variables
 
-| env var                        | default  | description                                    |
-| ------------------------------ | -------- | ---------------------------------------------- |
-| CHIITILER_PORT                 | 3000     | port number                                    |
-| CHIITILER_DEBUG                | false    | debug mode                                     |
-| CHIITILER_CACHE_METHOD         | none     | cache method, `none`, `memory`, `file` or `s3` |
-| CHIITILER_CACHE_TTL_SEC        | 3600     | cache ttl, effect to `memory` and `file`       |
-| CHIITILER_CACHE_FILECACHE_DIR  | .cache   | filecache directory                            |
-| CHIITILER_CACHE_S3CACHE_BUCKET |          | s3cache bucket name                            |
-| CHIITILER_S3_REGION            | us-east1 | s3 bucket region for get/put                   |
+| env var                                  | default  | description                                    |
+| ---------------------------------------- | -------- | ---------------------------------------------- |
+| CHIITILER_PORT                           | 3000     | port number                                    |
+| CHIITILER_DEBUG                          | false    | debug mode                                     |
+| CHIITILER_CACHE_METHOD                   | none     | cache method, `none`, `memory`, `file` or `s3` |
+| CHIITILER_CACHE_TTL_SEC                  | 3600     | cache ttl, effect to `memory` and `file`       |
+| CHIITILER_CACHE_MEMORYCACHE_MAXITEMCOUNT | 1000     | max items for memorycache                      |
+| CHIITILER_CACHE_FILECACHE_DIR            | .cache   | filecache directory                            |
+| CHIITILER_CACHE_S3CACHE_BUCKET           |          | s3cache bucket name                            |
+| CHIITILER_S3_REGION                      | us-east1 | s3 bucket region for get/put                   |
 
 ## development
 
