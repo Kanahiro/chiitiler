@@ -38,15 +38,20 @@ npm run dev
 #### options
 
 ```sh
-node dist/main.js tile-server -p 8000 -c file -fcd cachedir -D
+node dist/main.js tile-server -p 8000 -c file -ctl 60 -fcd cachedir -D
 # -p: port number
 # -c: cache method
+# -ctl: cache ttl
 # -fcd: cache directory
 # -D: debug mode
+
+node dist/main.js tile-server -c memory -ctl 60 -mci 1000
+# -mci: max cache items
 
 node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 # -s3b: S3 bucket name for cache
 # -s3r: S3 bucket region
+# caution: TTL is not supported in S3 cache, please utilize S3 lifecycle policy
 ```
 
 #### debug page
@@ -74,6 +79,7 @@ you can pass server options via environment variables
 | CHIITILER_PORT                 | 3000     | port number                                    |
 | CHIITILER_DEBUG                | false    | debug mode                                     |
 | CHIITILER_CACHE_METHOD         | none     | cache method, `none`, `memory`, `file` or `s3` |
+| CHIITILER_CACHE_TTL_SEC        | 3600     | cache ttl, effect to `memory` and `file`       |
 | CHIITILER_CACHE_FILECACHE_DIR  | .cache   | filecache directory                            |
 | CHIITILER_CACHE_S3CACHE_BUCKET |          | s3cache bucket name                            |
 | CHIITILER_S3_REGION            | us-east1 | s3 bucket region for get/put                   |
