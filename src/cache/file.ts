@@ -1,48 +1,27 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { Cache as FileSystemCache } from 'file-system-cache';
+
 import { type Cache, type Value } from './index.js';
-import { escapeFileName } from './utils.js';
 
 type fileCacheOptions = {
     dir: string;
+    ttl: number;
 };
 const fileCache: (options: fileCacheOptions) => Cache = function (options) {
-    // mkdir
-    if (!fs.existsSync(options.dir)) fs.mkdirSync(options.dir);
+    const cache = new FileSystemCache({
+        basePath: options.dir,
+        hash: 'sha1',
+        ttl: options.ttl,
+    });
+
     return {
         name: 'file',
         set: async function (key: string, value: Value) {
-            // write file
-            return new Promise((resolve, reject) => {
-                fs.writeFile(
-                    path.join(options.dir, escapeFileName(`${key}`)),
-                    value,
-                    (err: any) => {
-                        if (err) reject(err);
-                        resolve();
-                    },
-                );
-            });
+            await cache.set(key, value.toString('hex'));
         },
         get: async function (key: string): Promise<Value | undefined> {
-            // read file
-            return new Promise((resolve, reject) => {
-                // check exist
-                if (
-                    !fs.existsSync(
-                        path.join(options.dir, escapeFileName(`${key}`)),
-                    )
-                )
-                    return resolve(undefined);
-
-                fs.readFile(
-                    path.join(options.dir, escapeFileName(`${key}`)),
-                    (err: any, data: Buffer) => {
-                        if (err) reject(err);
-                        resolve(data);
-                    },
-                );
-            });
+            const val = await cache.get(key, undefined);
+            if (val === undefined) return undefined;
+            return Buffer.from(val, 'hex');
         },
     };
 };
