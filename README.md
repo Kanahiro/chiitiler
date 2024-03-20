@@ -17,6 +17,29 @@ http://localhost:3000/tiles/0/0/0.webp?url=https://tile.openstreetmap.jp/styles/
 http://localhost:3000/tiles/1/1/1.jpg?tileSize=256&url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 ```
 
+## architecture
+
+```mermaid
+graph LR
+    subgraph sources
+        direction LR
+        A[style.json]
+        z/x/y.pbf
+        z/x/y.png/webp/jpg
+        sprite
+        glyphs
+    end
+
+    subgraph chiitiler
+        cache
+        render
+    end
+
+sources --> cache --> render --/tiles/z/x/y--> png/webp/jpg
+
+cache <--get/set--> memory/file/S3
+```
+
 ## usage
 
 ### Local
