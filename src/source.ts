@@ -18,7 +18,10 @@ async function getSource(uri: string): Promise<Buffer | null> {
     }
 
     if (uri.startsWith('s3://')) {
-        const s3Client = getS3Client(process.env.CHIITILER_S3_REGION);
+        const s3Client = getS3Client({
+            region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
+            endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
+        });
         const bucket = uri.replace('s3://', '').split('/')[0];
         const key = uri.replace(`s3://${bucket}/`, '');
         const cmd = new GetObjectCommand({
