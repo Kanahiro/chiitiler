@@ -107,6 +107,7 @@ you can pass server options via environment variables
 | CHIITILER_CACHE_FILECACHE_DIR            | .cache   | filecache directory                            |
 | CHIITILER_CACHE_S3CACHE_BUCKET           |          | s3cache bucket name                            |
 | CHIITILER_S3_REGION                      | us-east1 | s3 bucket region for get/put                   |
+| CHIITILER_S3_ENDPOINT                    |          | s3 endpoint for get/put                        |
 
 ## development
 

@@ -7,9 +7,13 @@ import { getS3Client } from '../s3.js';
 type S3CacheOptions = {
     bucket: string;
     region: string;
+    endpoint: string | null;
 };
 function s3Cache(options: S3CacheOptions): Cache {
-    const s3Client = getS3Client(options.region);
+    const s3Client = getS3Client({
+        region: options.region,
+        endpoint: options.endpoint,
+    });
     return {
         name: 's3',
         set: async function (key: string, value: Value) {
