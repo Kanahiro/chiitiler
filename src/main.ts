@@ -11,6 +11,7 @@ function parseCacheStrategy(
         fileCacheDir: string;
         s3CacheBucket: string;
         s3Region: string;
+        s3Endpoint: string;
     },
 ) {
     // command-line option
@@ -25,6 +26,7 @@ function parseCacheStrategy(
         return s3Cache({
             bucket: options.s3CacheBucket,
             region: options.s3Region,
+            endpoint: options.s3Endpoint,
         });
 
     // command-line is not specified -> try to read from env
@@ -45,13 +47,14 @@ function parseCacheStrategy(
         return s3Cache({
             bucket: process.env.CHIITILER_CACHE_S3CACHE_BUCKET ?? '',
             region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
+            endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
         });
 
     // undefined or invalid
     return noneCache();
 }
 
-function parsePort(port: string) {
+function parsePort(port: string | undefined) {
     // command-line option
     if (port !== undefined) return Number(port);
 
@@ -63,7 +66,7 @@ function parsePort(port: string) {
     return 3000;
 }
 
-function parseDebug(debug: boolean) {
+function parseDebug(debug: boolean | undefined) {
     // command-line option
     if (debug) return true;
 
@@ -91,11 +94,21 @@ program
         'us-east1',
     )
     .option('-s3b --s3-cache-bucket <bucket-name>', 's3 cache bucket name', '')
+    .option('-s3e --s3-endpoint <url>', 's3 endpoint url', '')
     .option('-p --port <port>', 'port number', '3000')
     .option('-D --debug', 'debug mode')
     .action((options) => {
         const serverOptions: InitServerOptions = {
-            cache: parseCacheStrategy(options.cache, options),
+            cache: parseCacheStrategy(options.cache, {
+                cacheTtl: Number(options.cacheTtl),
+                memoryCacheMaxItemCount: Number(
+                    options.memoryCacheMaxItemCount,
+                ),
+                fileCacheDir: options.fileCacheDir,
+                s3CacheBucket: options.s3CacheBucket,
+                s3Region: options.s3Region,
+                s3Endpoint: options.s3Endpoint,
+            }),
             port: parsePort(options.port),
             debug: parseDebug(options.debug),
         };
