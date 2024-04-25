@@ -6,8 +6,18 @@ import * as fs from 'fs';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 
 import { getS3Client } from './s3.js';
+import { Cache, noneCache } from './cache/index.js';
 
-async function getSource(uri: string): Promise<Buffer | null> {
+/**
+ * retrieve sources from the uri
+ * @param uri
+ * @param cache {Cache} - Cache Strategy. Affect only for http(s) sources.
+ * @returns
+ */
+async function getSource(
+    uri: string,
+    cache: Cache = noneCache(),
+): Promise<Buffer | null> {
     if (uri.startsWith('file://')) {
         return new Promise((resolve, reject) => {
             fs.readFile(uri.replace('file://', ''), (err, data) => {
@@ -40,8 +50,15 @@ async function getSource(uri: string): Promise<Buffer | null> {
     }
 
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
+        // use cache only for http(s) sources
+        const val = await cache.get(uri);
+        if (val !== undefined) return val; // hit
+
+        // miss
         const res = await fetch(uri);
-        return Buffer.from(await res.arrayBuffer());
+        const buf = Buffer.from(await res.arrayBuffer());
+        cache.set(uri, buf);
+        return buf;
     }
 
     return null;
