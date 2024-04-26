@@ -1,5 +1,4 @@
 import { Context } from 'hono';
-import { StyleSpecification } from 'maplibre-gl';
 
 function getDebugPage(c: Context) {
     //demo tile
