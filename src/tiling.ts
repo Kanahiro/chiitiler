@@ -73,28 +73,17 @@ function getRenderer(
                 create: async () => {
                     const map = new mbgl.Map({
                         request: function (req, callback) {
-                            options.cache.get(req.url).then((val) => {
-                                if (val !== undefined) {
-                                    // hit
-                                    callback(undefined, {
-                                        data: val as Buffer,
-                                    });
-                                    return;
-                                }
-                                // miss
-                                getSource(req.url)
-                                    .then((buf) => {
-                                        if (buf === null) {
-                                            callback();
-                                            return;
-                                        }
-                                        callback(undefined, { data: buf });
-                                        options.cache.set(req.url, buf);
-                                    })
-                                    .catch((err: any) => {
-                                        callback(err);
-                                    });
-                            });
+                            getSource(req.url, options.cache)
+                                .then((buf) => {
+                                    if (buf === null) {
+                                        callback();
+                                        return;
+                                    }
+                                    callback(undefined, { data: buf });
+                                })
+                                .catch((err: any) => {
+                                    callback(err);
+                                });
                         },
                         ratio: renderingParams.ratio,
                         // @ts-ignore

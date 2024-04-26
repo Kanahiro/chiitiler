@@ -35,17 +35,17 @@ function parseCacheStrategy(
         return memoryCache({
             ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
             maxItemCount: Number(
-                process.env.CHIITILER_CACHE_MEMORYCACHE_MAXITEMCOUNT ?? '1000',
+                process.env.CHIITILER_MEMORYCACHE_MAXITEMCOUNT ?? '1000',
             ),
         });
     if (cacheEnv === 'file')
         return fileCache({
-            dir: process.env.CHIITILER_CACHE_FILECACHE_DIR ?? './.cache',
+            dir: process.env.CHIITILER_FILECACHE_DIR ?? './.cache',
             ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
         });
     if (cacheEnv === 's3')
         return s3Cache({
-            bucket: process.env.CHIITILER_CACHE_S3CACHE_BUCKET ?? '',
+            bucket: process.env.CHIITILER_S3CACHE_BUCKET ?? '',
             region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
             endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
         });

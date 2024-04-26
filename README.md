@@ -97,18 +97,26 @@ docker run -p 8000:8000 ghcr.io/kanahiro/chiitiler tile-server -p 8000 -c s3 -s3
 
 you can pass server options via environment variables
 
-| env var                                  | default  | description                                    |
-| ---------------------------------------- | -------- | ---------------------------------------------- |
-| CHIITILER_PORT                           | 3000     | port number                                    |
-| CHIITILER_DEBUG                          | false    | debug mode                                     |
-| CHIITILER_CACHE_METHOD                   | none     | cache method, `none`, `memory`, `file` or `s3` |
-| CHIITILER_CACHE_TTL_SEC                  | 3600     | cache ttl, effect to `memory` and `file`       |
-| CHIITILER_CACHE_MEMORYCACHE_MAXITEMCOUNT | 1000     | max items for memorycache                      |
-| CHIITILER_CACHE_FILECACHE_DIR            | .cache   | filecache directory                            |
-| CHIITILER_CACHE_S3CACHE_BUCKET           |          | s3cache bucket name                            |
-| CHIITILER_S3_REGION                      | us-east1 | s3 bucket region for get/put                   |
-| CHIITILER_S3_ENDPOINT                    |          | s3 endpoint for get/put                        |
+| env var                            | default  | description                                    |
+| ---------------------------------- | -------- | ---------------------------------------------- |
+| CHIITILER_PORT                     | 3000     | port number                                    |
+| CHIITILER_DEBUG                    | false    | debug mode                                     |
+| CHIITILER_CACHE_METHOD             | none     | cache method, `none`, `memory`, `file` or `s3` |
+| CHIITILER_CACHE_TTL_SEC            | 3600     | cache ttl, effect to `memory` and `file`       |
+| CHIITILER_MEMORYCACHE_MAXITEMCOUNT | 1000     | max items for memorycache                      |
+| CHIITILER_FILECACHE_DIR            | .cache   | filecache directory                            |
+| CHIITILER_S3CACHE_BUCKET           |          | s3cache bucket name                            |
+| CHIITILER_S3_REGION                | us-east1 | s3 bucket region for caching/fetching          |
+| CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
+
+### supported protocols in style.json
+
+- Ordinary cases, `http://` or `https://` protocol are used in style.json
+- In addition, chiitiler supports following protocols:
+  - `s3://` for S3 bucket
+  - `file://` for local file
+- Only when `http://` and `https://` chiitiler will cache them with a specified method.
 
 ## development
 
--   to develop, all you need is run `docker compose up`
+-  run `docker compose up`
