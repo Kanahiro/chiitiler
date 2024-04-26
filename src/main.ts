@@ -1,7 +1,7 @@
 import { program } from 'commander';
 
 import { initServer, type InitServerOptions } from './server.js';
-import { noneCache, memoryCache, fileCache, s3Cache } from './cache/index.js';
+import * as caches from './cache/index.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3',
@@ -16,14 +16,17 @@ function parseCacheStrategy(
 ) {
     // command-line option
     if (method === 'memory')
-        return memoryCache({
+        return caches.memoryCache({
             ttl: options.cacheTtl,
             maxItemCount: options.memoryCacheMaxItemCount,
         });
     if (method === 'file')
-        return fileCache({ dir: options.fileCacheDir, ttl: options.cacheTtl });
+        return caches.fileCache({
+            dir: options.fileCacheDir,
+            ttl: options.cacheTtl,
+        });
     if (method === 's3')
-        return s3Cache({
+        return caches.s3Cache({
             bucket: options.s3CacheBucket,
             region: options.s3Region,
             endpoint: options.s3Endpoint,
@@ -32,26 +35,26 @@ function parseCacheStrategy(
     // command-line is not specified -> try to read from env
     const cacheEnv = process.env.CHIITILER_CACHE_METHOD;
     if (cacheEnv === 'memory')
-        return memoryCache({
+        return caches.memoryCache({
             ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
             maxItemCount: Number(
                 process.env.CHIITILER_MEMORYCACHE_MAXITEMCOUNT ?? '1000',
             ),
         });
     if (cacheEnv === 'file')
-        return fileCache({
+        return caches.fileCache({
             dir: process.env.CHIITILER_FILECACHE_DIR ?? './.cache',
             ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
         });
     if (cacheEnv === 's3')
-        return s3Cache({
+        return caches.s3Cache({
             bucket: process.env.CHIITILER_S3CACHE_BUCKET ?? '',
             region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
             endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
         });
 
     // undefined or invalid
-    return noneCache();
+    return caches.noneCache();
 }
 
 function parsePort(port: string | undefined) {
