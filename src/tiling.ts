@@ -28,17 +28,17 @@ type GetRendererOptions = {
 // key:value = styleJsonString:Pooled Map Instance
 const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
 
+type Renderer = (
+    z: number,
+    x: number,
+    y: number,
+) => Promise<Uint8Array | undefined>;
+
 function getRenderer(
     style: StyleSpecification,
     options: GetRendererOptions,
-): {
-    render: (
-        z: number,
-        x: number,
-        y: number,
-    ) => Promise<Uint8Array | undefined>;
-} {
-    const render = function (
+): { render: Renderer } {
+    const render: Renderer = function (
         z: number,
         x: number,
         y: number,
@@ -117,7 +117,7 @@ function getRenderer(
             center: getTileCenter(z, x, y, options.tileSize),
         };
 
-        const render: Promise<Uint8Array> = new Promise((resolve, reject) => {
+        const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
             mapPoolDict[styleJson].acquire().then((map) =>
                 map.render(
                     renderOptions,
@@ -137,7 +137,7 @@ function getRenderer(
             );
         });
 
-        return render;
+        return rendered;
     };
 
     return {

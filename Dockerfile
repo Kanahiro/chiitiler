@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM public.ecr.aws/ubuntu/ubuntu:22.04
 
 # Install dependencies
 ENV DEBIAN_FRONTEND=noninteractive
@@ -28,7 +28,7 @@ COPY . .
 RUN npm run build
 
 # Lambda WebAdapter
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.7.1 /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.3 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
 ENV READINESS_CHECK_PATH=/health
 
