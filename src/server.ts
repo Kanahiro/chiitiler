@@ -28,12 +28,10 @@ function initServer(options: InitServerOptions) {
         let [_y, ext] = c.req.param('y_ext').split('.');
         const y = Number(_y);
 
-        if (['png', 'jpg', 'webp'].indexOf(ext) === -1)
-            return c.body('Invalid extension', 400);
-
         // query params
         const tileSize = Number(c.req.query('tileSize') ?? 512);
         const url = c.req.query('url') ?? null;
+        const quality = Number(c.req.query('quality') ?? 80);
 
         if (url === null) return c.body('url is required', 400);
 
@@ -57,12 +55,19 @@ function initServer(options: InitServerOptions) {
         });
 
         let imgBuf: Buffer;
-        if (ext === 'jpg') {
-            imgBuf = await image.jpeg({ quality: 20 }).toBuffer();
-        } else if (ext === 'webp') {
-            imgBuf = await image.webp({ quality: 100 }).toBuffer();
-        } else {
-            imgBuf = await image.png().toBuffer();
+        switch (ext) {
+            case 'jpg':
+            case 'jpeg':
+                imgBuf = await image.jpeg({ quality }).toBuffer();
+                break;
+            case 'webp':
+                imgBuf = await image.webp({ quality }).toBuffer();
+                break;
+            case 'png':
+                imgBuf = await image.png().toBuffer();
+                break;
+            default:
+                return c.body('Invalid extension', 400);
         }
 
         return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });

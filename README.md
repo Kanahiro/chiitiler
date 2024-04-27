@@ -14,7 +14,7 @@ chiitiler provides you with `/tiles` raster-tile endpoint. Once server launched,
 ```planetext
 http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 http://localhost:3000/tiles/0/0/0.webp?url=https://tile.openstreetmap.jp/styles/maptiler-toner-en/style.json
-http://localhost:3000/tiles/1/1/1.jpg?tileSize=256&url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
+http://localhost:3000/tiles/1/1/1.jpg?tileSize=256&quality=80&url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 ```
 
 ## architecture
