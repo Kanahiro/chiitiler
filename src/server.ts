@@ -6,7 +6,7 @@ import { serve } from '@hono/node-server';
 import sharp from 'sharp';
 import type { StyleSpecification } from 'maplibre-gl';
 
-import { getRenderer } from './tiling.js';
+import { renderTile } from './render/index.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
 import { getSource } from './source.js';
@@ -40,11 +40,10 @@ function initServer(options: InitServerOptions) {
         if (buf === null) return c.body('Invalid url', 400);
         const style = (await JSON.parse(buf.toString())) as StyleSpecification;
 
-        const { render } = getRenderer(style, {
+        const pixels = await renderTile(style, z, x, y, {
             tileSize,
             cache: options.cache,
         });
-        const pixels = await render(z, x, y);
 
         const image = sharp(pixels, {
             raw: {
