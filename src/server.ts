@@ -2,20 +2,20 @@
 // for using native fetch in TypeScript
 
 import { Hono } from 'hono';
+import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import sharp from 'sharp';
-import type { StyleSpecification } from 'maplibre-gl';
 
 import { renderTile } from './render/index.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
-import { getSource } from './source.js';
 
 type InitServerOptions = {
     cache: Cache;
     port: number;
     debug: boolean;
 };
+
 
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
@@ -35,41 +35,58 @@ function initServer(options: InitServerOptions) {
 
         if (url === null) return c.body('url is required', 400);
 
-        // load style.json
-        const buf = await getSource(url, options.cache);
-        if (buf === null) return c.body('Invalid url', 400);
-        const style = (await JSON.parse(buf.toString())) as StyleSpecification;
-
-        const pixels = await renderTile(style, z, x, y, {
+        const pixels = await renderTile(url, z, x, y, {
             tileSize,
             cache: options.cache,
         });
 
-        const image = sharp(pixels, {
-            raw: {
-                width: tileSize,
-                height: tileSize,
-                channels: 4,
-            },
-        });
-
-        let imgBuf: Buffer;
+        let pipeline: sharp.Sharp;
         switch (ext) {
-            case 'jpg':
+            case 'png':
+                pipeline = sharp(pixels, {
+                    raw: {
+                        width: tileSize,
+                        height: tileSize,
+                        channels: 4,
+                    },
+                }).png({
+                    effort: 1
+                });
+                break;
             case 'jpeg':
-                imgBuf = await image.jpeg({ quality }).toBuffer();
+            case 'jpg':
+                pipeline = sharp(pixels, {
+                    raw: {
+                        width: tileSize,
+                        height: tileSize,
+                        channels: 4,
+                    },
+                }).jpeg({
+                    quality
+                });
                 break;
             case 'webp':
-                imgBuf = await image.webp({ quality }).toBuffer();
-                break;
-            case 'png':
-                imgBuf = await image.png().toBuffer();
+                pipeline = sharp(pixels, {
+                    raw: {
+                        width: tileSize,
+                        height: tileSize,
+                        channels: 4,
+                    },
+                }).webp({
+                    quality, effort: 1
+                });
                 break;
             default:
-                return c.body('Invalid extension', 400);
+                return c.body('unsupported image format', 400);
         }
 
-        return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });
+
+        c.header('Content-Type', `image/${ext}`);
+        return stream(c, async (stream) => {
+            for await (const chunk of pipeline) {
+                stream.write(chunk);
+            }
+        });
     });
 
     if (options.debug) hono.get('/debug', getDebugPage);
