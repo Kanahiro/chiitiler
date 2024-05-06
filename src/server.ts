@@ -40,8 +40,6 @@ function initServer(options: InitServerOptions) {
             cache: options.cache,
         });
 
-        let now = new Date(); // to calc performance
-
         const image = sharp(pixels, {
             raw: {
                 width: tileSize,
@@ -65,7 +63,6 @@ function initServer(options: InitServerOptions) {
             default:
                 return c.body('Invalid extension', 400);
         }
-        console.log(`rendered in ${new Date() - now}ms`);
 
         return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });
     });
