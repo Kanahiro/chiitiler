@@ -1,3 +1,7 @@
+
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+import process from 'node:process';
 import { program } from 'commander';
 
 import { initServer, type InitServerOptions } from './server.js';
@@ -127,4 +131,19 @@ program
         start();
     });
 
-program.parse(process.argv);
+function numProcesses() {
+    if (process.env.CHIITILER_PROCESSES === undefined) return 1
+    const processesEnv = Number(process.env.CHIITILER_PROCESSES)
+    if (processesEnv === 0) return availableParallelism();
+    else return processesEnv;
+}
+
+if (cluster.isPrimary) {
+    // Fork workers.
+    for (let i = 0; i < numProcesses(); i++) {
+        cluster.fork();
+    }
+} else {
+    program.parse(process.argv);
+    console.log(`Worker ${process.pid} started`);
+}
