@@ -40,41 +40,25 @@ function initServer(options: InitServerOptions) {
             cache: options.cache,
         });
 
+        const _sharp = sharp(pixels, {
+            raw: {
+                width: tileSize,
+                height: tileSize,
+                channels: 4,
+            },
+        });
+
         let pipeline: sharp.Sharp;
         switch (ext) {
             case 'png':
-                pipeline = sharp(pixels, {
-                    raw: {
-                        width: tileSize,
-                        height: tileSize,
-                        channels: 4,
-                    },
-                }).png({
-                    effort: 1
-                });
+                pipeline = _sharp.png({ effort: 1 });
                 break;
             case 'jpeg':
             case 'jpg':
-                pipeline = sharp(pixels, {
-                    raw: {
-                        width: tileSize,
-                        height: tileSize,
-                        channels: 4,
-                    },
-                }).jpeg({
-                    quality
-                });
+                pipeline = _sharp.jpeg({ quality });
                 break;
             case 'webp':
-                pipeline = sharp(pixels, {
-                    raw: {
-                        width: tileSize,
-                        height: tileSize,
-                        channels: 4,
-                    },
-                }).webp({
-                    quality, effort: 1
-                });
+                pipeline = _sharp.webp({ quality, effort: 1 });
                 break;
             default:
                 return c.body('unsupported image format', 400);
