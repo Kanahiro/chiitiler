@@ -9,27 +9,12 @@ import sharp from 'sharp';
 import { renderTile } from './render/index.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
-import { Writable } from 'node:stream';
-import { StreamingApi } from 'hono/utils/stream';
 
 type InitServerOptions = {
     cache: Cache;
     port: number;
     debug: boolean;
 };
-
-class NodeStreamAdapter extends Writable {
-    cb: (chunk: Uint8Array) => void;
-    constructor(cb: (chunk: Uint8Array) => void) {
-        super();
-        this.cb = cb;
-    }
-
-    _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
-        const u8 = new Uint8Array(chunk.values());
-        this.cb(u8);
-    }
-}
 
 
 function initServer(options: InitServerOptions) {
@@ -55,16 +40,50 @@ function initServer(options: InitServerOptions) {
             cache: options.cache,
         });
 
+        let pipeline: sharp.Sharp;
+        switch (ext) {
+            case 'png':
+                pipeline = sharp(pixels, {
+                    raw: {
+                        width: tileSize,
+                        height: tileSize,
+                        channels: 4,
+                    },
+                }).png({
+                    effort: 1
+                });
+                break;
+            case 'jpeg':
+            case 'jpg':
+                pipeline = sharp(pixels, {
+                    raw: {
+                        width: tileSize,
+                        height: tileSize,
+                        channels: 4,
+                    },
+                }).jpeg({
+                    quality
+                });
+                break;
+            case 'webp':
+                pipeline = sharp(pixels, {
+                    raw: {
+                        width: tileSize,
+                        height: tileSize,
+                        channels: 4,
+                    },
+                }).webp({
+                    quality, effort: 1
+                });
+                break;
+            default:
+                return c.body('unsupported image format', 400);
+        }
+
 
         c.header('Content-Type', `image/${ext}`);
         return stream(c, async (stream) => {
-            for await (const chunk of sharp(pixels, {
-                raw: {
-                    width: tileSize,
-                    height: tileSize,
-                    channels: 4,
-                },
-            }).png()) {
+            for await (const chunk of pipeline) {
                 stream.write(chunk);
             }
         });
