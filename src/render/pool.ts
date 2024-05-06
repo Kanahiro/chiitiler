@@ -1,21 +1,22 @@
 import mbgl from '@maplibre/maplibre-gl-native';
 import type { StyleSpecification } from 'maplibre-gl';
 import genericPool from 'generic-pool';
-import hash from 'object-hash';
 
 import { getSource } from '../source.js';
 import type { Cache } from '../cache/index.js';
 
 // key:value = styleJsonString:Pooled Map Instance
 const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
-function getRenderPool(
-    style: StyleSpecification,
+async function getRenderPool(
+    styleUrl: string,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const _hash = hash(style);
-    const dictKey = `${_hash}-${mode}`;
+    const dictKey = `${styleUrl}-${mode}`;
     if (mapPoolDict[dictKey] === undefined) {
+        const styleJsonBuf = await getSource(styleUrl, cache);
+        if (styleJsonBuf === null) throw new Error('style not found');
+        const style = JSON.parse(styleJsonBuf.toString()) as StyleSpecification;
         const pool = genericPool.createPool({
             create: async () => {
                 const map = new mbgl.Map({

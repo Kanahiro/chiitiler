@@ -35,15 +35,12 @@ function initServer(options: InitServerOptions) {
 
         if (url === null) return c.body('url is required', 400);
 
-        // load style.json
-        const buf = await getSource(url, options.cache);
-        if (buf === null) return c.body('Invalid url', 400);
-        const style = (await JSON.parse(buf.toString())) as StyleSpecification;
-
-        const pixels = await renderTile(style, z, x, y, {
+        const pixels = await renderTile(url, z, x, y, {
             tileSize,
             cache: options.cache,
         });
+
+        let now = new Date(); // to calc performance
 
         const image = sharp(pixels, {
             raw: {
@@ -60,14 +57,15 @@ function initServer(options: InitServerOptions) {
                 imgBuf = await image.jpeg({ quality }).toBuffer();
                 break;
             case 'webp':
-                imgBuf = await image.webp({ quality }).toBuffer();
+                imgBuf = await image.webp({ quality, effort: 0 }).toBuffer();
                 break;
             case 'png':
-                imgBuf = await image.png().toBuffer();
+                imgBuf = await image.png({ effort: 1 }).toBuffer();
                 break;
             default:
                 return c.body('Invalid extension', 400);
         }
+        console.log(`rendered in ${new Date() - now}ms`);
 
         return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });
     });

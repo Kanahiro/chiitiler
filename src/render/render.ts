@@ -3,7 +3,6 @@
 
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
-import type { StyleSpecification } from 'maplibre-gl';
 import { getRenderPool } from './pool.js';
 import type { Cache } from '../cache/index.js';
 
@@ -18,7 +17,7 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
 }
 
 function render(
-    style: StyleSpecification,
+    styleUrl: string,
     zoom: number,
     width: number,
     height: number,
@@ -40,31 +39,32 @@ function render(
     };
 
     const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
-        const pool = getRenderPool(style, cache, mode);
-        pool.acquire().then((map) =>
-            map.render(
-                renderOptions,
-                function (err: any, buffer: Uint8Array | undefined) {
-                    pool.release(map);
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (buffer === undefined) {
-                        reject('buffer is undefined');
-                        return;
-                    }
-                    resolve(buffer);
-                },
-            ),
-        );
+        getRenderPool(styleUrl, cache, mode).then((pool) => {
+            pool.acquire().then((map) =>
+                map.render(
+                    renderOptions,
+                    function (err: any, buffer: Uint8Array | undefined) {
+                        pool.release(map);
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        if (buffer === undefined) {
+                            reject('buffer is undefined');
+                            return;
+                        }
+                        resolve(buffer);
+                    },
+                ),
+            );
+        })
     });
 
     return rendered;
 }
 
 async function renderTile(
-    style: StyleSpecification,
+    styleUrl: string,
     z: number,
     x: number,
     y: number,
@@ -80,20 +80,20 @@ async function renderTile(
     const renderingParams =
         options.tileSize === 256 && z === 0
             ? {
-                  zoom: 0,
-                  height: 512,
-                  width: 512,
-                  ratio: 0.5,
-              }
+                zoom: 0,
+                height: 512,
+                width: 512,
+                ratio: 0.5,
+            }
             : {
-                  zoom: z - 1 + Math.floor(options.tileSize / 512),
-                  height: options.tileSize,
-                  width: options.tileSize,
-                  ratio: 1,
-              };
+                zoom: z - 1 + Math.floor(options.tileSize / 512),
+                height: options.tileSize,
+                width: options.tileSize,
+                ratio: 1,
+            };
 
     const rendered = await render(
-        style,
+        styleUrl,
         renderingParams.zoom,
         renderingParams.width,
         renderingParams.height,
