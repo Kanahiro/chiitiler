@@ -2,20 +2,35 @@
 // for using native fetch in TypeScript
 
 import { Hono } from 'hono';
+import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import sharp from 'sharp';
-import type { StyleSpecification } from 'maplibre-gl';
 
 import { renderTile } from './render/index.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
-import { getSource } from './source.js';
+import { Writable } from 'node:stream';
+import { StreamingApi } from 'hono/utils/stream';
 
 type InitServerOptions = {
     cache: Cache;
     port: number;
     debug: boolean;
 };
+
+class NodeStreamAdapter extends Writable {
+    cb: (chunk: Uint8Array) => void;
+    constructor(cb: (chunk: Uint8Array) => void) {
+        super();
+        this.cb = cb;
+    }
+
+    _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+        const u8 = new Uint8Array(chunk.values());
+        this.cb(u8);
+    }
+}
+
 
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
@@ -40,31 +55,19 @@ function initServer(options: InitServerOptions) {
             cache: options.cache,
         });
 
-        const image = sharp(pixels, {
-            raw: {
-                width: tileSize,
-                height: tileSize,
-                channels: 4,
-            },
+
+        c.header('Content-Type', `image/${ext}`);
+        return stream(c, async (stream) => {
+            for await (const chunk of sharp(pixels, {
+                raw: {
+                    width: tileSize,
+                    height: tileSize,
+                    channels: 4,
+                },
+            }).png()) {
+                stream.write(chunk);
+            }
         });
-
-        let imgBuf: Buffer;
-        switch (ext) {
-            case 'jpg':
-            case 'jpeg':
-                imgBuf = await image.jpeg({ quality }).toBuffer();
-                break;
-            case 'webp':
-                imgBuf = await image.webp({ quality, effort: 0 }).toBuffer();
-                break;
-            case 'png':
-                imgBuf = await image.png({ effort: 1 }).toBuffer();
-                break;
-            default:
-                return c.body('Invalid extension', 400);
-        }
-
-        return c.body(imgBuf, 200, { 'Content-Type': `image/${ext}` });
     });
 
     if (options.debug) hono.get('/debug', getDebugPage);
