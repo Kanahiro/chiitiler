@@ -3,6 +3,7 @@ services:
         build: ./
         volumes:
             - ./:/app
+            - ./.cache:/app/.cache
         ports:
             - 3000:3000
         entrypoint: /bin/sh
@@ -16,6 +17,7 @@ services:
             - CHIITILER_CACHE_METHOD=s3
             - CHIITILER_S3CACHE_BUCKET=chiitiler
             - CHIITILER_S3_REGION=ap-northeast-1
+            - CHIITILER_PROCESSES=0 # all cpus
     minio:
         image: minio/minio:latest
         ports:
