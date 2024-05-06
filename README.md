@@ -108,15 +108,16 @@ you can pass server options via environment variables
 | CHIITILER_S3CACHE_BUCKET           |          | s3cache bucket name                            |
 | CHIITILER_S3_REGION                | us-east1 | s3 bucket region for caching/fetching          |
 | CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
+| CHIITILER_PROCESSES                | 1        | num of chiitiler processes. 0 means all-CPUs   |
 
 ### supported protocols in style.json
 
-- Ordinary cases, `http://` or `https://` protocol are used in style.json
-- In addition, chiitiler supports following protocols:
-  - `s3://` for S3 bucket
-  - `file://` for local file
-- Only when `http://` and `https://` chiitiler will cache them with a specified method.
+-   Ordinary cases, `http://` or `https://` protocol are used in style.json
+-   In addition, chiitiler supports following protocols:
+    -   `s3://` for S3 bucket
+    -   `file://` for local file
+-   Only when `http://` and `https://` chiitiler will cache them with a specified method.
 
 ## development
 
--  run `docker compose up`
+-   run `docker compose up`
