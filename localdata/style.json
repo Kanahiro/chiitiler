@@ -22,12 +22,6 @@
       ],
       "maxzoom": 10
     },
-    "osm": {
-      "type": "raster",
-      "tiles": [
-        "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      ]
-    },
     "s3": {
       "type": "vector",
       "tiles": [
