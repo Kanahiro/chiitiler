@@ -39,25 +39,25 @@ function render(
     };
 
     const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
-        getRenderPool(styleUrl, cache, mode).then((pool) => {
-            pool.acquire().then((map) =>
-                map.render(
-                    renderOptions,
-                    function (err: any, buffer: Uint8Array | undefined) {
-                        pool.release(map);
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-                        if (buffer === undefined) {
-                            reject('buffer is undefined');
-                            return;
-                        }
-                        resolve(buffer);
-                    },
-                ),
-            );
-        })
+        const pool = getRenderPool(styleUrl, cache, mode)
+        pool.acquire().then((map) =>
+            map.render(
+                renderOptions,
+                function (err: any, buffer: Uint8Array | undefined) {
+                    pool.release(map);
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (buffer === undefined) {
+                        reject('buffer is undefined');
+                        return;
+                    }
+                    resolve(buffer);
+                },
+            ),
+        );
+
     });
 
     return rendered;

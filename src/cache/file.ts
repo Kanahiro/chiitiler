@@ -16,12 +16,22 @@ const fileCache: (options: fileCacheOptions) => Cache = function (options) {
     return {
         name: 'file',
         set: async function (key: string, value: Value) {
-            await cache.set(key, value.toString('hex'));
+            try {
+                await cache.set(key, value.toString('hex'));
+            } catch (e) {
+                console.error(e);
+            }
         },
         get: async function (key: string): Promise<Value | undefined> {
-            const val = await cache.get(key, undefined);
-            if (val === undefined) return undefined;
-            return Buffer.from(val, 'hex');
+            try {
+                const val = await cache.get(key, undefined);
+                if (val === undefined) return undefined;
+                return Buffer.from(val, 'hex');
+            } catch (e) {
+                console.error(e);
+                cache.remove(key);
+                return undefined;
+            }
         },
     };
 };
