@@ -34,7 +34,7 @@ function getDebugPage(c: Context) {
             <div id="map" style="height: 100vh"></div>
             <script>
                 // hostname
-                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.png?url=${url}&quality=100';
+                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=100';
 
                 const map = new maplibregl.Map({
                     hash: true,

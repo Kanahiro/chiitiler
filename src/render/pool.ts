@@ -1,9 +1,10 @@
 import mbgl from '@maplibre/maplibre-gl-native';
-import type { StyleSpecification } from 'maplibre-gl';
 import genericPool from 'generic-pool';
 
 import { getSource } from '../source.js';
 import type { Cache } from '../cache/index.js';
+
+const EMPTY_BUFFER = Buffer.alloc(0);
 
 // key:value = styleJsonString:Pooled Map Instance
 const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
@@ -21,17 +22,18 @@ function getRenderPool(
                     request: function (req, callback) {
                         getSource(req.url, cache)
                             .then((buf) => {
-                                callback(undefined, { data: buf });
+                                if (buf) callback(undefined, { data: buf });
+                                else callback(undefined, { data: EMPTY_BUFFER });
                             })
-                            .catch((err: any) => {
-                                callback(err, { data: null });
+                            .catch(() => {
+                                callback(undefined, { data: EMPTY_BUFFER });
                             });
                     },
                     ratio: 1,
                     // @ts-ignore
                     mode,
                 });
-                map.load(JSON.parse((await styleJsonBuf).toString()));
+                map.load(JSON.parse((await styleJsonBuf)!.toString()));
                 return map;
             },
             destroy: async (map: mbgl.Map) => {
