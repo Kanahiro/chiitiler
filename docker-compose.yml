@@ -4,6 +4,7 @@ services:
         volumes:
             - ./:/app
             - ./.cache:/app/.cache
+            - ./localdata:/app/localdata
         ports:
             - 3000:3000
         entrypoint: /bin/sh
@@ -14,7 +15,7 @@ services:
                 /usr/bin/xvfb-run -a npm run dev
         environment:
             - NODE_ENV=development
-            - CHIITILER_CACHE_METHOD=s3
+            - CHIITILER_CACHE_METHOD=file
             - CHIITILER_S3CACHE_BUCKET=chiitiler
             - CHIITILER_S3_REGION=ap-northeast-1
             - CHIITILER_PROCESSES=0 # all cpus
