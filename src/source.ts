@@ -49,16 +49,32 @@ async function getSource(
         }
     }
 
+    if (uri.startsWith('mbtiles://')) {
+        // uri = mbtiles://path/to/file.mbtiles/{z}/{x}/{y}
+        // mbtilesFilepath -> path/to/file.mbtiles
+        const mbtilesFilepath = uri.replace('mbtiles://', '').split('/')[0];
+        throw new Error('mbtiles is not supported yet');
+    }
+
+    if (uri.startsWith('pmtiles://')) {
+        throw new Error('pmtiles is not supported yet');
+    }
+
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
         // use cache only for http(s) sources
         const val = await cache.get(uri);
         if (val !== undefined) return val; // hit
 
         // miss
-        const res = await fetch(uri);
-        const buf = Buffer.from(await res.arrayBuffer());
-        cache.set(uri, buf);
-        return buf;
+        try {
+            const res = await fetch(uri);
+            const buf = Buffer.from(await res.arrayBuffer());
+            cache.set(uri, buf);
+            return buf;
+        } catch (e) {
+            console.log(e);
+            return null;
+        }
     }
 
     return null;
