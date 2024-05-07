@@ -17,7 +17,6 @@ function s3Cache(options: S3CacheOptions): Cache {
     return {
         name: 's3',
         set: async function (key: string, value: Value) {
-            if (key.startsWith('s3://')) return; // s3-cache is not needed for s3 source
             try {
                 const cmd = new PutObjectCommand({
                     Bucket: options.bucket,
