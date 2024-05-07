@@ -116,7 +116,91 @@ you can pass server options via environment variables
 -   In addition, chiitiler supports following protocols:
     -   `s3://` for S3 bucket
     -   `file://` for local file
+    -   `mbtiles://` for local MBTIles files
+    -   `pmtiles://` form PMTiles, remote or local
 -   Only when `http://` and `https://` chiitiler will cache them with a specified method.
+
+#### example
+
+[./localdata/style.json](./localdata/style.json)
+
+```json
+{
+  "version": "8",
+  "sources": {
+    "dir": {
+      "type": "vector",
+      "tiles": [
+        "file://localdata/tiles/{z}/{x}/{y}.pbf"
+      ],
+      "maxzoom": 6
+    },
+    "mbtiles": {
+      "type": "vector",
+      "tiles": [
+        "mbtiles://localdata/school.mbtiles/{z}/{x}/{y}"
+      ],
+      "maxzoom": 10
+    },
+    "pmtiles": {
+      "type": "vector",
+      "tiles": [
+        "pmtiles://localdata/school.pmtiles/{z}/{x}/{y}"
+      ],
+      "maxzoom": 10
+    },
+    "s3": {
+      "type": "vector",
+      "tiles": [
+        "s3://tiles/{z}/{x}/{y}.pbf"
+      ],
+      "maxzoom": 6
+    }
+  },
+  "layers": [
+    {
+      "id": "dir",
+      "source": "dir",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 10,
+        "circle-color": "red"
+      }
+    },
+    {
+      "id": "mbtiles",
+      "source": "mbtiles",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 7,
+        "circle-color": "blue"
+      }
+    },
+    {
+      "id": "pmtiles",
+      "source": "pmtiles",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 5,
+        "circle-color": "yellow"
+      }
+    },
+    {
+      "id": "s3",
+      "source": "s3",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 3,
+        "circle-color": "green"
+      }
+    }
+  ]
+}
+```
 
 ## development
 
