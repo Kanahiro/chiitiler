@@ -10,14 +10,13 @@ import { PMTiles, Source, RangeResponse } from 'pmtiles';
 
 import { getS3Client } from './s3.js';
 import { Cache, noneCache } from './cache/index.js';
-import { FileHandle } from 'fs/promises';
 
 const mbtilesCache: { [key: string]: Statement } = {};
 const pmtilesCache: { [key: string]: PMTiles } = {};
 
-class NodejsFileSource implements Source {
+class PmtilesNodejsFileSource implements Source {
     filepath: string
-    fileHandle: Promise<FileHandle>
+    fileHandle: Promise<fs.promises.FileHandle>
 
     constructor(filepath: string) {
         this.filepath = filepath;
@@ -29,9 +28,8 @@ class NodejsFileSource implements Source {
     }
 
     async getBytes(offset: number, length: number): Promise<RangeResponse> {
-        const fileHandle = await this.fileHandle;
         const buf = Buffer.alloc(length);
-        await fileHandle.read(buf, 0, length, offset)
+        await (await this.fileHandle).read(buf, 0, length, offset)
         return { data: buf.buffer };
     }
 }
@@ -123,7 +121,7 @@ async function getSource(
                 pmtilesCache[pmtilesFilepath] = new PMTiles(pmtilesFilepath);
             } else {
                 // local file
-                const fileSource = new NodejsFileSource(pmtilesFilepath);
+                const fileSource = new PmtilesNodejsFileSource(pmtilesFilepath);
                 pmtilesCache[pmtilesFilepath] = new PMTiles(fileSource);
             }
         }
