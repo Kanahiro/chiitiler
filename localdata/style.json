@@ -1,0 +1,69 @@
+{
+  "version": "8",
+  "sources": {
+    "dir": {
+      "type": "vector",
+      "tiles": [
+        "file://localdata/tiles/{z}/{x}/{y}.pbf"
+      ],
+      "maxzoom": 6
+    },
+    "mbtiles": {
+      "type": "vector",
+      "tiles": [
+        "mbtiles://localdata/school.mbtiles/{z}/{x}/{y}"
+      ],
+      "maxzoom": 10
+    },
+    "osm": {
+      "type": "raster",
+      "tiles": [
+        "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ]
+    },
+    "s3": {
+      "type": "vector",
+      "tiles": [
+        "s3://tiles/{z}/{x}/{y}.pbf"
+      ],
+      "maxzoom": 6
+    }
+  },
+  "layers": [
+    {
+      "id": "osm",
+      "source": "osm",
+      "type": "raster"
+    },
+    {
+      "id": "dir",
+      "source": "dir",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 10,
+        "circle-color": "red"
+      }
+    },
+    {
+      "id": "mbtiles",
+      "source": "mbtiles",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 5,
+        "circle-color": "blue"
+      }
+    },
+    {
+      "id": "s3",
+      "source": "s3",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 3,
+        "circle-color": "green"
+      }
+    }
+  ]
+}
