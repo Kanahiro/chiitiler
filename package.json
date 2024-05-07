@@ -17,6 +17,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",
+    "@types/better-sqlite3": "^7.6.10",
     "@types/generic-pool": "^3.8.1",
     "@types/node": "^20.6.0",
     "@types/object-hash": "^3.0.6",
@@ -28,10 +29,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.418.0",
     "@hono/node-server": "^1.1.1",
-    "@mapbox/mbtiles": "^0.12.1",
     "@mapbox/sphericalmercator": "^1.2.0",
     "@mapbox/tilebelt": "^1.0.2",
     "@maplibre/maplibre-gl-native": "^5.4.0",
+    "better-sqlite3": "^9.6.0",
     "commander": "^11.0.0",
     "file-system-cache": "^2.4.4",
     "generic-pool": "^3.9.0",
