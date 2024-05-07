@@ -51,7 +51,8 @@
       "type": "vector",
       "tiles": [
         "pmtiles://https://tile.openstreetmap.jp/static/planet.pmtiles/{z}/{x}/{y}"
-      ]
+      ],
+      "maxzoom": 14
     },
     "takeshima": {
       "type": "vector",

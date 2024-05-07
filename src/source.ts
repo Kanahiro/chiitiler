@@ -146,6 +146,10 @@ async function getSource(
         // miss
         try {
             const res = await fetch(uri);
+            if (!res.ok) {
+                console.log(`failed to fetch ${uri}`);
+                return null;
+            }
             const buf = Buffer.from(await res.arrayBuffer());
             cache.set(uri, buf);
             return buf;
