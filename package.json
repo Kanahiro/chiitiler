@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "dist/main.js",
   "scripts": {
@@ -38,6 +38,7 @@
     "generic-pool": "^3.9.0",
     "hono": "^4.3.0",
     "memory-cache-node": "^1.4.0",
+    "pmtiles": "^3.0.5",
     "sharp": "^0.32.5"
   }
 }

@@ -15,11 +15,12 @@
       ],
       "maxzoom": 10
     },
-    "osm": {
-      "type": "raster",
+    "pmtiles": {
+      "type": "vector",
       "tiles": [
-        "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      ]
+        "pmtiles://localdata/school.pmtiles/{z}/{x}/{y}"
+      ],
+      "maxzoom": 10
     },
     "s3": {
       "type": "vector",
@@ -30,11 +31,6 @@
     }
   },
   "layers": [
-    {
-      "id": "osm",
-      "source": "osm",
-      "type": "raster"
-    },
     {
       "id": "dir",
       "source": "dir",
@@ -51,8 +47,18 @@
       "source-layer": "P2921",
       "type": "circle",
       "paint": {
-        "circle-radius": 5,
+        "circle-radius": 7,
         "circle-color": "blue"
+      }
+    },
+    {
+      "id": "pmtiles",
+      "source": "pmtiles",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 5,
+        "circle-color": "yellow"
       }
     },
     {
