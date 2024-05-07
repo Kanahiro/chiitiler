@@ -6,11 +6,35 @@ import * as fs from 'fs';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import Database, { Statement } from 'better-sqlite3';
 import { unzip } from 'zlib';
+import { PMTiles, Source, RangeResponse } from 'pmtiles';
 
 import { getS3Client } from './s3.js';
 import { Cache, noneCache } from './cache/index.js';
+import { FileHandle } from 'fs/promises';
 
 const mbtilesCache: { [key: string]: Statement } = {};
+const pmtilesCache: { [key: string]: PMTiles } = {};
+
+class NodejsFileSource implements Source {
+    filepath: string
+    fileHandle: Promise<FileHandle>
+
+    constructor(filepath: string) {
+        this.filepath = filepath;
+        this.fileHandle = fs.promises.open(filepath, 'r');
+    }
+
+    getKey() {
+        return this.filepath;
+    }
+
+    async getBytes(offset: number, length: number): Promise<RangeResponse> {
+        const fileHandle = await this.fileHandle;
+        const buf = Buffer.alloc(length);
+        await fileHandle.read(buf, 0, length, offset)
+        return { data: buf.buffer };
+    }
+}
 
 /**
  * retrieve sources from the uri
@@ -83,7 +107,37 @@ async function getSource(
     }
 
     if (uri.startsWith('pmtiles://')) {
-        throw new Error('pmtiles is not supported yet');
+        // uri = pmtiles://path/to/file.pmtiles/{z}/{x}/{y}
+        const pmtilesFilepath = uri.replace('pmtiles://', '').replace(/\/\d+\/\d+\/\d+$/, '')
+
+        const isRemoteData = pmtilesFilepath.startsWith("http://") || pmtilesFilepath.startsWith("https://");
+        if (isRemoteData) {
+            // use cache only for http(s) sources
+            const val = await cache.get(uri);
+            if (val !== undefined) return val; // hit
+        }
+
+        if (!pmtilesCache[pmtilesFilepath]) {
+            if (isRemoteData) {
+                // remote file
+                pmtilesCache[pmtilesFilepath] = new PMTiles(pmtilesFilepath);
+            } else {
+                // local file
+                const fileSource = new NodejsFileSource(pmtilesFilepath);
+                pmtilesCache[pmtilesFilepath] = new PMTiles(fileSource);
+            }
+        }
+
+        const [z, x, y] = uri.replace(`pmtiles://${pmtilesFilepath}/`, '').split(
+            '/',
+        );
+        const tile = await pmtilesCache[pmtilesFilepath].getZxy(Number(z), Number(x), Number(y));
+        if (!tile) return null;
+
+        const buf = Buffer.from(tile.data)
+        if (isRemoteData) cache.set(uri, buf);
+        return buf;
+
     }
 
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
