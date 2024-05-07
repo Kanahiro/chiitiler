@@ -58,7 +58,7 @@ function initServer(options: InitServerOptions) {
                 pipeline = _sharp.jpeg({ quality });
                 break;
             case 'webp':
-                pipeline = _sharp.webp({ quality, effort: 1 });
+                pipeline = _sharp.webp({ quality, effort: 0 });
                 break;
             default:
                 return c.body('unsupported image format', 400);
