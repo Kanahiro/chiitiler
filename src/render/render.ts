@@ -69,7 +69,7 @@ async function renderTile(
     x: number,
     y: number,
     options: { tileSize: number; cache: Cache },
-): Promise<Uint8Array | undefined> {
+): Promise<Uint8Array> {
     /**
      * zoom(renderingOptions): tileSize=256 -> z-1, 512 -> z, 1024 -> z+1...
      * width, height(renderingOptions): equal to tileSize but:

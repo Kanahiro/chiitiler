@@ -35,10 +35,16 @@ function initServer(options: InitServerOptions) {
 
         if (url === null) return c.body('url is required', 400);
 
-        const pixels = await renderTile(url, z, x, y, {
-            tileSize,
-            cache: options.cache,
-        });
+        let pixels: Uint8Array;
+        try {
+            pixels = await renderTile(url, z, x, y, {
+                tileSize,
+                cache: options.cache,
+            });
+        } catch (e) {
+            console.error(`render error: ${e}`);
+            return c.body('failed to render tile', 400);
+        }
 
         const _sharp = sharp(pixels, {
             raw: {
