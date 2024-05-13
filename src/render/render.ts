@@ -16,7 +16,7 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     return tileCenter;
 }
 
-function render(
+async function render(
     styleUrl: string,
     zoom: number,
     width: number,
@@ -38,26 +38,25 @@ function render(
         rotation,
     };
 
-    const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
-        const pool = getRenderPool(styleUrl, cache, mode)
-        pool.acquire().then((map) =>
-            map.render(
-                renderOptions,
-                function (err: any, buffer: Uint8Array | undefined) {
-                    pool.release(map);
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (buffer === undefined) {
-                        reject('buffer is undefined');
-                        return;
-                    }
-                    resolve(buffer);
-                },
-            ),
-        );
+    const pool = await getRenderPool(styleUrl, cache, mode);
+    const worker = await pool.acquire();
 
+    const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
+        worker.render(
+            renderOptions,
+            function (err: any, buffer: Uint8Array | undefined) {
+                pool.release(worker);
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                if (buffer === undefined) {
+                    reject('buffer is undefined');
+                    return;
+                }
+                resolve(buffer);
+            },
+        )
     });
 
     return rendered;

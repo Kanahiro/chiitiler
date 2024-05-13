@@ -25,14 +25,17 @@ function handleFileType(uri: string) {
 
 // key:value = styleJsonString:Pooled Map Instance
 const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
-function getRenderPool(
+async function getRenderPool(
     styleUrl: string,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
     const dictKey = `${styleUrl}-${mode}`;
     if (mapPoolDict[dictKey] === undefined) {
-        const styleJsonBuf = getSource(styleUrl, cache);
+        const styleJsonBuf = await getSource(styleUrl, cache);
+        if (styleJsonBuf === null) {
+            throw new Error('style not found');
+        }
         const pool = genericPool.createPool({
             create: async () => {
                 const map = new mbgl.Map({
@@ -62,7 +65,7 @@ function getRenderPool(
                     // @ts-ignore
                     mode,
                 });
-                map.load(JSON.parse((await styleJsonBuf)!.toString()));
+                map.load(JSON.parse(styleJsonBuf.toString()));
                 return map;
             },
             destroy: async (map: mbgl.Map) => {

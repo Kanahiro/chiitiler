@@ -102,7 +102,7 @@ program
     )
     .option('-s3b --s3-cache-bucket <bucket-name>', 's3 cache bucket name', '')
     .option('-s3e --s3-endpoint <url>', 's3 endpoint url', '')
-    .option('-p --port <port>', 'port number', '3000')
+    .option('-p --port <port>', 'port number')
     .option('-D --debug', 'debug mode')
     .action((options) => {
         const serverOptions: InitServerOptions = {
