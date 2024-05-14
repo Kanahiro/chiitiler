@@ -5,6 +5,7 @@
 import SphericalMercator from '@mapbox/sphericalmercator';
 import { getRenderPool } from './pool.js';
 import type { Cache } from '../cache/index.js';
+import { RenderOptions } from '@maplibre/maplibre-gl-native';
 
 function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
@@ -16,27 +17,13 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     return tileCenter;
 }
 
+
 async function render(
     styleUrl: string,
-    zoom: number,
-    width: number,
-    height: number,
-    center: [number, number],
-    pitch: number,
-    bearing: number,
-    rotation: number,
+    renderOptions: RenderOptions,
     cache: Cache,
-    mode: 'tile' | 'static' = 'tile',
+    mode: 'tile' | 'static',
 ) {
-    const renderOptions = {
-        zoom,
-        width,
-        height,
-        center,
-        pitch,
-        bearing,
-        rotation,
-    };
 
     const pool = await getRenderPool(styleUrl, cache, mode);
     const worker = await pool.acquire();
@@ -67,7 +54,7 @@ async function renderTile(
     z: number,
     x: number,
     y: number,
-    options: { tileSize: number; cache: Cache },
+    options: { tileSize: number; cache: Cache, margin?: number },
 ): Promise<Uint8Array> {
     /**
      * zoom(renderingOptions): tileSize=256 -> z-1, 512 -> z, 1024 -> z+1...
@@ -93,15 +80,16 @@ async function renderTile(
 
     const rendered = await render(
         styleUrl,
-        renderingParams.zoom,
-        renderingParams.width,
-        renderingParams.height,
-        getTileCenter(z, x, y, options.tileSize),
-        0,
-        0,
-        0,
+        {
+            zoom: renderingParams.zoom,
+            width: renderingParams.width + (options.margin ?? 0),
+            height: renderingParams.height + (options.margin ?? 0),
+            center: getTileCenter(z, x, y, options.tileSize),
+            bearing: 0,
+            pitch: 0,
+        },
         options.cache,
-        'tile',
+        options.margin === 0 ? 'tile' : 'static',
     );
     return rendered;
 }

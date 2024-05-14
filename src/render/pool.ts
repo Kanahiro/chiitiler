@@ -42,12 +42,14 @@ async function getRenderPool(
                     request: function (req, callback) {
                         getSource(req.url, cache)
                             .then((buf) => {
-                                if (buf) {
-                                    callback(undefined, { data: buf });
-                                    return
-                                }
                                 const ext = handleFileType(req.url);
-                                if (ext && TRANSPARENT_BUFFER[ext])
+                                if (buf) {
+                                    // HACK: there may be pbf files maplibre-native cannot handle
+                                    // they are usually small, so we ignore them
+                                    const MINIMUM_PBF_SIZE = 512; // bytes, huristic value
+                                    if (ext === 'pbf' && buf.length < MINIMUM_PBF_SIZE) callback(undefined, { data: EMPTY_BUFFER });
+                                    else callback(undefined, { data: buf });
+                                } else if (ext && TRANSPARENT_BUFFER[ext])
                                     callback(undefined, { data: TRANSPARENT_BUFFER[ext] });
                                 else
                                     callback(undefined, { data: EMPTY_BUFFER });
