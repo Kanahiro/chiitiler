@@ -1,16 +1,13 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.7.2",
+  "version": "1.8.0",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/main.ts tile-server -D",
     "start": "tsc && node ./dist/main.js tile-server"
-  },
-  "bin": {
-    "chiitiler": "./dist/server.js"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
