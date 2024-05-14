@@ -4,6 +4,8 @@ function getDebugPage(c: Context) {
     //demo tile
     const url =
         c.req.query('url') ?? 'https://demotiles.maplibre.org/style.json';
+    const margin = Number(c.req.query('margin') ?? 0);
+    const quality = Number(c.req.query('quality') ?? 100);
 
     // show tile in MapLibre GL JS
     return c.html(`<!DOCTYPE html>
@@ -34,7 +36,7 @@ function getDebugPage(c: Context) {
             <div id="map" style="height: 100vh"></div>
             <script>
                 // hostname
-                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=100';
+                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=${quality}&margin=${margin}';
 
                 const map = new maplibregl.Map({
                     hash: true,

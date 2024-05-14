@@ -31,7 +31,8 @@ function initServer(options: InitServerOptions) {
         // query params
         const tileSize = Number(c.req.query('tileSize') ?? 512);
         const url = c.req.query('url') ?? null;
-        const quality = Number(c.req.query('quality') ?? 80);
+        const quality = Number(c.req.query('quality') ?? 100);
+        const margin = Number(c.req.query('margin') ?? 0);
 
         if (url === null) return c.body('url is required', 400);
 
@@ -40,19 +41,32 @@ function initServer(options: InitServerOptions) {
             pixels = await renderTile(url, z, x, y, {
                 tileSize,
                 cache: options.cache,
+                margin
             });
         } catch (e) {
             console.error(`render error: ${e}`);
             return c.body('failed to render tile', 400);
         }
 
+        // hack: tile-margin clip area
+        // maplibre-native won't render outer area of meractor
+        // so top-end and bottom-end clipped area is special
+        const isTopEnd = y === 0;
+        const isBottomEnd = y === 2 ** z - 1;
+        const topMargin = isTopEnd ? 0 : isBottomEnd ? margin : margin / 2;
+
         const _sharp = sharp(pixels, {
             raw: {
-                width: tileSize,
-                height: tileSize,
+                width: tileSize + margin,
+                height: tileSize + margin,
                 channels: 4,
             },
-        });
+        }).extract({
+            left: margin / 2,
+            top: topMargin,
+            width: tileSize,
+            height: tileSize,
+        }).resize(tileSize, tileSize);
 
         let pipeline: sharp.Sharp;
         switch (ext) {
