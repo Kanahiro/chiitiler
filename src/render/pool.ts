@@ -8,10 +8,18 @@ import type { Cache } from '../cache/index.js';
 
 const EMPTY_BUFFER = Buffer.alloc(0);
 const TRANSPARENT_BUFFER: Record<string, Buffer> = {
-    'png': Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64'),
-    'webp': Buffer.from('UklGRiYAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==', 'base64'),
-    'jpeg': Buffer.from('/9j/4AAQSkZJRgABAQEAYABgAAD/4QA6RXhpZgAATU0AKgAAAAgAA1IBAAABTAAKAAAABwAAAABkAQMAAAABAAAA+gEBAAMAAAABAAEAAKACAAQAAAABAAABPKADAAQAAAABAAAA+AAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAAGmHBAABAAAAAQAAAGgAAAAAAElFQyBvU3BhLjEgNjIgTWFjaW50b3NoKFBsdWdpbnMgTWFj...'),
-}
+    png: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        'base64',
+    ),
+    webp: Buffer.from(
+        'UklGRiYAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==',
+        'base64',
+    ),
+    jpeg: Buffer.from(
+        '/9j/4AAQSkZJRgABAQEAYABgAAD/4QA6RXhpZgAATU0AKgAAAAgAA1IBAAABTAAKAAAABwAAAABkAQMAAAABAAAA+gEBAAMAAAABAAEAAKACAAQAAAABAAABPKADAAQAAAABAAAA+AAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAAGmHBAABAAAAAQAAAGgAAAAAAElFQyBvU3BhLjEgNjIgTWFjaW50b3NoKFBsdWdpbnMgTWFj...',
+    ),
+};
 
 function handleFileType(uri: string) {
     // extract extension only, take into account query string or hash
@@ -44,21 +52,20 @@ async function getRenderPool(
                             .then((buf) => {
                                 const ext = handleFileType(req.url);
                                 if (buf) {
-                                    // HACK: there may be pbf files maplibre-native cannot handle
-                                    // they are usually small, so we ignore them
-                                    const MINIMUM_PBF_SIZE = 512; // bytes, huristic value
-                                    if (ext === 'pbf' && buf.length < MINIMUM_PBF_SIZE) callback(undefined, { data: EMPTY_BUFFER });
-                                    else callback(undefined, { data: buf });
+                                    callback(undefined, { data: buf });
                                 } else if (ext && TRANSPARENT_BUFFER[ext])
-                                    callback(undefined, { data: TRANSPARENT_BUFFER[ext] });
+                                    callback(undefined, {
+                                        data: TRANSPARENT_BUFFER[ext],
+                                    });
                                 else
                                     callback(undefined, { data: EMPTY_BUFFER });
-
                             })
                             .catch(() => {
                                 const ext = handleFileType(req.url);
                                 if (ext && TRANSPARENT_BUFFER[ext])
-                                    callback(undefined, { data: TRANSPARENT_BUFFER[ext] });
+                                    callback(undefined, {
+                                        data: TRANSPARENT_BUFFER[ext],
+                                    });
                                 else
                                     callback(undefined, { data: EMPTY_BUFFER });
                             });
