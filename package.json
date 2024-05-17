@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "dist/main.js",
   "scripts": {
