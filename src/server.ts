@@ -16,7 +16,6 @@ type InitServerOptions = {
     debug: boolean;
 };
 
-
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
     hono.get('/health', (c) => c.body('OK', 200));
@@ -41,7 +40,7 @@ function initServer(options: InitServerOptions) {
             pixels = await renderTile(url, z, x, y, {
                 tileSize,
                 cache: options.cache,
-                margin
+                margin,
             });
         } catch (e) {
             console.error(`render error: ${e}`);
@@ -61,17 +60,19 @@ function initServer(options: InitServerOptions) {
                 height: tileSize + margin,
                 channels: 4,
             },
-        }).extract({
-            left: margin / 2,
-            top: topMargin,
-            width: tileSize,
-            height: tileSize,
-        }).resize(tileSize, tileSize);
+        })
+            .extract({
+                left: margin / 2,
+                top: topMargin,
+                width: tileSize,
+                height: tileSize,
+            })
+            .resize(tileSize, tileSize);
 
         let pipeline: sharp.Sharp;
         switch (ext) {
             case 'png':
-                pipeline = _sharp.png({ effort: 1 });
+                pipeline = _sharp.png();
                 break;
             case 'jpeg':
             case 'jpg':
@@ -83,7 +84,6 @@ function initServer(options: InitServerOptions) {
             default:
                 return c.body('unsupported image format', 400);
         }
-
 
         c.header('Content-Type', `image/${ext}`);
         return stream(c, async (stream) => {
