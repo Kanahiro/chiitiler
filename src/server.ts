@@ -16,7 +16,6 @@ type InitServerOptions = {
     debug: boolean;
 };
 
-
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
     hono.get('/health', (c) => c.body('OK', 200));
@@ -41,7 +40,7 @@ function initServer(options: InitServerOptions) {
             pixels = await renderTile(url, z, x, y, {
                 tileSize,
                 cache: options.cache,
-                margin
+                margin,
             });
         } catch (e) {
             console.error(`render error: ${e}`);
@@ -55,23 +54,38 @@ function initServer(options: InitServerOptions) {
         const isBottomEnd = y === 2 ** z - 1;
         const topMargin = isTopEnd ? 0 : isBottomEnd ? margin : margin / 2;
 
-        const _sharp = sharp(pixels, {
-            raw: {
-                width: tileSize + margin,
-                height: tileSize + margin,
-                channels: 4,
-            },
-        }).extract({
-            left: margin / 2,
-            top: topMargin,
-            width: tileSize,
-            height: tileSize,
-        }).resize(tileSize, tileSize);
+        let _sharp: sharp.Sharp;
+        if (tileSize === 256 && z === 0) {
+            // hack: when tileSize=256, z=0
+            // pixlels will be 512x512 so we need to resize to 256x256
+            _sharp = sharp(pixels, {
+                raw: {
+                    width: 512,
+                    height: 512,
+                    channels: 4,
+                },
+            }).resize(256, 256);
+        } else {
+            _sharp = sharp(pixels, {
+                raw: {
+                    width: tileSize + margin,
+                    height: tileSize + margin,
+                    channels: 4,
+                },
+            })
+                .extract({
+                    left: margin / 2,
+                    top: topMargin,
+                    width: tileSize,
+                    height: tileSize,
+                })
+                .resize(tileSize, tileSize);
+        }
 
         let pipeline: sharp.Sharp;
         switch (ext) {
             case 'png':
-                pipeline = _sharp.png({ effort: 1 });
+                pipeline = _sharp.png();
                 break;
             case 'jpeg':
             case 'jpg':
@@ -83,7 +97,6 @@ function initServer(options: InitServerOptions) {
             default:
                 return c.body('unsupported image format', 400);
         }
-
 
         c.header('Content-Type', `image/${ext}`);
         return stream(c, async (stream) => {
