@@ -1,4 +1,3 @@
-
 import cluster from 'node:cluster';
 import { availableParallelism } from 'node:os';
 import process from 'node:process';
@@ -120,30 +119,30 @@ program
             debug: parseDebug(options.debug),
         };
 
-        console.log(`running server: http://localhost:${serverOptions.port}`);
-        console.log(`cache method: ${serverOptions.cache.name}`);
-        if (serverOptions.debug)
+        if (serverOptions.debug) {
+            console.log(
+                `running server: http://localhost:${serverOptions.port}`,
+            );
+            console.log(`cache method: ${serverOptions.cache.name}`);
             console.log(
                 `debug page: http://localhost:${serverOptions.port}/debug`,
             );
+        }
 
         const { start } = initServer(serverOptions);
         start();
     });
 
-function numProcesses() {
-    if (process.env.CHIITILER_PROCESSES === undefined) return 1
-    const processesEnv = Number(process.env.CHIITILER_PROCESSES)
+const numProcesses = (() => {
+    if (process.env.CHIITILER_PROCESSES === undefined) return 1;
+    const processesEnv = Number(process.env.CHIITILER_PROCESSES);
     if (processesEnv === 0) return availableParallelism();
     else return processesEnv;
-}
+})();
 
-if (cluster.isPrimary) {
+if (cluster.isPrimary && numProcesses !== 1) {
     // Fork workers.
-    for (let i = 0; i < numProcesses(); i++) {
-        cluster.fork();
-    }
+    for (let i = 0; i < numProcesses; i++) cluster.fork();
 } else {
     program.parse(process.argv);
-    console.log(`Worker ${process.pid} started`);
 }
