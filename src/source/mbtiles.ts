@@ -25,10 +25,12 @@ async function getMbtilesSource(uri: string): Promise<Buffer | null> {
 
     if (!row) return null;
 
-    const unzipped = await new Promise<Buffer>((resolve, reject) => {
+    const unzipped = await new Promise<Buffer | null>((resolve, _) => {
         unzip((row as any).tile_data, (err, buffer) => {
-            if (err) reject(err);
-            resolve(buffer);
+            if (err) {
+                console.error(`[ERROR]: ${err}`);
+                resolve(null);
+            } else resolve(buffer);
         });
     });
     return unzipped;

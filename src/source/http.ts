@@ -19,7 +19,7 @@ async function getHttpSource(
         cache.set(uri, buf);
         return buf;
     } catch (e) {
-        console.log(e);
+        console.error(`[ERROR] ${e}`);
         return null;
     }
 }

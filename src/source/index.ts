@@ -16,6 +16,7 @@ async function getSource(
     cache: Cache = noneCache(),
 ): Promise<Buffer | null> {
     let data: Buffer | null = null;
+
     if (uri.startsWith('http://') || uri.startsWith('https://'))
         data = await getHttpSource(uri, cache);
     else if (uri.startsWith('file://')) data = await getFilesystemSource(uri);
@@ -23,7 +24,6 @@ async function getSource(
     else if (uri.startsWith('mbtiles://')) data = await getMbtilesSource(uri);
     else if (uri.startsWith('pmtiles://'))
         data = await getPmtilesSoruce(uri, cache);
-    else throw new Error(`Unsupported source: ${uri}`);
 
     return data;
 }
