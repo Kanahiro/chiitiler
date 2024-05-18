@@ -2,7 +2,7 @@ services:
     app:
         build: ./
         volumes:
-            - ./:/app
+            - ./src:/app/src
             - ./.cache:/app/.cache
             - ./localdata:/app/localdata
         ports:
