@@ -1,6 +1,3 @@
-/// <reference lib="dom" />
-// for using native fetch in TypeScript
-
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
