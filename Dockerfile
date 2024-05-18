@@ -1,4 +1,14 @@
-FROM public.ecr.aws/ubuntu/ubuntu:22.04
+FROM node:20-bookworm-slim as builder
+
+WORKDIR /app/
+COPY package*.json /app/
+RUN npm install
+COPY ./src /app/src
+COPY tsconfig.json /app/tsconfig.json
+RUN npm run build
+# /app/dist
+
+FROM public.ecr.aws/ubuntu/ubuntu:22.04 as runtime
 
 # Install dependencies
 ENV DEBIAN_FRONTEND=noninteractive
@@ -12,26 +22,19 @@ RUN apt-get install -y \
   libpng-dev \
   libwebp-dev
 
-# Install Node.js
-RUN apt-get install -y ca-certificates curl gnupg
-RUN mkdir -p /etc/apt/keyrings
-RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-RUN apt-get update
-RUN apt-get install nodejs -y
-
-# install nodejs dependencies
-WORKDIR /app/
-COPY package*.json /app/
-RUN npm install
-COPY . .
-RUN npm run build
-
 # Lambda WebAdapter
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.3 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
 ENV READINESS_CHECK_PATH=/health
 
+# Copy Node.js executable from node:20-bookworm-slim
+COPY --from=node:20-bookworm-slim /usr/local/bin /usr/local/bin
+COPY --from=node:20-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+# Copy /app/dist from builder
+WORKDIR /app/
+COPY --from=builder /app/dist /app/dist
+
 # start server
-ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node ./dist/main.js $@", ""]
+ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node /app/dist/main.js $@", ""]
 CMD ["tile-server"]
