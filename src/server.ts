@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
-import sharp from 'sharp';
+import { type Sharp } from 'sharp';
 
 import { renderTilePipeline } from './render/index.js';
 import { type Cache } from './cache/index.js';
@@ -33,7 +33,7 @@ function initServer(options: InitServerOptions) {
 
         if (url === null) return c.body('url is required', 400);
 
-        let pipeline: sharp.Sharp;
+        let pipeline: Sharp;
         try {
             pipeline = await renderTilePipeline({
                 url,
