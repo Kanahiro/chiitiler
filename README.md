@@ -126,7 +126,7 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
   - `s3://` for S3 bucket
   - `file://` for local file
   - `mbtiles://` for local MBTIles files
-  - `pmtiles://` form PMTiles, remote or local
+  - `pmtiles://` form PMTiles, remote or local or s3
 - Only when `http://` and `https://` chiitiler will cache them with a specified method.
 
 ### example
