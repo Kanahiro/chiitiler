@@ -3,7 +3,7 @@ import * as path from 'path';
 import mbgl from '@maplibre/maplibre-gl-native';
 import genericPool from 'generic-pool';
 
-import { getSource } from '../source.js';
+import { getSource } from '../source/index.js';
 import type { Cache } from '../cache/index.js';
 
 const EMPTY_BUFFER = Buffer.alloc(0);

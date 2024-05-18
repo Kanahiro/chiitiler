@@ -8,15 +8,15 @@ import Database, { Statement } from 'better-sqlite3';
 import { unzip } from 'zlib';
 import { PMTiles, Source, RangeResponse } from 'pmtiles';
 
-import { getS3Client } from './s3.js';
-import { Cache, noneCache } from './cache/index.js';
+import { getS3Client } from '../s3.js';
+import { Cache, noneCache } from '../cache/index.js';
 
 const mbtilesCache: { [key: string]: Statement } = {};
 const pmtilesCache: { [key: string]: PMTiles } = {};
 
 class PmtilesNodejsFileSource implements Source {
-    filepath: string
-    fileHandle: Promise<fs.promises.FileHandle>
+    filepath: string;
+    fileHandle: Promise<fs.promises.FileHandle>;
 
     constructor(filepath: string) {
         this.filepath = filepath;
@@ -29,7 +29,7 @@ class PmtilesNodejsFileSource implements Source {
 
     async getBytes(offset: number, length: number): Promise<RangeResponse> {
         const buf = Buffer.alloc(length);
-        await (await this.fileHandle).read(buf, 0, length, offset)
+        await (await this.fileHandle).read(buf, 0, length, offset);
         return { data: buf.buffer };
     }
 }
@@ -77,16 +77,18 @@ async function getSource(
 
     if (uri.startsWith('mbtiles://')) {
         // uri = mbtiles://path/to/file.mbtiles/{z}/{x}/{y}
-        const mbtilesFilepath = uri.replace('mbtiles://', '').replace(/\/\d+\/\d+\/\d+$/, '')
+        const mbtilesFilepath = uri
+            .replace('mbtiles://', '')
+            .replace(/\/\d+\/\d+\/\d+$/, '');
         if (mbtilesCache[mbtilesFilepath] === undefined) {
             const db = new Database(mbtilesFilepath, { readonly: true });
             mbtilesCache[mbtilesFilepath] = db.prepare(
                 'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
             );
         }
-        const [z, x, y] = uri.replace(`mbtiles://${mbtilesFilepath}/`, '').split(
-            '/',
-        );
+        const [z, x, y] = uri
+            .replace(`mbtiles://${mbtilesFilepath}/`, '')
+            .split('/');
         const ty = Math.pow(2, Number(z)) - 1 - Number(y);
 
         const row = mbtilesCache[mbtilesFilepath].get(z, x, ty);
@@ -100,15 +102,17 @@ async function getSource(
             });
         });
         return unzipped;
-
-
     }
 
     if (uri.startsWith('pmtiles://')) {
         // uri = pmtiles://path/to/file.pmtiles/{z}/{x}/{y}
-        const pmtilesFilepath = uri.replace('pmtiles://', '').replace(/\/\d+\/\d+\/\d+$/, '')
+        const pmtilesFilepath = uri
+            .replace('pmtiles://', '')
+            .replace(/\/\d+\/\d+\/\d+$/, '');
 
-        const isRemoteData = pmtilesFilepath.startsWith("http://") || pmtilesFilepath.startsWith("https://");
+        const isRemoteData =
+            pmtilesFilepath.startsWith('http://') ||
+            pmtilesFilepath.startsWith('https://');
         if (isRemoteData) {
             // use cache only for http(s) sources
             const val = await cache.get(uri);
@@ -126,16 +130,19 @@ async function getSource(
             }
         }
 
-        const [z, x, y] = uri.replace(`pmtiles://${pmtilesFilepath}/`, '').split(
-            '/',
+        const [z, x, y] = uri
+            .replace(`pmtiles://${pmtilesFilepath}/`, '')
+            .split('/');
+        const tile = await pmtilesCache[pmtilesFilepath].getZxy(
+            Number(z),
+            Number(x),
+            Number(y),
         );
-        const tile = await pmtilesCache[pmtilesFilepath].getZxy(Number(z), Number(x), Number(y));
         if (!tile) return null;
 
-        const buf = Buffer.from(tile.data)
+        const buf = Buffer.from(tile.data);
         if (isRemoteData) cache.set(uri, buf);
         return buf;
-
     }
 
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
