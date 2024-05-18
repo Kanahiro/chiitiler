@@ -1,10 +1,8 @@
 FROM node:20-bookworm-slim as builder
 
 WORKDIR /app/
-COPY package*.json /app/
+COPY . /app/
 RUN npm install
-COPY ./src /app/src
-COPY tsconfig.json /app/tsconfig.json
 RUN npm run build
 # /app/dist
 
@@ -34,6 +32,8 @@ COPY --from=node:20-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/nod
 # Copy /app/dist from builder
 WORKDIR /app/
 COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/package.json /app/package.json
 
 # start server
 ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node /app/dist/main.js $@", ""]
