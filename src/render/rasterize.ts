@@ -3,9 +3,10 @@
 
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
+import type { RenderOptions } from '@maplibre/maplibre-gl-native';
+
 import { getRenderPool } from './pool.js';
 import type { Cache } from '../cache/index.js';
-import { RenderOptions } from '@maplibre/maplibre-gl-native';
 
 function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     const mercator = new SphericalMercator({
@@ -17,14 +18,12 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
     return tileCenter;
 }
 
-
 async function render(
     styleUrl: string,
     renderOptions: RenderOptions,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-
     const pool = await getRenderPool(styleUrl, cache, mode);
     const worker = await pool.acquire();
 
@@ -43,7 +42,7 @@ async function render(
                 }
                 resolve(buffer);
             },
-        )
+        );
     });
 
     return rendered;
@@ -54,7 +53,7 @@ async function renderTile(
     z: number,
     x: number,
     y: number,
-    options: { tileSize: number; cache: Cache, margin?: number },
+    options: { tileSize: number; cache: Cache; margin?: number },
 ): Promise<Uint8Array> {
     /**
      * zoom(renderingOptions): tileSize=256 -> z-1, 512 -> z, 1024 -> z+1...
@@ -66,17 +65,17 @@ async function renderTile(
     const renderingParams =
         options.tileSize === 256 && z === 0
             ? {
-                zoom: 0,
-                height: 512,
-                width: 512,
-                ratio: 0.5,
-            }
+                  zoom: 0,
+                  height: 512,
+                  width: 512,
+                  ratio: 0.5,
+              }
             : {
-                zoom: z - 1 + Math.floor(options.tileSize / 512),
-                height: options.tileSize,
-                width: options.tileSize,
-                ratio: 1,
-            };
+                  zoom: z - 1 + Math.floor(options.tileSize / 512),
+                  height: options.tileSize,
+                  width: options.tileSize,
+                  ratio: 1,
+              };
 
     const rendered = await render(
         styleUrl,

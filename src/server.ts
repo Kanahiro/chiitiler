@@ -6,7 +6,7 @@ import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import sharp from 'sharp';
 
-import { renderTile } from './render/index.js';
+import { renderTilePipeline } from './render/index.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
 
@@ -18,7 +18,8 @@ type InitServerOptions = {
 
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
-    hono.get('/health', (c) => c.body('OK', 200));
+    if (options.debug) hono.get('/debug', getDebugPage);
+    hono.get('/health', (c) => c.text('OK'));
 
     hono.get('/tiles/:z/:x/:y_ext', async (c) => {
         // path params
@@ -35,67 +36,22 @@ function initServer(options: InitServerOptions) {
 
         if (url === null) return c.body('url is required', 400);
 
-        let pixels: Uint8Array;
+        let pipeline: sharp.Sharp;
         try {
-            pixels = await renderTile(url, z, x, y, {
+            pipeline = await renderTilePipeline({
+                url,
+                z,
+                x,
+                y,
                 tileSize,
                 cache: options.cache,
                 margin,
+                ext,
+                quality,
             });
         } catch (e) {
             console.error(`render error: ${e}`);
             return c.body('failed to render tile', 400);
-        }
-
-        // hack: tile-margin clip area
-        // maplibre-native won't render outer area of meractor
-        // so top-end and bottom-end clipped area is special
-        const isTopEnd = y === 0;
-        const isBottomEnd = y === 2 ** z - 1;
-        const topMargin = isTopEnd ? 0 : isBottomEnd ? margin : margin / 2;
-
-        let _sharp: sharp.Sharp;
-        if (tileSize === 256 && z === 0) {
-            // hack: when tileSize=256, z=0
-            // pixlels will be 512x512 so we need to resize to 256x256
-            _sharp = sharp(pixels, {
-                raw: {
-                    width: 512,
-                    height: 512,
-                    channels: 4,
-                },
-            }).resize(256, 256);
-        } else {
-            _sharp = sharp(pixels, {
-                raw: {
-                    width: tileSize + margin,
-                    height: tileSize + margin,
-                    channels: 4,
-                },
-            })
-                .extract({
-                    left: margin / 2,
-                    top: topMargin,
-                    width: tileSize,
-                    height: tileSize,
-                })
-                .resize(tileSize, tileSize);
-        }
-
-        let pipeline: sharp.Sharp;
-        switch (ext) {
-            case 'png':
-                pipeline = _sharp.png();
-                break;
-            case 'jpeg':
-            case 'jpg':
-                pipeline = _sharp.jpeg({ quality });
-                break;
-            case 'webp':
-                pipeline = _sharp.webp({ quality, effort: 0 });
-                break;
-            default:
-                return c.body('unsupported image format', 400);
         }
 
         c.header('Content-Type', `image/${ext}`);
@@ -105,8 +61,6 @@ function initServer(options: InitServerOptions) {
             }
         });
     });
-
-    if (options.debug) hono.get('/debug', getDebugPage);
 
     return {
         start: () => serve({ port: options.port, fetch: hono.fetch }),
