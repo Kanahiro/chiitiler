@@ -1,3 +1,6 @@
+/// <reference lib="dom" />
+// for using native fetch in TypeScript
+
 import { type Cache, noneCache } from '../cache/index.js';
 
 async function getHttpSource(
