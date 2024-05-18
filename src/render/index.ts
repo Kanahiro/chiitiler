@@ -1,1 +1,1 @@
-export { render, renderTile } from './render.js';
+export { renderTilePipeline } from './sharp.js';
