@@ -1,6 +1,7 @@
 import cluster from 'node:cluster';
 import { availableParallelism } from 'node:os';
 import process from 'node:process';
+
 import { program } from 'commander';
 
 import { initServer, type InitServerOptions } from './server.js';
