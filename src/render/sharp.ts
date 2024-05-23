@@ -19,6 +19,32 @@ type RenderTilePipelineOptions = {
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
+/**
+ * onmemory cache to prevent re-fetching style.json
+ * { url: style }
+ */
+const styleCache: Record<string, StyleSpecification> = {};
+async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
+    let style: StyleSpecification;
+    if (typeof stylejson === 'string') {
+        // url
+        if (styleCache[stylejson] !== undefined) {
+            // hit-cache
+            style = styleCache[stylejson];
+        } else {
+            const styleJsonBuf = await getSource(stylejson, cache);
+            if (styleJsonBuf === null) {
+                throw new Error('style not found');
+            }
+            style = JSON.parse(styleJsonBuf.toString());
+            styleCache[stylejson] = style; // cache
+        }
+    } else {
+        style = stylejson;
+    }
+    return style;
+}
+
 async function renderTilePipeline({
     stylejson,
     z,
@@ -30,17 +56,7 @@ async function renderTilePipeline({
     ext,
     quality,
 }: RenderTilePipelineOptions) {
-    let style: StyleSpecification;
-    if (typeof stylejson === 'string') {
-        // url
-        const styleJsonBuf = await getSource(stylejson, cache);
-        if (styleJsonBuf === null) {
-            throw new Error('style not found');
-        }
-        style = JSON.parse(styleJsonBuf.toString());
-    } else {
-        style = stylejson;
-    }
+    const style = await loadStyle(stylejson, cache);
 
     let pixels: Uint8Array;
     pixels = await renderTile(style, z, x, y, {
