@@ -11,9 +11,11 @@ type RenderTilePipelineOptions = {
     tileSize: number;
     cache: Cache;
     margin: number;
-    ext: string;
+    ext: SupportedFormat;
     quality: number;
 };
+
+type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
 async function renderTilePipeline({
     url,
@@ -86,4 +88,4 @@ async function renderTilePipeline({
     return pipeline;
 }
 
-export { renderTilePipeline };
+export { renderTilePipeline, type SupportedFormat };

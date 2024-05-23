@@ -1,1 +1,1 @@
-export { renderTilePipeline } from './sharp.js';
+export { renderTilePipeline, type SupportedFormat } from './sharp.js';

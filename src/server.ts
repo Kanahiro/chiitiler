@@ -3,7 +3,7 @@ import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import { type Sharp } from 'sharp';
 
-import { renderTilePipeline } from './render/index.js';
+import { renderTilePipeline, type SupportedFormat } from './render/index.js';
 import { type Cache } from './cache/index.js';
 import { getDebugPage } from './debug.js';
 
@@ -19,6 +19,10 @@ function validateXyz(x: number, y: number, z: number) {
     return true;
 }
 
+function isSupportedFormat(ext: string): ext is SupportedFormat {
+    return ['png', 'jpeg', 'jpg', 'webp'].includes(ext);
+}
+
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
     if (options.debug) hono.get('/debug', getDebugPage);
@@ -32,6 +36,7 @@ function initServer(options: InitServerOptions) {
         const y = Number(_y);
 
         if (!validateXyz(x, y, z)) return c.body('invalid xyz', 400);
+        if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
         // query params
         const tileSize = Number(c.req.query('tileSize') ?? 512);
