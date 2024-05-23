@@ -1,10 +1,12 @@
 import sharp from 'sharp';
+import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { renderTile } from './rasterize.js';
 import type { Cache } from '../cache/index.js';
+import { getSource } from '../source/index.js';
 
 type RenderTilePipelineOptions = {
-    url: string;
+    stylejson: string | StyleSpecification;
     z: number;
     x: number;
     y: number;
@@ -17,8 +19,34 @@ type RenderTilePipelineOptions = {
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
+/**
+ * onmemory cache to prevent re-fetching style.json
+ * { url: style }
+ */
+const styleCache: Record<string, StyleSpecification> = {};
+async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
+    let style: StyleSpecification;
+    if (typeof stylejson === 'string') {
+        // url
+        if (styleCache[stylejson] !== undefined) {
+            // hit-cache
+            style = styleCache[stylejson];
+        } else {
+            const styleJsonBuf = await getSource(stylejson, cache);
+            if (styleJsonBuf === null) {
+                throw new Error('style not found');
+            }
+            style = JSON.parse(styleJsonBuf.toString());
+            styleCache[stylejson] = style; // cache
+        }
+    } else {
+        style = stylejson;
+    }
+    return style;
+}
+
 async function renderTilePipeline({
-    url,
+    stylejson,
     z,
     x,
     y,
@@ -28,8 +56,10 @@ async function renderTilePipeline({
     ext,
     quality,
 }: RenderTilePipelineOptions) {
+    const style = await loadStyle(stylejson, cache);
+
     let pixels: Uint8Array;
-    pixels = await renderTile(url, z, x, y, {
+    pixels = await renderTile(style, z, x, y, {
         tileSize,
         cache,
         margin,
@@ -82,8 +112,6 @@ async function renderTilePipeline({
         case 'webp':
             pipeline = _sharp.webp({ quality, effort: 0 });
             break;
-        default:
-            throw new Error('unsupported format');
     }
     return pipeline;
 }

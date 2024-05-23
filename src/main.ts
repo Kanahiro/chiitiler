@@ -4,7 +4,7 @@ import process from 'node:process';
 
 import { program } from 'commander';
 
-import { initServer, type InitServerOptions } from './server.js';
+import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
 
 function parseCacheStrategy(

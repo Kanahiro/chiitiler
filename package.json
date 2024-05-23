@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "dist/main.js",
   "scripts": {
@@ -29,12 +29,14 @@
     "@mapbox/sphericalmercator": "^1.2.0",
     "@mapbox/tilebelt": "^1.0.2",
     "@maplibre/maplibre-gl-native": "^5.4.0",
+    "@maplibre/maplibre-gl-style-spec": "^20.2.0",
     "better-sqlite3": "^9.6.0",
     "commander": "^11.0.0",
     "file-system-cache": "^2.4.4",
     "generic-pool": "^3.9.0",
     "hono": "^4.3.0",
     "memory-cache-node": "^1.4.0",
+    "node-object-hash": "^3.0.0",
     "pmtiles": "^3.0.5",
     "sharp": "^0.32.5"
   }

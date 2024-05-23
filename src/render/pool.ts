@@ -2,6 +2,9 @@ import * as path from 'path';
 
 import mbgl from '@maplibre/maplibre-gl-native';
 import genericPool from 'generic-pool';
+import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
+import { hasher } from 'node-object-hash';
+const _hasher = hasher();
 
 import { getSource } from '../source/index.js';
 import type { Cache } from '../cache/index.js';
@@ -21,7 +24,7 @@ const TRANSPARENT_BUFFER: Record<string, Buffer> = {
     ),
 };
 
-function handleFileType(uri: string) {
+function handleFileExt(uri: string) {
     // extract extension only, take into account query string or hash
     const basename = path.basename(uri).split(/[?#]/)[0];
     const ext = basename.split('.').pop();
@@ -34,23 +37,19 @@ function handleFileType(uri: string) {
 // key:value = styleJsonString:Pooled Map Instance
 const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
 async function getRenderPool(
-    styleUrl: string,
+    style: StyleSpecification,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const dictKey = `${styleUrl}-${mode}`;
+    const dictKey = _hasher.hash(style);
     if (mapPoolDict[dictKey] === undefined) {
-        const styleJsonBuf = await getSource(styleUrl, cache);
-        if (styleJsonBuf === null) {
-            throw new Error('style not found');
-        }
         const pool = genericPool.createPool({
             create: async () => {
                 const map = new mbgl.Map({
                     request: function (req, callback) {
                         getSource(req.url, cache)
                             .then((buf) => {
-                                const ext = handleFileType(req.url);
+                                const ext = handleFileExt(req.url);
                                 if (buf) {
                                     callback(undefined, { data: buf });
                                 } else if (ext && TRANSPARENT_BUFFER[ext])
@@ -61,7 +60,7 @@ async function getRenderPool(
                                     callback(undefined, { data: EMPTY_BUFFER });
                             })
                             .catch(() => {
-                                const ext = handleFileType(req.url);
+                                const ext = handleFileExt(req.url);
                                 if (ext && TRANSPARENT_BUFFER[ext])
                                     callback(undefined, {
                                         data: TRANSPARENT_BUFFER[ext],
@@ -74,7 +73,7 @@ async function getRenderPool(
                     // @ts-ignore
                     mode,
                 });
-                map.load(JSON.parse(styleJsonBuf.toString()));
+                map.load(style);
                 return map;
             },
             destroy: async (map: mbgl.Map) => {
