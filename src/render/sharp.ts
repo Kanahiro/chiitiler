@@ -1,10 +1,12 @@
 import sharp from 'sharp';
+import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { renderTile } from './rasterize.js';
 import type { Cache } from '../cache/index.js';
+import { getSource } from '../source/index.js';
 
 type RenderTilePipelineOptions = {
-    url: string;
+    stylejson: string | StyleSpecification;
     z: number;
     x: number;
     y: number;
@@ -18,7 +20,7 @@ type RenderTilePipelineOptions = {
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
 async function renderTilePipeline({
-    url,
+    stylejson,
     z,
     x,
     y,
@@ -28,8 +30,20 @@ async function renderTilePipeline({
     ext,
     quality,
 }: RenderTilePipelineOptions) {
+    let style: StyleSpecification;
+    if (typeof stylejson === 'string') {
+        // url
+        const styleJsonBuf = await getSource(stylejson, cache);
+        if (styleJsonBuf === null) {
+            throw new Error('style not found');
+        }
+        style = JSON.parse(styleJsonBuf.toString());
+    } else {
+        style = stylejson;
+    }
+
     let pixels: Uint8Array;
-    pixels = await renderTile(url, z, x, y, {
+    pixels = await renderTile(style, z, x, y, {
         tileSize,
         cache,
         margin,

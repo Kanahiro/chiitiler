@@ -2,6 +2,7 @@ import * as path from 'path';
 
 import mbgl from '@maplibre/maplibre-gl-native';
 import genericPool from 'generic-pool';
+import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { getSource } from '../source/index.js';
 import type { Cache } from '../cache/index.js';
@@ -34,16 +35,12 @@ function handleFileType(uri: string) {
 // key:value = styleJsonString:Pooled Map Instance
 const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
 async function getRenderPool(
-    styleUrl: string,
+    style: StyleSpecification,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const dictKey = `${styleUrl}-${mode}`;
+    const dictKey = JSON.stringify(style);
     if (mapPoolDict[dictKey] === undefined) {
-        const styleJsonBuf = await getSource(styleUrl, cache);
-        if (styleJsonBuf === null) {
-            throw new Error('style not found');
-        }
         const pool = genericPool.createPool({
             create: async () => {
                 const map = new mbgl.Map({
@@ -74,7 +71,7 @@ async function getRenderPool(
                     // @ts-ignore
                     mode,
                 });
-                map.load(JSON.parse(styleJsonBuf.toString()));
+                map.load(style);
                 return map;
             },
             destroy: async (map: mbgl.Map) => {

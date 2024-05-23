@@ -1,6 +1,7 @@
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
 import type { RenderOptions } from '@maplibre/maplibre-gl-native';
+import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { getRenderPool } from './pool.js';
 import type { Cache } from '../cache/index.js';
@@ -16,12 +17,12 @@ function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
 }
 
 async function render(
-    styleUrl: string,
+    style: StyleSpecification,
     renderOptions: RenderOptions,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const pool = await getRenderPool(styleUrl, cache, mode);
+    const pool = await getRenderPool(style, cache, mode);
     const worker = await pool.acquire();
 
     const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
@@ -46,7 +47,7 @@ async function render(
 }
 
 async function renderTile(
-    styleUrl: string,
+    style: StyleSpecification,
     z: number,
     x: number,
     y: number,
@@ -75,7 +76,7 @@ async function renderTile(
               };
 
     const rendered = await render(
-        styleUrl,
+        style,
         {
             zoom: renderingParams.zoom,
             width: renderingParams.width + (options.margin ?? 0),
