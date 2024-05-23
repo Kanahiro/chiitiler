@@ -29,6 +29,7 @@
     "@mapbox/sphericalmercator": "^1.2.0",
     "@mapbox/tilebelt": "^1.0.2",
     "@maplibre/maplibre-gl-native": "^5.4.0",
+    "@maplibre/maplibre-gl-style-spec": "^20.2.0",
     "better-sqlite3": "^9.6.0",
     "commander": "^11.0.0",
     "file-system-cache": "^2.4.4",
