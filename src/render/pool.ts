@@ -24,7 +24,7 @@ const TRANSPARENT_BUFFER: Record<string, Buffer> = {
     ),
 };
 
-function handleFileType(uri: string) {
+function handleFileExt(uri: string) {
     // extract extension only, take into account query string or hash
     const basename = path.basename(uri).split(/[?#]/)[0];
     const ext = basename.split('.').pop();
@@ -49,7 +49,7 @@ async function getRenderPool(
                     request: function (req, callback) {
                         getSource(req.url, cache)
                             .then((buf) => {
-                                const ext = handleFileType(req.url);
+                                const ext = handleFileExt(req.url);
                                 if (buf) {
                                     callback(undefined, { data: buf });
                                 } else if (ext && TRANSPARENT_BUFFER[ext])
@@ -60,7 +60,7 @@ async function getRenderPool(
                                     callback(undefined, { data: EMPTY_BUFFER });
                             })
                             .catch(() => {
-                                const ext = handleFileType(req.url);
+                                const ext = handleFileExt(req.url);
                                 if (ext && TRANSPARENT_BUFFER[ext])
                                     callback(undefined, {
                                         data: TRANSPARENT_BUFFER[ext],

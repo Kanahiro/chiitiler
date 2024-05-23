@@ -112,8 +112,6 @@ async function renderTilePipeline({
         case 'webp':
             pipeline = _sharp.webp({ quality, effort: 0 });
             break;
-        default:
-            throw new Error('unsupported format');
     }
     return pipeline;
 }
