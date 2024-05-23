@@ -13,7 +13,7 @@ type InitServerOptions = {
     debug: boolean;
 };
 
-function validateXyz(x: number, y: number, z: number) {
+function isValidXyz(x: number, y: number, z: number) {
     if (x < 0 || y < 0 || z < 0) return false;
     if (x >= 2 ** z || y >= 2 ** z) return false;
     return true;
@@ -35,7 +35,7 @@ function initServer(options: InitServerOptions) {
         let [_y, ext] = c.req.param('y_ext').split('.');
         const y = Number(_y);
 
-        if (!validateXyz(x, y, z)) return c.body('invalid xyz', 400);
+        if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
         if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
         // query params
