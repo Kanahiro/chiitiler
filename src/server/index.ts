@@ -6,7 +6,7 @@ import {
 } from '@maplibre/maplibre-gl-style-spec';
 
 import { type Cache } from '../cache/index.js';
-import { getDebugPage } from '../debug.js';
+import { getDebugPage, postDebugPage } from './debug.js';
 import { tileResponse } from './response.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
@@ -21,7 +21,10 @@ type InitServerOptions = {
 
 function initServer(options: InitServerOptions) {
     const hono = new Hono();
-    if (options.debug) hono.get('/debug', getDebugPage);
+    if (options.debug) {
+        hono.get('/debug', getDebugPage);
+        hono.get('/debugpost', postDebugPage);
+    }
     hono.get('/health', (c) => c.text('OK'));
 
     hono.get('/tiles/:z/:x/:y_ext', async (c) => {
