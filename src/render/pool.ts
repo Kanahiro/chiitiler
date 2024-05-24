@@ -3,8 +3,6 @@ import * as path from 'path';
 import mbgl from '@maplibre/maplibre-gl-native';
 import genericPool from 'generic-pool';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
-import { hasher } from 'node-object-hash';
-const _hasher = hasher();
 
 import { getSource } from '../source/index.js';
 import type { Cache } from '../cache/index.js';
@@ -41,7 +39,7 @@ async function getRenderPool(
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const dictKey = _hasher.hash(style);
+    const dictKey = JSON.stringify(style);
     if (mapPoolDict[dictKey] === undefined) {
         const pool = genericPool.createPool({
             create: async () => {
