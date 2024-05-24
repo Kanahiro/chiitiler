@@ -35,9 +35,10 @@ graph LR
     subgraph chiitiler
         cache
         render
+        server
     end
 
-sources --> cache --> render --/tiles/z/x/y--> png/webp/jpg
+sources --> cache --> render --> server --/tiles/z/x/y--> png/webp/jpg
 
 cache <--get/set--> memory/file/S3
 ```
