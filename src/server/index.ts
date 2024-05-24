@@ -23,7 +23,7 @@ function initServer(options: InitServerOptions) {
     const hono = new Hono();
     if (options.debug) {
         hono.get('/debug', getDebugPage);
-        hono.get('/debugpost', postDebugPage);
+        hono.get('/editor', postDebugPage);
     }
     hono.get('/health', (c) => c.text('OK'));
 
