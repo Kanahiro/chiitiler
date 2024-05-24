@@ -97,9 +97,11 @@ function postDebugPage(c: Context) {
                     mode: 'code',
                     onChange: function() {
                         reloadStyle()
+                        localStorage.setItem('style', JSON.stringify(editor.get()))
                     }
                 })
-                editor.set({
+
+                const initialStyle = localStorage.getItem('style') ? JSON.parse(localStorage.getItem('style')) : {
                     version: 8,
                     sources: {
                         osm: {
@@ -142,7 +144,9 @@ function postDebugPage(c: Context) {
                             },
                         },
                     ],
-                });
+                };
+
+                editor.set(initialStyle);
                 
                 maplibregl.addProtocol('post', async (params, abortController) => {
                     const imageUrl = params.url.replace('post://', '');
