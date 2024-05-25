@@ -7,7 +7,7 @@ on:
     workflow_dispatch:
 
 jobs:
-    aws-deploy:
+    integrationtest:
         runs-on: ubuntu-latest
 
         steps:
