@@ -22,7 +22,7 @@ describe('getSource', () => {
     });
 
     it('pmtiles://', async () => {
-        const uri = 'mbtiles://localdata/school.mbtiles/0/0/0';
+        const uri = 'pmtiles://localdata/school.pmtiles/0/0/0';
         const data = await getSource(uri);
         expect(data).not.toBeNull();
     });
