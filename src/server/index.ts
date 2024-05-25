@@ -51,6 +51,7 @@ function initServer(options: InitServerOptions) {
     });
 
     return {
+        app: hono,
         start: () => serve({ port: options.port, fetch: hono.fetch }),
     };
 }
