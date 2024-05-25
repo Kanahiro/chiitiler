@@ -7,7 +7,7 @@ on:
     workflow_dispatch:
 
 jobs:
-    aws-deploy:
+    unittest:
         runs-on: ubuntu-latest
 
         steps:
