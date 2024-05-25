@@ -5,12 +5,13 @@ import { type Cache, type Value } from './index.js';
 type MemoryCacheOptions = {
     ttl: number;
     maxItemCount: number;
+    checkInterval?: number;
 };
 
 const memoryCache: (options: MemoryCacheOptions) => Cache = function (
     options: MemoryCacheOptions,
 ) {
-    const itemsExpirationCheckIntervalInSecs = 60; // check every 60 seconds
+    const itemsExpirationCheckIntervalInSecs = options.checkInterval ?? 60;
     const MEMORY_CACHE_KVS = new MemoryCache.MemoryCache<string, Value>(
         itemsExpirationCheckIntervalInSecs,
         options.maxItemCount,
