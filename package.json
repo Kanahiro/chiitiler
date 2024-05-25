@@ -9,7 +9,7 @@
     "dev": "tsx watch src/main.ts tile-server -D",
     "start": "tsc && node ./dist/main.js tile-server",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --coverage.provider=v8"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
