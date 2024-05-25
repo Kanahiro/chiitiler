@@ -1,4 +1,4 @@
-name: TestApp
+name: test:unit
 
 on:
     pull_request:
