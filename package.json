@@ -8,8 +8,9 @@
     "build": "tsc",
     "dev": "tsx watch src/main.ts tile-server -D",
     "start": "tsc && node ./dist/main.js tile-server",
-    "test": "vitest",
-    "test:coverage": "vitest run --coverage --coverage.provider=v8"
+    "test:unit": "vitest --exclude tests/**",
+    "test:coverage": "vitest run --coverage --coverage.provider=v8",
+    "test:integration": "vitest tests/integration.test.ts"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
@@ -21,6 +22,7 @@
     "@types/node": "^20.6.0",
     "@types/object-hash": "^3.0.6",
     "@vitest/coverage-v8": "^1.6.0",
+    "image-size": "^1.1.1",
     "maplibre-gl": "^3.3.1",
     "ts-node": "^10.9.1",
     "tsx": "^4.7.1",
