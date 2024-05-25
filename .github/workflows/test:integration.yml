@@ -24,4 +24,4 @@ jobs:
             - name: run test
               run: |
                   npm ci
-                  npm test:integration
+                  npm run test:integration
