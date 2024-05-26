@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { getSource } from './index.js';
+import { getS3Client } from '../s3.js';
 
 describe('getSource', () => {
     it('file://', async () => {
@@ -33,5 +34,11 @@ describe('getSource', () => {
         expect(data).toBeNull();
     });
 
-    // s3://
+    /**
+    it('s3://', async () => {
+        const uri = 's3://chiitiler/tiles/0/0/0.pbf';
+        const data = await getSource(uri);
+        expect(data).not.toBeNull();
+    });
+    */
 });

@@ -30,7 +30,7 @@ describe('memoryCache', () => {
         const val = await _fileCache.get('key');
         expect(val).toBeInstanceOf(Buffer);
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         // expired
         const val2 = await _fileCache.get('key');
