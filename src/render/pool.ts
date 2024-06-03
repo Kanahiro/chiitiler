@@ -9,6 +9,7 @@ import type { Cache } from '../cache/index.js';
 
 const EMPTY_BUFFER = Buffer.alloc(0);
 const TRANSPARENT_BUFFER: Record<string, Buffer> = {
+    // 1x1 transparent images
     png: Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4//8/AwAI/AL+p5qgoAAAAABJRU5ErkJggg==',
         'base64',
@@ -45,7 +46,6 @@ async function getRenderPool(
             create: async () => {
                 const map = new mbgl.Map({
                     request: function (req, callback) {
-                        console.log(req.url);
                         getSource(req.url, cache)
                             .then((buf) => {
                                 const ext = handleFileExt(req.url);
