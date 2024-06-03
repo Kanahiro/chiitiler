@@ -69,11 +69,16 @@ async function renderTile(
                   ratio: 0.5,
               }
             : {
-                  zoom: z - 1 + Math.floor(options.tileSize / 512),
+                  // offset = 128 -> -1, 256 -> 0, 512 -> 1, 1024 -> 2...
+                  zoom: z - 1 + Math.log2(options.tileSize / 256),
                   height: options.tileSize,
                   width: options.tileSize,
                   ratio: 1,
               };
+
+    const tileMode =
+        options.margin === 0 &&
+        (options.tileSize === 256 || options.tileSize === 512); // mode=tile supports only 256 and 512
 
     const rendered = await render(
         style,
@@ -86,7 +91,7 @@ async function renderTile(
             pitch: 0,
         },
         options.cache,
-        options.margin === 0 ? 'tile' : 'static',
+        tileMode ? 'tile' : 'static',
     );
     return rendered;
 }
