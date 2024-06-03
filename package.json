@@ -8,8 +8,8 @@
     "build": "tsc",
     "dev": "tsx watch src/main.ts tile-server -D",
     "start": "tsc && node ./dist/main.js tile-server",
-    "test:unit": "vitest **/**/*.test.ts --exclude tests/**",
-    "test:coverage": "vitest **/**/*.test.ts --exclude tests/** --coverage --coverage.provider=v8",
+    "test:unit": "vitest src",
+    "test:coverage": "vitest src --coverage --coverage.provider=v8",
     "test:integration": "vitest tests/integration.test.ts",
     "test:benchmark": "vitest bench"
   },
