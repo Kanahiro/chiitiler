@@ -83,6 +83,14 @@ async function renderTilePipeline({
                 channels: 4,
             },
         }).resize(256, 256);
+    } else if (margin === 0) {
+        _sharp = sharp(pixels, {
+            raw: {
+                width: tileSize,
+                height: tileSize,
+                channels: 4,
+            },
+        });
     } else {
         _sharp = sharp(pixels, {
             raw: {
