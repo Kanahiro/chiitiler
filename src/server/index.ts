@@ -1,7 +1,5 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
-import { stream } from 'hono/streaming';
-import { type Sharp } from 'sharp';
 import {
     type StyleSpecification,
     validateStyleMin,
@@ -9,7 +7,7 @@ import {
 
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, postDebugPage } from './debug.js';
-import { renderTilePipeline, type SupportedFormat } from '../render/index.js';
+import { getRenderedTileBuffer, type SupportedFormat } from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
     return validateStyleMin(stylejson).length === 0;
@@ -57,9 +55,9 @@ function initServer(options: InitServerOptions) {
         const quality = Number(c.req.query('quality') ?? 100);
         const margin = Number(c.req.query('margin') ?? 0);
 
-        let pipeline: Sharp;
+        let buf: Buffer;
         try {
-            pipeline = await renderTilePipeline({
+            buf = await getRenderedTileBuffer({
                 stylejson: url,
                 z,
                 x,
@@ -76,11 +74,7 @@ function initServer(options: InitServerOptions) {
         }
 
         c.header('Content-Type', `image/${ext}`);
-        return stream(c, async (stream) => {
-            for await (const chunk of pipeline) {
-                stream.write(chunk);
-            }
-        });
+        return c.body(buf);
     });
 
     hono.post('/tiles/:z/:x/:y_ext', async (c) => {
@@ -102,9 +96,9 @@ function initServer(options: InitServerOptions) {
         const quality = Number(c.req.query('quality') ?? 100);
         const margin = Number(c.req.query('margin') ?? 0);
 
-        let pipeline: Sharp;
+        let buf: Buffer;
         try {
-            pipeline = await renderTilePipeline({
+            buf = await getRenderedTileBuffer({
                 stylejson: style,
                 z,
                 x,
@@ -121,11 +115,7 @@ function initServer(options: InitServerOptions) {
         }
 
         c.header('Content-Type', `image/${ext}`);
-        return stream(c, async (stream) => {
-            for await (const chunk of pipeline) {
-                stream.write(chunk);
-            }
-        });
+        return c.body(buf);
     });
 
     return {
