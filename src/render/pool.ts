@@ -46,9 +46,9 @@ async function getRenderPool(
             create: async () => {
                 const map = new mbgl.Map({
                     request: function (req, callback) {
+                        const ext = handleFileExt(req.url);
                         getSource(req.url, cache)
                             .then((buf) => {
-                                const ext = handleFileExt(req.url);
                                 if (buf) {
                                     callback(undefined, { data: buf });
                                 } else if (ext && TRANSPARENT_BUFFER[ext])
@@ -59,7 +59,6 @@ async function getRenderPool(
                                     callback(undefined, { data: EMPTY_BUFFER });
                             })
                             .catch(() => {
-                                const ext = handleFileExt(req.url);
                                 if (ext && TRANSPARENT_BUFFER[ext])
                                     callback(undefined, {
                                         data: TRANSPARENT_BUFFER[ext],

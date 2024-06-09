@@ -1,1 +1,1 @@
-export { renderTilePipeline, type SupportedFormat } from './sharp.js';
+export { getRenderedTileBuffer, type SupportedFormat } from './sharp.js';

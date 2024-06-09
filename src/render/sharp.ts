@@ -45,7 +45,7 @@ async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
     return style;
 }
 
-async function renderTilePipeline({
+async function getRenderedTileBuffer({
     stylejson,
     z,
     x,
@@ -55,7 +55,7 @@ async function renderTilePipeline({
     margin,
     ext,
     quality,
-}: RenderTilePipelineOptions) {
+}: RenderTilePipelineOptions): Promise<Buffer> {
     const style = await loadStyle(stylejson, cache);
 
     let pixels: Uint8Array;
@@ -108,20 +108,20 @@ async function renderTilePipeline({
             .resize(tileSize, tileSize);
     }
 
-    let pipeline: sharp.Sharp;
+    let buf: Buffer;
     switch (ext) {
         case 'png':
-            pipeline = _sharp.png();
+            buf = await _sharp.png().toBuffer();
             break;
         case 'jpeg':
         case 'jpg':
-            pipeline = _sharp.jpeg({ quality });
+            buf = await _sharp.jpeg({ quality }).toBuffer();
             break;
         case 'webp':
-            pipeline = _sharp.webp({ quality, effort: 0 });
+            buf = await _sharp.webp({ quality, effort: 0 }).toBuffer();
             break;
     }
-    return pipeline;
+    return buf;
 }
 
-export { renderTilePipeline, type SupportedFormat };
+export { getRenderedTileBuffer, type SupportedFormat };
