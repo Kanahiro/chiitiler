@@ -69,7 +69,7 @@ function getDebugPage(c: Context) {
     </html>`);
 }
 
-function postDebugPage(c: Context) {
+function getEditorgPage(c: Context) {
     return c.html(`<!DOCTYPE html>
     <html>
         <head>
@@ -204,4 +204,4 @@ function postDebugPage(c: Context) {
     </html>`);
 }
 
-export { getDebugPage, postDebugPage };
+export { getDebugPage, getEditorgPage };

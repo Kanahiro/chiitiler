@@ -6,7 +6,7 @@ import {
 } from '@maplibre/maplibre-gl-style-spec';
 
 import { type Cache } from '../cache/index.js';
-import { getDebugPage, postDebugPage } from './debug.js';
+import { getDebugPage, getEditorgPage } from './debug.js';
 import { getRenderedTileBuffer, type SupportedFormat } from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
@@ -33,7 +33,7 @@ function initServer(options: InitServerOptions) {
     const hono = new Hono();
     if (options.debug) {
         hono.get('/debug', getDebugPage);
-        hono.get('/editor', postDebugPage);
+        hono.get('/editor', getEditorgPage);
     }
     hono.get('/health', (c) => c.text('OK'));
 
