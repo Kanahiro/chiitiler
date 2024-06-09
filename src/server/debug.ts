@@ -5,7 +5,7 @@ function getDebugPage(c: Context) {
     const url =
         c.req.query('url') ?? 'https://demotiles.maplibre.org/style.json';
     const margin = Number(c.req.query('margin') ?? 0);
-    const quality = Number(c.req.query('quality') ?? 1);
+    const quality = Number(c.req.query('quality') ?? 100);
     const tileSize = Number(c.req.query('tileSize') ?? 512);
 
     // show tile in MapLibre GL JS
