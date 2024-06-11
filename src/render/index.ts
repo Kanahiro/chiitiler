@@ -1,1 +1,5 @@
-export { getRenderedTileBuffer, type SupportedFormat } from './sharp.js';
+export {
+    isSupportedFormat,
+    getRenderedTileBuffer,
+    type SupportedFormat,
+} from './sharp.js';

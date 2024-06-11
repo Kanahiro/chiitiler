@@ -18,6 +18,9 @@ type RenderTilePipelineOptions = {
 };
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
+function isSupportedFormat(ext: string): ext is SupportedFormat {
+    return ['png', 'jpeg', 'jpg', 'webp'].includes(ext);
+}
 
 /**
  * onmemory cache to prevent re-fetching style.json
@@ -124,4 +127,33 @@ async function getRenderedTileBuffer({
     return buf;
 }
 
-export { getRenderedTileBuffer, type SupportedFormat };
+const transparent = sharp({
+    create: {
+        width: 1,
+        height: 1,
+        channels: 4,
+        background: { r: 1, g: 134, b: 160, alpha: 0 },
+    },
+});
+
+const png = transparent.png().toBuffer();
+const webp = transparent.webp().toBuffer();
+const jpeg = transparent.jpeg().toBuffer();
+const TRANSPARENT_BUFFER = {
+    png,
+    webp,
+    jpeg,
+    jpg: jpeg,
+} as const;
+
+async function getTransparentBuffer(ext: string): Promise<Buffer | null> {
+    if (!isSupportedFormat(ext)) return null;
+    else return TRANSPARENT_BUFFER[ext];
+}
+
+export {
+    isSupportedFormat,
+    getTransparentBuffer,
+    getRenderedTileBuffer,
+    type SupportedFormat,
+};
