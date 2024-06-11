@@ -8,6 +8,7 @@ import {
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, getEditorgPage } from './debug.js';
 import { getRenderedTileBuffer, isSupportedFormat } from '../render/index.js';
+import { getSource } from '../source/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
     return validateStyleMin(stylejson).length === 0;
@@ -18,6 +19,8 @@ function isValidXyz(x: number, y: number, z: number) {
     if (x >= 2 ** z || y >= 2 ** z) return false;
     return true;
 }
+
+const styleCache = new Map<string, Buffer>();
 
 type InitServerOptions = {
     cache: Cache;
@@ -37,6 +40,20 @@ function initServer(options: InitServerOptions) {
         const url = c.req.query('url') ?? null;
         if (url === null) return c.body('url is required', 400);
 
+        // cache stylejson
+        let styleJsonBuf: Buffer;
+        if (!styleCache.has(url)) {
+            const buf = await getSource(url, options.cache);
+            if (!buf) return c.body('failed to fetch style', 400);
+
+            styleJsonBuf = buf;
+            styleCache.set(url, buf);
+        } else {
+            styleJsonBuf = styleCache.get(url)!;
+        }
+
+        const style = JSON.parse(styleJsonBuf.toString()) as StyleSpecification;
+
         // path params
         const z = Number(c.req.param('z'));
         const x = Number(c.req.param('x'));
@@ -54,7 +71,7 @@ function initServer(options: InitServerOptions) {
         let buf: Buffer;
         try {
             buf = await getRenderedTileBuffer({
-                stylejson: url,
+                style,
                 z,
                 x,
                 y,
@@ -95,7 +112,7 @@ function initServer(options: InitServerOptions) {
         let buf: Buffer;
         try {
             buf = await getRenderedTileBuffer({
-                stylejson: style,
+                style,
                 z,
                 x,
                 y,
