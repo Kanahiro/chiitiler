@@ -7,7 +7,7 @@ import {
 
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, getEditorgPage } from './debug.js';
-import { getRenderedTileBuffer, type SupportedFormat } from '../render/index.js';
+import { getRenderedTileBuffer, isSupportedFormat } from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
     return validateStyleMin(stylejson).length === 0;
@@ -17,10 +17,6 @@ function isValidXyz(x: number, y: number, z: number) {
     if (x < 0 || y < 0 || z < 0) return false;
     if (x >= 2 ** z || y >= 2 ** z) return false;
     return true;
-}
-
-function isSupportedFormat(ext: string): ext is SupportedFormat {
-    return ['png', 'jpeg', 'jpg', 'webp'].includes(ext);
 }
 
 type InitServerOptions = {
