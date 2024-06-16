@@ -37,8 +37,8 @@ type InitServerOptions = {
 function initServer(options: InitServerOptions) {
     const tiles = new Hono()
         .get('/:z/:x/:y_ext', async (c) => {
-            const url = c.req.query('url') ?? null;
-            if (url === null) return c.body('url is required', 400);
+            const url = c.req.query('url');
+            if (url === undefined) return c.body('url is required', 400);
 
             // path params
             const z = Number(c.req.param('z'));
@@ -119,17 +119,16 @@ function initServer(options: InitServerOptions) {
 
     const bbox = new Hono()
         .get('/:bbox_ext', async (c) => {
-            const url = c.req.query('url') ?? null;
-            if (url === null) return c.body('url is required', 400);
-
             // path params
             let [bbox, ext] = c.req.param('bbox_ext').split('.');
             const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
-
-            if (minx > maxx || miny > maxy) return c.body('invalid bbox', 400);
+            if (minx >= maxx || miny >= maxy)
+                return c.body('invalid bbox', 400);
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             // query params
+            const url = c.req.query('url');
+            if (url === undefined) return c.body('url is required', 400);
             const quality = Number(c.req.query('quality') ?? 100);
             const size = Number(c.req.query('size') ?? 1024);
 
