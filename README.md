@@ -16,13 +16,32 @@ chii-tiler: "tiny" in Japanese is "chiisai", shorten into "chii"
 
 ## features
 
-- chiitiler provides you with `/tiles` raster-tile endpoint. Once server launched, you can use like this:
+### /tiles
+
+chiitiler provides you with `/tiles` raster-tile endpoint. Once server launched, you can use like this:
 
 ```planetext
 http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 http://localhost:3000/tiles/0/0/0.webp?margin=100&url=https://tile.openstreetmap.jp/styles/maptiler-toner-en/style.json
 http://localhost:3000/tiles/1/1/1.jpg?tileSize=256&quality=80&url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 ```
+
+### /bbox
+
+chiitiler provides you with `/bbox` endpoint. Once server launched, you can use like this:
+
+```planetext
+# default size is 1024, this is longer axis and shorter axis is calculated by aspect ratio
+http://localhost:3000/bbox/100,30,150,60.png?url=https://path/to/style.json
+# specify size
+http://localhost:3000/bbox/100,30,150,60.webp?size=512&url=https://path/to/style.json
+# specify quality
+http://localhost:3000/bbox/100,30,150,60.jpg?size=512&quality=80&url=https://path/to/style.json
+```
+
+#### POST endpoint
+
+Each endpoint also supports POST method. You can pass style.json as a body. (then, url parameter is not needed)
 
 ## architecture
 
