@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.10.5",
+  "version": "1.11.0",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "dist/main.js",
   "scripts": {
@@ -17,7 +17,7 @@
   "author": "Kanahiro Iguchi",
   "license": "MIT",
   "devDependencies": {
-    "@tsconfig/node18": "^18.2.2",
+    "@tsconfig/node20": "^20.1.4",
     "@types/better-sqlite3": "^7.6.10",
     "@types/generic-pool": "^3.8.1",
     "@types/node": "^20.6.0",
