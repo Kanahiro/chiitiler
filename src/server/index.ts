@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import {
     type StyleSpecification,
@@ -7,7 +8,11 @@ import {
 
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, getEditorgPage } from './debug.js';
-import { getRenderedTileBuffer, type SupportedFormat } from '../render/index.js';
+import {
+    getRenderedTileBuffer,
+    getRenderedBboxBuffer,
+    type SupportedFormat,
+} from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
     return validateStyleMin(stylejson).length === 0;
@@ -30,93 +35,172 @@ type InitServerOptions = {
 };
 
 function initServer(options: InitServerOptions) {
+    const tiles = new Hono()
+        .get('/:z/:x/:y_ext', async (c) => {
+            const url = c.req.query('url') ?? null;
+            if (url === null) return c.body('url is required', 400);
+
+            // path params
+            const z = Number(c.req.param('z'));
+            const x = Number(c.req.param('x'));
+            let [_y, ext] = c.req.param('y_ext').split('.');
+            const y = Number(_y);
+
+            if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
+            if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+            // query params
+            const tileSize = Number(c.req.query('tileSize') ?? 512);
+            const quality = Number(c.req.query('quality') ?? 100);
+            const margin = Number(c.req.query('margin') ?? 0);
+
+            let buf: Buffer;
+            try {
+                buf = await getRenderedTileBuffer({
+                    stylejson: url,
+                    z,
+                    x,
+                    y,
+                    tileSize,
+                    cache: options.cache,
+                    margin,
+                    ext,
+                    quality,
+                });
+            } catch (e) {
+                console.error(`render error: ${e}`);
+                return c.body('failed to render tile', 400);
+            }
+
+            c.header('Content-Type', `image/${ext}`);
+            return c.body(buf);
+        })
+        .post('/:z/:x/:y_ext', async (c) => {
+            // body
+            const { style } = await c.req.json();
+            if (!isValidStylejson(style))
+                return c.body('invalid stylejson', 400);
+
+            // path params
+            const z = Number(c.req.param('z'));
+            const x = Number(c.req.param('x'));
+            let [_y, ext] = c.req.param('y_ext').split('.');
+            const y = Number(_y);
+
+            if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
+            if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+            // query params
+            const tileSize = Number(c.req.query('tileSize') ?? 512);
+            const quality = Number(c.req.query('quality') ?? 100);
+            const margin = Number(c.req.query('margin') ?? 0);
+
+            let buf: Buffer;
+            try {
+                buf = await getRenderedTileBuffer({
+                    stylejson: style,
+                    z,
+                    x,
+                    y,
+                    tileSize,
+                    cache: options.cache,
+                    margin,
+                    ext,
+                    quality,
+                });
+            } catch (e) {
+                console.error(`render error: ${e}`);
+                return c.body('failed to render tile', 400);
+            }
+
+            c.header('Content-Type', `image/${ext}`);
+            return c.body(buf);
+        });
+
+    const bbox = new Hono()
+        .get('/:bbox_ext', async (c) => {
+            const url = c.req.query('url') ?? null;
+            if (url === null) return c.body('url is required', 400);
+
+            // path params
+            let [bbox, ext] = c.req.param('bbox_ext').split('.');
+            const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
+
+            if (minx > maxx || miny > maxy) return c.body('invalid bbox', 400);
+            if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+            // query params
+            const quality = Number(c.req.query('quality') ?? 100);
+            const size = Number(c.req.query('size') ?? 1024);
+
+            try {
+                const sharp = await getRenderedBboxBuffer({
+                    stylejson: url,
+                    bbox: [minx, miny, maxx, maxy],
+                    size,
+                    cache: options.cache,
+                    ext,
+                    quality,
+                });
+                c.header('Content-Type', `image/${ext}`);
+                return stream(c, async (stream) => {
+                    for await (const chunk of sharp) {
+                        stream.write(chunk);
+                    }
+                    stream.close();
+                });
+            } catch (e) {
+                console.error(`render error: ${e}`);
+                return c.body('failed to render bbox', 400);
+            }
+        })
+        .post('/:bbox_ext', async (c) => {
+            // body
+            const { style } = await c.req.json();
+            if (!isValidStylejson(style))
+                return c.body('invalid stylejson', 400);
+
+            // path params
+            let [bbox, ext] = c.req.param('bbox_ext').split('.');
+            const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
+
+            if (minx > maxx || miny > maxy) return c.body('invalid bbox', 400);
+            if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+            // query params
+            const quality = Number(c.req.query('quality') ?? 100);
+            const size = Number(c.req.query('size') ?? 1024);
+
+            try {
+                const sharp = await getRenderedBboxBuffer({
+                    stylejson: style,
+                    bbox: [minx, miny, maxx, maxy],
+                    size,
+                    cache: options.cache,
+                    ext,
+                    quality,
+                });
+                c.header('Content-Type', `image/${ext}`);
+                return stream(c, async (stream) => {
+                    for await (const chunk of sharp) {
+                        stream.write(chunk);
+                    }
+                    stream.close();
+                });
+            } catch (e) {
+                console.error(`render error: ${e}`);
+                return c.body('failed to render bbox', 400);
+            }
+        });
+
     const hono = new Hono();
     if (options.debug) {
         hono.get('/debug', getDebugPage);
         hono.get('/editor', getEditorgPage);
     }
     hono.get('/health', (c) => c.text('OK'));
-
-    hono.get('/tiles/:z/:x/:y_ext', async (c) => {
-        const url = c.req.query('url') ?? null;
-        if (url === null) return c.body('url is required', 400);
-
-        // path params
-        const z = Number(c.req.param('z'));
-        const x = Number(c.req.param('x'));
-        let [_y, ext] = c.req.param('y_ext').split('.');
-        const y = Number(_y);
-
-        if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
-        if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
-
-        // query params
-        const tileSize = Number(c.req.query('tileSize') ?? 512);
-        const quality = Number(c.req.query('quality') ?? 100);
-        const margin = Number(c.req.query('margin') ?? 0);
-
-        let buf: Buffer;
-        try {
-            buf = await getRenderedTileBuffer({
-                stylejson: url,
-                z,
-                x,
-                y,
-                tileSize,
-                cache: options.cache,
-                margin,
-                ext,
-                quality,
-            });
-        } catch (e) {
-            console.error(`render error: ${e}`);
-            return c.body('failed to render tile', 400);
-        }
-
-        c.header('Content-Type', `image/${ext}`);
-        return c.body(buf);
-    });
-
-    hono.post('/tiles/:z/:x/:y_ext', async (c) => {
-        // body
-        const { style } = await c.req.json();
-        if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
-
-        // path params
-        const z = Number(c.req.param('z'));
-        const x = Number(c.req.param('x'));
-        let [_y, ext] = c.req.param('y_ext').split('.');
-        const y = Number(_y);
-
-        if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
-        if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
-
-        // query params
-        const tileSize = Number(c.req.query('tileSize') ?? 512);
-        const quality = Number(c.req.query('quality') ?? 100);
-        const margin = Number(c.req.query('margin') ?? 0);
-
-        let buf: Buffer;
-        try {
-            buf = await getRenderedTileBuffer({
-                stylejson: style,
-                z,
-                x,
-                y,
-                tileSize,
-                cache: options.cache,
-                margin,
-                ext,
-                quality,
-            });
-        } catch (e) {
-            console.error(`render error: ${e}`);
-            return c.body('failed to render tile', 400);
-        }
-
-        c.header('Content-Type', `image/${ext}`);
-        return c.body(buf);
-    });
+    hono.route('/tiles', tiles);
+    hono.route('/bbox', bbox);
 
     return {
         app: hono,
