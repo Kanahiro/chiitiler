@@ -1,9 +1,13 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "description": "Tiny map rendering server for MapLibre Style Spec",
-  "main": "dist/main.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/main.ts tile-server -D",
