@@ -173,7 +173,7 @@ async function getRenderedBboxBuffer({
     cache: Cache;
     ext: SupportedFormat;
     quality: number;
-}): Promise<Sharp> {
+}): Promise<Buffer> {
     const style = await loadStyle(stylejson, cache);
 
     const { zoom, width, height, center } = calcRenderingParams(bbox, size);
@@ -199,17 +199,13 @@ async function getRenderedBboxBuffer({
     });
     switch (ext) {
         case 'png':
-            _sharp = await _sharp.png();
-            break;
+            return await _sharp.png().toBuffer();
         case 'jpeg':
         case 'jpg':
-            _sharp = await _sharp.jpeg({ quality });
-            break;
+            return await _sharp.jpeg({ quality }).toBuffer();
         case 'webp':
-            _sharp = await _sharp.webp({ quality, effort: 0 });
-            break;
+            return await _sharp.webp({ quality, effort: 0 }).toBuffer();
     }
-    return _sharp;
 }
 
 export { getRenderedTileBuffer, getRenderedBboxBuffer, type SupportedFormat };

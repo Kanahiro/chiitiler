@@ -133,7 +133,7 @@ function initServer(options: InitServerOptions) {
             const size = Number(c.req.query('size') ?? 1024);
 
             try {
-                const sharp = await getRenderedBboxBuffer({
+                const buf = await getRenderedBboxBuffer({
                     stylejson: url,
                     bbox: [minx, miny, maxx, maxy],
                     size,
@@ -142,12 +142,7 @@ function initServer(options: InitServerOptions) {
                     quality,
                 });
                 c.header('Content-Type', `image/${ext}`);
-                return stream(c, async (stream) => {
-                    for await (const chunk of sharp) {
-                        stream.write(chunk);
-                    }
-                    stream.close();
-                });
+                return c.body(buf);
             } catch (e) {
                 console.error(`render error: ${e}`);
                 return c.body('failed to render bbox', 400);
@@ -171,7 +166,7 @@ function initServer(options: InitServerOptions) {
             const size = Number(c.req.query('size') ?? 1024);
 
             try {
-                const sharp = await getRenderedBboxBuffer({
+                const buf = await getRenderedBboxBuffer({
                     stylejson: style,
                     bbox: [minx, miny, maxx, maxy],
                     size,
@@ -180,12 +175,7 @@ function initServer(options: InitServerOptions) {
                     quality,
                 });
                 c.header('Content-Type', `image/${ext}`);
-                return stream(c, async (stream) => {
-                    for await (const chunk of sharp) {
-                        stream.write(chunk);
-                    }
-                    stream.close();
-                });
+                return c.body(buf);
             } catch (e) {
                 console.error(`render error: ${e}`);
                 return c.body('failed to render bbox', 400);
