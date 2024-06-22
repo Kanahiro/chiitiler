@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import {
     type StyleSpecification,
@@ -193,6 +192,8 @@ function initServer(options: InitServerOptions) {
 
     return {
         app: hono,
+        tiles,
+        bbox,
         start: () => serve({ port: options.port, fetch: hono.fetch }),
     };
 }
