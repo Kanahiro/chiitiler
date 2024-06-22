@@ -4,7 +4,8 @@
         "moduleResolution": "NodeNext",
         "outDir": "./dist",
         "resolveJsonModule": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "declaration": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
