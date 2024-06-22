@@ -12,7 +12,12 @@ describe('run chiitiler', () => {
         vi.spyOn(server, 'initServer').mockImplementation(
             (opts: server.InitServerOptions) => {
                 options = opts;
-                return { app: {} as any, start: vi.fn() };
+                return {
+                    app: {} as any,
+                    tiles: {} as any,
+                    bbox: {} as any,
+                    start: vi.fn(),
+                };
             },
         );
 
@@ -29,7 +34,12 @@ describe('run chiitiler', () => {
         vi.spyOn(server, 'initServer').mockImplementation(
             (opts: server.InitServerOptions) => {
                 options = opts;
-                return { app: {} as any, start: vi.fn() };
+                return {
+                    app: {} as any,
+                    tiles: {} as any,
+                    bbox: {} as any,
+                    start: vi.fn(),
+                };
             },
         );
 
@@ -46,7 +56,12 @@ describe('run chiitiler', () => {
         vi.spyOn(server, 'initServer').mockImplementation(
             (opts: server.InitServerOptions) => {
                 options = opts;
-                return { app: {} as any, start: vi.fn() };
+                return {
+                    app: {} as any,
+                    tiles: {} as any,
+                    bbox: {} as any,
+                    start: vi.fn(),
+                };
             },
         );
 
