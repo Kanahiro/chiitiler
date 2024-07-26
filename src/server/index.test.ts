@@ -78,13 +78,12 @@ describe('initServer', () => {
         expect(await res.text()).toBe('url is required');
 
         const res2 = await app.request(
-            '/clip.png?bbox=0,1,2,3&url=file://localdata/style.json',
+            '/clip.gif?bbox=0,1,2,3&url=file://localdata/style.json',
         );
-        expect(res2.status).toBe(400);
-        expect(await res2.text()).toBe('invalid format');
+        expect(res2.status).toBe(404); // invalid format will not be handled in /clip
 
         const res3 = await app.request(
-            'clip.png?bbox=0,1,2,3&url=file://localdata/style.json',
+            'clip.png?bbox=0,0,0,0&url=file://localdata/style.json',
         );
         expect(res3.status).toBe(400);
         expect(await res3.text()).toBe('invalid bbox');
