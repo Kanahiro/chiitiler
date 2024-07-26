@@ -157,7 +157,6 @@ function initServer(options: InitServerOptions) {
                 return c.body('invalid stylejson', 400);
 
             // path params
-            console.log(c.req.param('filename'));
             const [_, ext] = c.req.param('filename').split('.');
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
