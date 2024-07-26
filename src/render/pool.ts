@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import mbgl from '@maplibre/maplibre-gl-native';
-import genericPool from 'generic-pool';
+import { Pool } from 'lightning-pool';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { getSource } from '../source/index.js';
@@ -34,7 +34,7 @@ function handleFileExt(uri: string) {
 }
 
 // key:value = styleJsonString:Pooled Map Instance
-const mapPoolDict: Record<string, genericPool.Pool<mbgl.Map>> = {};
+const mapPoolDict: Record<string, Pool<mbgl.Map>> = {};
 async function getRenderPool(
     style: StyleSpecification,
     cache: Cache,
@@ -42,7 +42,7 @@ async function getRenderPool(
 ) {
     const dictKey = JSON.stringify(style);
     if (mapPoolDict[dictKey] === undefined) {
-        const pool = genericPool.createPool({
+        const pool = new Pool({
             create: async () => {
                 const map = new mbgl.Map({
                     request: function (req, callback) {
