@@ -15,7 +15,7 @@ describe('run chiitiler', () => {
                 return {
                     app: {} as any,
                     tiles: {} as any,
-                    bbox: {} as any,
+                    clip: {} as any,
                     start: vi.fn(),
                 };
             },
@@ -37,7 +37,7 @@ describe('run chiitiler', () => {
                 return {
                     app: {} as any,
                     tiles: {} as any,
-                    bbox: {} as any,
+                    clip: {} as any,
                     start: vi.fn(),
                 };
             },
@@ -59,7 +59,7 @@ describe('run chiitiler', () => {
                 return {
                     app: {} as any,
                     tiles: {} as any,
-                    bbox: {} as any,
+                    clip: {} as any,
                     start: vi.fn(),
                 };
             },

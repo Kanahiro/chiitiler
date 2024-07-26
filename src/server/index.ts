@@ -116,16 +116,19 @@ function initServer(options: InitServerOptions) {
             return c.body(buf);
         });
 
-    const bbox = new Hono()
-        .get('/:bbox_ext', async (c) => {
+    const clip = new Hono()
+        .get('/:filename{clip\\.png|webp|jpeg|jpg$}', async (c) => {
             // path params
-            let [bbox, ext] = c.req.param('bbox_ext').split('.');
-            const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
-            if (minx >= maxx || miny >= maxy)
-                return c.body('invalid bbox', 400);
+            const [_, ext] = c.req.param('filename').split('.');
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             // query params
+            const bbox = c.req.query('bbox'); // ?bbox=minx,miny,maxx,maxy
+            if (bbox === undefined) return c.body('bbox is required', 400);
+            const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
+            if (minx >= maxx || miny >= maxy)
+                return c.body('invalid bbox', 400);
+
             const url = c.req.query('url');
             if (url === undefined) return c.body('url is required', 400);
             const quality = Number(c.req.query('quality') ?? 100);
@@ -147,20 +150,23 @@ function initServer(options: InitServerOptions) {
                 return c.body('failed to render bbox', 400);
             }
         })
-        .post('/:bbox_ext', async (c) => {
+        .post('/:filename{clip\\.png|webp|jpeg|jpg$}', async (c) => {
             // body
             const { style } = await c.req.json();
             if (!isValidStylejson(style))
                 return c.body('invalid stylejson', 400);
 
             // path params
-            let [bbox, ext] = c.req.param('bbox_ext').split('.');
-            const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
-
-            if (minx > maxx || miny > maxy) return c.body('invalid bbox', 400);
+            const [_, ext] = c.req.param('filename').split('.');
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             // query params
+            const bbox = c.req.query('bbox'); // ?bbox=minx,miny,maxx,maxy
+            if (bbox === undefined) return c.body('bbox is required', 400);
+            const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
+            if (minx >= maxx || miny >= maxy)
+                return c.body('invalid bbox', 400);
+
             const quality = Number(c.req.query('quality') ?? 100);
             const size = Number(c.req.query('size') ?? 1024);
 
@@ -188,12 +194,12 @@ function initServer(options: InitServerOptions) {
     }
     hono.get('/health', (c) => c.text('OK'));
     hono.route('/tiles', tiles);
-    hono.route('/bbox', bbox);
+    hono.route('/', clip);
 
     return {
         app: hono,
         tiles,
-        bbox,
+        clip,
         start: () => serve({ port: options.port, fetch: hono.fetch }),
     };
 }
