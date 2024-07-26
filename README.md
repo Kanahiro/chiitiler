@@ -26,17 +26,17 @@ http://localhost:3000/tiles/0/0/0.webp?margin=100&url=https://tile.openstreetmap
 http://localhost:3000/tiles/1/1/1.jpg?tileSize=256&quality=80&url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
 ```
 
-### /bbox
+### /clip.png|webp|jpg|jpeg
 
-chiitiler provides you with `/bbox` endpoint. Once server launched, you can use like this:
+chiitiler provides you with `/clip.png|webp|jpg|jpeg` endpoint. Once server launched, you can use like this:
 
 ```planetext
 # default size is 1024, this is longer axis and shorter axis is calculated by aspect ratio
-http://localhost:3000/bbox/100,30,150,60.png?url=https://path/to/style.json
+http://localhost:3000/clip.png?bbox=100,30,150,60&url=https://path/to/style.json
 # specify size
-http://localhost:3000/bbox/100,30,150,60.webp?size=512&url=https://path/to/style.json
+http://localhost:3000/clip.png?bbox=100,30,150,6&size=512&url=https://path/to/style.json
 # specify quality
-http://localhost:3000/bbox/100,30,150,60.jpg?size=512&quality=80&url=https://path/to/style.json
+http://localhost:3000/clip.png?bbox=100,30,150,6&size=512&quality=80&url=https://path/to/style.json
 ```
 
 #### POST endpoint
