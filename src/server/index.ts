@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono } from 'hono/quick';
 import { serve } from '@hono/node-server';
 import {
     type StyleSpecification,
