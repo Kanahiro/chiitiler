@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono } from 'hono/quick';
 import { serve } from '@hono/node-server';
 import {
     type StyleSpecification,
@@ -117,9 +117,10 @@ function initServer(options: InitServerOptions) {
         });
 
     const clip = new Hono()
-        .get('/:filename{clip\\.png|webp|jpeg|jpg$}', async (c) => {
+        .get('/:filename_ext', async (c) => {
             // path params
-            const [_, ext] = c.req.param('filename').split('.');
+            const [filename, ext] = c.req.param('filename_ext').split('.');
+            if (filename !== 'clip') return c.body('not found', 404);
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             // query params
@@ -150,14 +151,15 @@ function initServer(options: InitServerOptions) {
                 return c.body('failed to render bbox', 400);
             }
         })
-        .post('/:filename{clip\\.png|webp|jpeg|jpg$}', async (c) => {
+        .post('/:filename_ext', async (c) => {
             // body
             const { style } = await c.req.json();
             if (!isValidStylejson(style))
                 return c.body('invalid stylejson', 400);
 
             // path params
-            const [_, ext] = c.req.param('filename').split('.');
+            const [filename, ext] = c.req.param('filename_ext').split('.');
+            if (filename !== 'clip') return c.body('not found', 404);
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             // query params
