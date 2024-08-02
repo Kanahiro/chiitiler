@@ -80,7 +80,7 @@ describe('initServer', () => {
         const res2 = await app.request(
             '/clip.gif?bbox=0,1,2,3&url=file://localdata/style.json',
         );
-        expect(res2.status).toBe(404); // invalid format will not be handled in /clip
+        expect(res2.status).toBe(400); // invalid format will not be handled in /clip
 
         const res3 = await app.request(
             'clip.png?bbox=0,0,0,0&url=file://localdata/style.json',
