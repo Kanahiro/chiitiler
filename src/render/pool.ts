@@ -51,7 +51,7 @@ async function getRenderPool(
     if (pool !== undefined) return pool;
 
     const newPool = new Pool({
-        create: async () => {
+        create: () => {
             const map = new mbgl.Map({
                 request: function (req, callback) {
                     const ext = handleFileExt(req.url);
@@ -80,7 +80,7 @@ async function getRenderPool(
             map.load(style);
             return map;
         },
-        destroy: async (map: mbgl.Map) => {
+        destroy: (map: mbgl.Map) => {
             map.release();
         },
     });
