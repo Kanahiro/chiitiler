@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -46,7 +46,7 @@
     "file-system-cache": "^2.4.4",
     "hono": "^4.3.0",
     "lightning-pool": "^4.2.2",
-    "memory-cache-node": "^1.4.0",
+    "lru-cache": "^11.0.0",
     "pmtiles": "^3.0.5",
     "sharp": "^0.32.5"
   }

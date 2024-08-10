@@ -22,7 +22,6 @@ describe('memoryCache', () => {
         const _fileCache = memoryCache({
             ttl: 1,
             maxItemCount: 1000,
-            checkInterval: 1,
         });
 
         await _fileCache.set('key', Buffer.from('value'));
