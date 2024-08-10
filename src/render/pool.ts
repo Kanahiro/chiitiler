@@ -3,6 +3,7 @@ import * as path from 'path';
 import mbgl from '@maplibre/maplibre-gl-native';
 import { Pool } from 'lightning-pool';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
+import { LRUCache } from 'lru-cache';
 
 import { getSource } from '../source/index.js';
 import type { Cache } from '../cache/index.js';
@@ -33,54 +34,58 @@ function handleFileExt(uri: string) {
     return l;
 }
 
-// key:value = styleJsonString:Pooled Map Instance
-const mapPoolDict: Record<string, Pool<mbgl.Map>> = {};
+const mapPoolCache = new LRUCache<string, Pool<mbgl.Map>>({
+    max: 10,
+    dispose: (pool, key) => {
+        pool.close();
+    },
+});
 async function getRenderPool(
     style: StyleSpecification,
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const dictKey = JSON.stringify(style);
-    if (mapPoolDict[dictKey] === undefined) {
-        const pool = new Pool({
-            create: async () => {
-                const map = new mbgl.Map({
-                    request: function (req, callback) {
-                        const ext = handleFileExt(req.url);
-                        getSource(req.url, cache)
-                            .then((buf) => {
-                                if (buf) {
-                                    callback(undefined, { data: buf });
-                                } else if (ext && TRANSPARENT_BUFFER[ext])
-                                    callback(undefined, {
-                                        data: TRANSPARENT_BUFFER[ext],
-                                    });
-                                else
-                                    callback(undefined, { data: EMPTY_BUFFER });
-                            })
-                            .catch(() => {
-                                if (ext && TRANSPARENT_BUFFER[ext])
-                                    callback(undefined, {
-                                        data: TRANSPARENT_BUFFER[ext],
-                                    });
-                                else
-                                    callback(undefined, { data: EMPTY_BUFFER });
-                            });
-                    },
-                    ratio: 1,
-                    // @ts-ignore
-                    mode,
-                });
-                map.load(style);
-                return map;
-            },
-            destroy: async (map: mbgl.Map) => {
-                map.release();
-            },
-        });
-        mapPoolDict[dictKey] = pool;
-    }
-    return mapPoolDict[dictKey];
+    const cacheKey = JSON.stringify(style);
+
+    const pool = mapPoolCache.get(cacheKey);
+    if (pool !== undefined) return pool;
+
+    const newPool = new Pool({
+        create: async () => {
+            const map = new mbgl.Map({
+                request: function (req, callback) {
+                    const ext = handleFileExt(req.url);
+                    getSource(req.url, cache)
+                        .then((buf) => {
+                            if (buf) {
+                                callback(undefined, { data: buf });
+                            } else if (ext && TRANSPARENT_BUFFER[ext])
+                                callback(undefined, {
+                                    data: TRANSPARENT_BUFFER[ext],
+                                });
+                            else callback(undefined, { data: EMPTY_BUFFER });
+                        })
+                        .catch(() => {
+                            if (ext && TRANSPARENT_BUFFER[ext])
+                                callback(undefined, {
+                                    data: TRANSPARENT_BUFFER[ext],
+                                });
+                            else callback(undefined, { data: EMPTY_BUFFER });
+                        });
+                },
+                ratio: 1,
+                // @ts-ignore
+                mode,
+            });
+            map.load(style);
+            return map;
+        },
+        destroy: async (map: mbgl.Map) => {
+            map.release();
+        },
+    });
+    mapPoolCache.set(cacheKey, newPool);
+    return newPool;
 }
 
 export { getRenderPool };

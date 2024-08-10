@@ -2,11 +2,14 @@ import * as fs from 'fs';
 
 import { PMTiles, Source, RangeResponse } from 'pmtiles';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { LRUCache } from 'lru-cache';
 
 import { getS3Client } from '../s3.js';
 import { type Cache, noneCache } from '../cache/index.js';
 
-const pmtilesCache: { [key: string]: PMTiles } = {};
+const pmtilesCache = new LRUCache<string, PMTiles>({
+    max: 50,
+});
 
 class FilesystemSource implements Source {
     filepath: string;
@@ -77,32 +80,36 @@ async function getPmtilesSoruce(
         .replace('pmtiles://', '')
         .replace(/\/\d+\/\d+\/\d+$/, '');
 
+    let pmtiles: PMTiles | undefined = pmtilesCache.get(pmtilesUri);
+
     const isHttpSource =
         pmtilesUri.startsWith('http://') || pmtilesUri.startsWith('https://');
     if (isHttpSource) {
         const val = await cache.get(uri);
         if (val !== undefined) return val; // hit
-        if (!pmtilesCache[pmtilesUri])
-            pmtilesCache[pmtilesUri] = new PMTiles(pmtilesUri);
+
+        if (pmtiles === undefined) {
+            pmtiles = new PMTiles(pmtilesUri);
+            pmtilesCache.set(pmtilesUri, pmtiles);
+        }
     } else if (pmtilesUri.startsWith('s3://')) {
-        if (!pmtilesCache[pmtilesUri]) {
+        if (pmtiles === undefined) {
             const bucket = pmtilesUri.replace('s3://', '').split('/')[0];
             const key = pmtilesUri.replace(`s3://${bucket}/`, '');
             const s3Source = new S3Source(bucket, key);
-            pmtilesCache[pmtilesUri] = new PMTiles(s3Source);
+            pmtiles = new PMTiles(s3Source);
+            pmtilesCache.set(pmtilesUri, pmtiles);
         }
     } else {
-        // local filesystem
-        const fileSource = new FilesystemSource(pmtilesUri);
-        pmtilesCache[pmtilesUri] = new PMTiles(fileSource);
+        if (pmtiles === undefined) {
+            const fileSource = new FilesystemSource(pmtilesUri);
+            pmtiles = new PMTiles(fileSource);
+            pmtilesCache.set(pmtilesUri, pmtiles);
+        }
     }
 
     const [z, x, y] = uri.replace(`pmtiles://${pmtilesUri}/`, '').split('/');
-    const tile = await pmtilesCache[pmtilesUri].getZxy(
-        Number(z),
-        Number(x),
-        Number(y),
-    );
+    const tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
 
     if (!tile) return null;
 

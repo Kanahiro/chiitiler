@@ -1,8 +1,9 @@
-import sharp, { Sharp } from 'sharp';
+import sharp from 'sharp';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
 const mercator = new SphericalMercator();
+import { LRUCache } from 'lru-cache';
 
 import { renderTile, render } from './rasterize.js';
 import type { Cache } from '../cache/index.js';
@@ -22,27 +23,27 @@ type RenderTilePipelineOptions = {
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
-/**
- * onmemory cache to prevent re-fetching style.json
- * { url: style }
- */
-const styleCache: Record<string, StyleSpecification> = {};
+const styleCache = new LRUCache<string, StyleSpecification>({
+    max: 5,
+});
 async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
     let style: StyleSpecification;
     if (typeof stylejson === 'string') {
         // url
-        if (styleCache[stylejson] !== undefined) {
+        const cachedStyle = styleCache.get(stylejson);
+        if (cachedStyle !== undefined) {
             // hit-cache
-            style = styleCache[stylejson];
+            style = cachedStyle;
         } else {
             const styleJsonBuf = await getSource(stylejson, cache);
             if (styleJsonBuf === null) {
                 throw new Error('style not found');
             }
             style = JSON.parse(styleJsonBuf.toString());
-            styleCache[stylejson] = style; // cache
+            styleCache.set(stylejson, style);
         }
     } else {
+        // as stylejson object
         style = stylejson;
     }
     return style;
