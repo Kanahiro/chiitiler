@@ -33,7 +33,14 @@ type InitServerOptions = {
     debug: boolean;
 };
 
-function initServer(options: InitServerOptions) {
+type InitializedServer = {
+    app: Hono;
+    tiles: Hono;
+    clip: Hono;
+    start: () => void;
+};
+
+function initServer(options: InitServerOptions): InitializedServer {
     const tiles = new Hono()
         .get('/:z/:x/:y_ext', async (c) => {
             const url = c.req.query('url');

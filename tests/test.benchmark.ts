@@ -47,7 +47,7 @@ describe('render with margin', () => {
 describe('render tileSize=2048', () => {
     ['png', 'webp', 'jpeg'].forEach(
         (ext) => {
-            bench(`render as ${ext}`, async () => {
+            bench(`render as ${ext}: 2048px`, async () => {
                 await fetch(
                     `http://localhost:3000/tiles/7/109/54.${ext}?url=file://localdata/style.json&tileSize=2048`,
                 );
