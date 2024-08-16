@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.12.2",
+  "version": "1.12.3",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +15,8 @@
     "test:unit": "vitest src",
     "test:coverage": "vitest src --coverage --coverage.provider=v8",
     "test:integration": "vitest tests/integration.test.ts",
-    "test:benchmark": "vitest bench"
+    "test:benchmark": "vitest bench",
+    "prepare": "npm run build"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
