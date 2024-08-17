@@ -264,6 +264,7 @@ const s3Cache = ChiitilerCache.s3Cache({
     region: 'ap-northeast-1',
     endpoint: null,
 });
+// credentials are loaded from environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 const tileBuf = await getRenderedTileBuffer({
     stylejson: 'https://example.com/style.json', // or StyleSpecification object
