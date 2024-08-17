@@ -239,6 +239,7 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 ## Library Mode
 
 - chiitiler can be used as a library to render MapLibre Style.
+- methods to render MapLibre Style are exposed from `chiitiler` package.
 
 ### installation
 
