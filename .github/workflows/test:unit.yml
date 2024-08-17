@@ -4,6 +4,10 @@ on:
     pull_request:
         branches:
             - main
+        paths:
+            - 'src/**'
+            - 'tests/**'
+            - '.github/workflows/test:unit.yml'
     workflow_dispatch:
 
 jobs:
