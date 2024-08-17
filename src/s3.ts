@@ -4,27 +4,20 @@ let s3Client: S3Client; // singleton
 const getS3Client = function ({
     region,
     endpoint,
+    forcePathStyle,
 }: {
     region: string;
-    endpoint: string | null;
+    endpoint?: string;
+    forcePathStyle?: boolean;
 }) {
     if (s3Client !== undefined) return s3Client;
 
-    let s3ClientConfig: S3ClientConfig = {
+    const s3ClientConfig: S3ClientConfig = {
         region,
-        endpoint: endpoint ?? undefined,
+        endpoint,
+        forcePathStyle,
     };
-    if (process.env.NODE_ENV === 'development') {
-        s3ClientConfig = {
-            region,
-            credentials: {
-                accessKeyId: 'minioadmin',
-                secretAccessKey: 'minioadmin',
-            },
-            forcePathStyle: true, // special option for minio
-            endpoint: 'http://minio:9000',
-        };
-    }
+
     s3Client = new S3Client(s3ClientConfig);
     return s3Client;
 };

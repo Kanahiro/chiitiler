@@ -6,12 +6,14 @@ import { getS3Client } from '../s3.js';
 type S3CacheOptions = {
     bucket: string;
     region: string;
-    endpoint: string | null;
+    endpoint?: string;
+    forcePathStyle?: boolean;
 };
 function s3Cache(options: S3CacheOptions): Cache {
     const s3Client = getS3Client({
         region: options.region,
         endpoint: options.endpoint,
+        forcePathStyle: options.forcePathStyle,
     });
     return {
         name: 's3',

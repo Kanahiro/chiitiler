@@ -102,6 +102,7 @@ you can pass server options via environment variables
 | CHIITILER_S3CACHE_BUCKET           |          | s3cache bucket name                            |
 | CHIITILER_S3_REGION                | us-east1 | s3 bucket region for caching/fetching          |
 | CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
+| CHIITILER_S3_FORCE_PATH_STYLE      | false    | force path style for s3, needed for minio      |
 
 ### Local
 

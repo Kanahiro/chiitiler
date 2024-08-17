@@ -14,11 +14,14 @@ services:
                 npm install
                 /usr/bin/xvfb-run -a npm run dev
         environment:
-            - NODE_ENV=development
-            - CHIITILER_CACHE_METHOD=none
+            - CHIITILER_CACHE_METHOD=s3
             - CHIITILER_S3CACHE_BUCKET=chiitiler
             - CHIITILER_S3_REGION=ap-northeast-1
-            - CHIITILER_PROCESSES=1
+            - CHIITILER_S3_ENDPOINT=http://minio:9000
+            - CHIITILER_S3_FORCE_PATH_STYLE=true
+            - CHIITILER_PROCESSES=0
+            - AWS_ACCESS_KEY_ID=minioadmin
+            - AWS_SECRET_ACCESS_KEY=minioadmin
     minio:
         image: minio/minio:latest
         ports:
