@@ -1,3 +1,5 @@
-export { initServer, type InitServerOptions } from './server/index.js';
-
-export * as cache from './cache/index.js';
+export {
+    getRenderedBboxBuffer,
+    getRenderedTileBuffer,
+} from './render/index.js';
+export * as ChiitilerCache from './cache/index.js';

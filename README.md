@@ -236,6 +236,58 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 }
 ```
 
+## Library Mode
+
+- chiitiler can be used as a library to render MapLibre Style.
+- methods to render MapLibre Style are exposed from `chiitiler` package.
+
+### installation
+
+```sh
+npm install chiitiler
+```
+
+- chiitiler requires some dependencies in runtime, you can find them in [Dockerfile](./Dockerfile)
+
+### Usage
+
+```typescript
+import {
+    getRenderedBboxBuffer,
+    getRenderedTileBuffer,
+    ChiitilerCache
+} from 'chiitiler';
+
+const s3Cache = ChiitilerCache.s3Cache({
+    bucket: 'chiitiler',
+    region: 'ap-northeast-1',
+    endpoint: null,
+});
+
+const tileBuf = await getRenderedTileBuffer({
+    stylejson: 'https://example.com/style.json', // or StyleSpecification object
+    z: 0,
+    x: 0,
+    y: 0,
+    tileSize: 512,
+    ext: 'webp', // png, webp, jpg
+    cache: s3Cache,
+    quality: 80,
+    margin: 0,
+});
+
+const bboxBuf = await getRenderedBboxBuffer({
+    stylejson: 'file://path/to/style.json', // or StyleSpecification object
+    bbox: [123.4, 34.5, 124.5, 35.6],
+    size: 1024,
+    cache: s3Cache,
+    ext: 'webp',
+    quality: 80,
+});
+
+// return value is Buffer - binary of each image
+```
+
 ## development
 
 - run `docker compose up`
