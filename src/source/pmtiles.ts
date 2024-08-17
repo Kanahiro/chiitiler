@@ -41,7 +41,9 @@ class S3Source implements Source {
         this.key = key;
         this.s3Client = getS3Client({
             region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
-            endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
+            endpoint: process.env.CHIITILER_S3_ENDPOINT,
+            forcePathStyle:
+                process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
         });
     }
 

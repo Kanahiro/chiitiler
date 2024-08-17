@@ -5,7 +5,8 @@ import { getS3Client } from '../s3.js';
 async function getS3Source(uri: string) {
     const s3Client = getS3Client({
         region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
-        endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
+        endpoint: process.env.CHIITILER_S3_ENDPOINT,
+        forcePathStyle: process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
     });
     const bucket = uri.replace('s3://', '').split('/')[0];
     const key = uri.replace(`s3://${bucket}/`, '');

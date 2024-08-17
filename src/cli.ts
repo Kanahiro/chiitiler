@@ -14,6 +14,7 @@ function parseCacheStrategy(
         s3CacheBucket: string;
         s3Region: string;
         s3Endpoint: string;
+        s3ForcePathStyle: boolean;
     },
 ) {
     // command-line option
@@ -32,6 +33,7 @@ function parseCacheStrategy(
             bucket: options.s3CacheBucket,
             region: options.s3Region,
             endpoint: options.s3Endpoint,
+            forcePathStyle: options.s3ForcePathStyle,
         });
 
     // command-line is not specified -> try to read from env
@@ -52,7 +54,9 @@ function parseCacheStrategy(
         return caches.s3Cache({
             bucket: process.env.CHIITILER_S3CACHE_BUCKET ?? '',
             region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
-            endpoint: process.env.CHIITILER_S3_ENDPOINT ?? null,
+            endpoint: process.env.CHIITILER_S3_ENDPOINT,
+            forcePathStyle:
+                process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
         });
 
     // undefined or invalid
@@ -110,6 +114,7 @@ export function createProgram() {
             '',
         )
         .option('-s3e --s3-endpoint <url>', 's3 endpoint url', '')
+        .option('-3p --s3-force-path-style', 's3 force path style', '')
         .option('-p --port <port>', 'port number')
         .option('-D --debug', 'debug mode')
         .action((options) => {
@@ -123,6 +128,7 @@ export function createProgram() {
                     s3CacheBucket: options.s3CacheBucket,
                     s3Region: options.s3Region,
                     s3Endpoint: options.s3Endpoint,
+                    s3ForcePathStyle: options.s3ForcePathStyle === 'true',
                 }),
                 port: parsePort(options.port),
                 debug: parseDebug(options.debug),

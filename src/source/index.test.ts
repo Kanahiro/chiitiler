@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { getSource } from './index.js';
-import { getS3Client } from '../s3.js';
 
 describe('getSource', () => {
     it('file://', async () => {
