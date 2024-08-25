@@ -1,7 +1,11 @@
 import * as fs from 'fs';
 
 import { PMTiles, Source, RangeResponse } from 'pmtiles';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+    GetObjectCommand,
+    GetObjectCommandOutput,
+    S3Client,
+} from '@aws-sdk/client-s3';
 import { LRUCache } from 'lru-cache';
 
 import { getS3Client } from '../s3.js';
@@ -51,21 +55,42 @@ class S3Source implements Source {
         return `s3://${this.bucket}/${this.key}`;
     }
 
-    async getBytes(offset: number, length: number): Promise<RangeResponse> {
-        const cmd = new GetObjectCommand({
-            Bucket: this.bucket,
-            Key: this.key,
-            Range: `bytes=${offset}-${offset + length - 1}`,
-        });
+    async getBytes(
+        offset: number,
+        length: number,
+        signal?: AbortSignal,
+        etag?: string,
+    ): Promise<RangeResponse> {
+        let resp: GetObjectCommandOutput;
         try {
-            const obj = await this.s3Client.send(cmd);
-            if (obj.Body === undefined) return { data: Buffer.alloc(0).buffer };
-            const buf = Buffer.from(await obj.Body.transformToByteArray());
-            return { data: buf.buffer };
-        } catch (e: any) {
-            if (e.name !== 'NoSuchKey') console.log(e);
-            return { data: Buffer.alloc(0).buffer };
+            resp = await this.s3Client.send(
+                new GetObjectCommand({
+                    Bucket: this.bucket,
+                    Key: this.key,
+                    Range: 'bytes=' + offset + '-' + (offset + length - 1),
+                    IfMatch: etag,
+                }),
+            );
+        } catch (e: unknown) {
+            if (
+                e instanceof Error &&
+                (e as Error).name === 'PreconditionFailed'
+            ) {
+                throw new Error('etag mismatch');
+            }
+            throw e;
         }
+
+        const arr = await resp.Body?.transformToByteArray();
+
+        if (!arr) throw Error('Failed to read S3 response body');
+
+        return {
+            data: arr.buffer,
+            etag: resp.ETag,
+            expires: resp.Expires?.toISOString(),
+            cacheControl: resp.CacheControl,
+        };
     }
 }
 
