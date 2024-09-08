@@ -25,5 +25,5 @@ jobs:
               run: docker compose up -d
             - name: run test
               run: |
-                  npm ci
+                  npm install
                   npm run test:integration
