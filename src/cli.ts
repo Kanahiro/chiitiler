@@ -156,6 +156,13 @@ export function createProgram() {
                 console.log(
                     `debug page: http://localhost:${serverOptions.port}/debug`,
                 );
+                console.log(
+                    `editor page: http://localhost:${serverOptions.port}/editor`,
+                );
+                console.log(
+                    'stream mode:',
+                    serverOptions.stream ? 'enabled' : 'disabled',
+                );
             }
 
             const { start } = initServer(serverOptions);
