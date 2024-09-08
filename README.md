@@ -95,6 +95,7 @@ you can pass server options via environment variables
 | CHIITILER_PORT                     | 3000     | port number                                    |
 | CHIITILER_PROCESSES                | 1        | num of chiitiler processes. 0 means all-CPUs   |
 | CHIITILER_DEBUG                    | false    | debug mode                                     |
+| CHIITILER_STREAM_MODE              | false    | stream mode                                    |
 | CHIITILER_CACHE_METHOD             | none     | cache method, `none`, `memory`, `file` or `s3` |
 | CHIITILER_CACHE_TTL_SEC            | 3600     | cache ttl, effect to `memory` and `file`       |
 | CHIITILER_MEMORYCACHE_MAXITEMCOUNT | 1000     | max items for memorycache                      |
