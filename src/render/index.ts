@@ -9,7 +9,7 @@ import { renderTile, render } from './rasterize.js';
 import type { Cache } from '../cache/index.js';
 import { getSource } from '../source/index.js';
 
-type RenderTilePipelineOptions = {
+type GetRenderedTileOptions = {
     stylejson: string | StyleSpecification;
     z: number;
     x: number;
@@ -49,7 +49,7 @@ async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
     return style;
 }
 
-async function getRenderedTileBuffer({
+async function getRenderedTile({
     stylejson,
     z,
     x,
@@ -59,7 +59,7 @@ async function getRenderedTileBuffer({
     margin,
     ext,
     quality,
-}: RenderTilePipelineOptions): Promise<Buffer> {
+}: GetRenderedTileOptions): Promise<sharp.Sharp> {
     const style = await loadStyle(stylejson, cache);
 
     let pixels: Uint8Array;
@@ -112,20 +112,15 @@ async function getRenderedTileBuffer({
             .resize(tileSize, tileSize);
     }
 
-    let buf: Buffer;
     switch (ext) {
         case 'png':
-            buf = await _sharp.png().toBuffer();
-            break;
+            return _sharp.png();
         case 'jpeg':
         case 'jpg':
-            buf = await _sharp.jpeg({ quality }).toBuffer();
-            break;
+            return _sharp.jpeg({ quality });
         case 'webp':
-            buf = await _sharp.webp({ quality, effort: 0 }).toBuffer();
-            break;
+            return _sharp.webp({ quality, effort: 0 });
     }
-    return buf;
 }
 
 const calcRenderingParams = (
@@ -160,21 +155,23 @@ const calcRenderingParams = (
     return { zoom, width, height, center };
 };
 
-async function getRenderedBboxBuffer({
-    stylejson,
-    bbox,
-    size,
-    cache,
-    ext,
-    quality,
-}: {
+type GetRenderedBboxOptions = {
     stylejson: string | StyleSpecification;
     bbox: [number, number, number, number];
     size: number;
     cache: Cache;
     ext: SupportedFormat;
     quality: number;
-}): Promise<Buffer> {
+};
+
+async function getRenderedBbox({
+    stylejson,
+    bbox,
+    size,
+    cache,
+    ext,
+    quality,
+}: GetRenderedBboxOptions): Promise<sharp.Sharp> {
     const style = await loadStyle(stylejson, cache);
 
     const { zoom, width, height, center } = calcRenderingParams(bbox, size);
@@ -200,13 +197,19 @@ async function getRenderedBboxBuffer({
     });
     switch (ext) {
         case 'png':
-            return await _sharp.png().toBuffer();
+            return _sharp.png();
         case 'jpeg':
         case 'jpg':
-            return await _sharp.jpeg({ quality }).toBuffer();
+            return _sharp.jpeg({ quality });
         case 'webp':
-            return await _sharp.webp({ quality, effort: 0 }).toBuffer();
+            return _sharp.webp({ quality, effort: 0 });
     }
 }
 
-export { getRenderedTileBuffer, getRenderedBboxBuffer, type SupportedFormat };
+export {
+    getRenderedTile,
+    getRenderedBbox,
+    type GetRenderedBboxOptions,
+    type GetRenderedTileOptions,
+    type SupportedFormat,
+};

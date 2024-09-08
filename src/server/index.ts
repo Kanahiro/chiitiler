@@ -1,4 +1,5 @@
 import { Hono } from 'hono/quick';
+import { stream } from 'hono/streaming';
 import { serve } from '@hono/node-server';
 import {
     type StyleSpecification,
@@ -8,8 +9,8 @@ import {
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, getEditorgPage } from './debug.js';
 import {
-    getRenderedTileBuffer,
-    getRenderedBboxBuffer,
+    getRenderedTile,
+    getRenderedBbox,
     type SupportedFormat,
 } from '../render/index.js';
 
@@ -31,6 +32,7 @@ type InitServerOptions = {
     cache: Cache;
     port: number;
     debug: boolean;
+    stream: boolean;
 };
 
 type InitializedServer = {
@@ -60,9 +62,10 @@ function initServer(options: InitServerOptions): InitializedServer {
             const quality = Number(c.req.query('quality') ?? 100);
             const margin = Number(c.req.query('margin') ?? 0);
 
-            let buf: Buffer;
+            c.header('Content-Type', `image/${ext}`);
+
             try {
-                buf = await getRenderedTileBuffer({
+                const sharp = await getRenderedTile({
                     stylejson: url,
                     z,
                     x,
@@ -73,13 +76,22 @@ function initServer(options: InitServerOptions): InitializedServer {
                     ext,
                     quality,
                 });
+
+                if (options.stream) {
+                    // stream mode
+                    return stream(c, async (stream) => {
+                        for await (const chunk of sharp) {
+                            stream.write(chunk);
+                        }
+                    });
+                } else {
+                    const buf = await sharp.toBuffer();
+                    return c.body(buf);
+                }
             } catch (e) {
                 console.error(`render error: ${e}`);
                 return c.body('failed to render tile', 400);
             }
-
-            c.header('Content-Type', `image/${ext}`);
-            return c.body(buf);
         })
         .post('/:z/:x/:y_ext', async (c) => {
             // body
@@ -101,9 +113,8 @@ function initServer(options: InitServerOptions): InitializedServer {
             const quality = Number(c.req.query('quality') ?? 100);
             const margin = Number(c.req.query('margin') ?? 0);
 
-            let buf: Buffer;
             try {
-                buf = await getRenderedTileBuffer({
+                const sharp = await getRenderedTile({
                     stylejson: style,
                     z,
                     x,
@@ -114,13 +125,22 @@ function initServer(options: InitServerOptions): InitializedServer {
                     ext,
                     quality,
                 });
+
+                if (options.stream) {
+                    // stream mode
+                    return stream(c, async (stream) => {
+                        for await (const chunk of sharp) {
+                            stream.write(chunk);
+                        }
+                    });
+                } else {
+                    const buf = await sharp.toBuffer();
+                    return c.body(buf);
+                }
             } catch (e) {
                 console.error(`render error: ${e}`);
                 return c.body('failed to render tile', 400);
             }
-
-            c.header('Content-Type', `image/${ext}`);
-            return c.body(buf);
         });
 
     const clip = new Hono()
@@ -143,7 +163,7 @@ function initServer(options: InitServerOptions): InitializedServer {
             const size = Number(c.req.query('size') ?? 1024);
 
             try {
-                const buf = await getRenderedBboxBuffer({
+                const sharp = await getRenderedBbox({
                     stylejson: url,
                     bbox: [minx, miny, maxx, maxy],
                     size,
@@ -151,11 +171,21 @@ function initServer(options: InitServerOptions): InitializedServer {
                     ext,
                     quality,
                 });
-                c.header('Content-Type', `image/${ext}`);
-                return c.body(buf);
+
+                if (options.stream) {
+                    // stream mode
+                    return stream(c, async (stream) => {
+                        for await (const chunk of sharp) {
+                            stream.write(chunk);
+                        }
+                    });
+                } else {
+                    const buf = await sharp.toBuffer();
+                    return c.body(buf);
+                }
             } catch (e) {
                 console.error(`render error: ${e}`);
-                return c.body('failed to render bbox', 400);
+                return c.body('failed to render tile', 400);
             }
         })
         .post('/:filename_ext', async (c) => {
@@ -180,7 +210,7 @@ function initServer(options: InitServerOptions): InitializedServer {
             const size = Number(c.req.query('size') ?? 1024);
 
             try {
-                const buf = await getRenderedBboxBuffer({
+                const sharp = await getRenderedBbox({
                     stylejson: style,
                     bbox: [minx, miny, maxx, maxy],
                     size,
@@ -188,11 +218,21 @@ function initServer(options: InitServerOptions): InitializedServer {
                     ext,
                     quality,
                 });
-                c.header('Content-Type', `image/${ext}`);
-                return c.body(buf);
+
+                if (options.stream) {
+                    // stream mode
+                    return stream(c, async (stream) => {
+                        for await (const chunk of sharp) {
+                            stream.write(chunk);
+                        }
+                    });
+                } else {
+                    const buf = await sharp.toBuffer();
+                    return c.body(buf);
+                }
             } catch (e) {
                 console.error(`render error: ${e}`);
-                return c.body('failed to render bbox', 400);
+                return c.body('failed to render tile', 400);
             }
         });
 
