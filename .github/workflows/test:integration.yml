@@ -26,4 +26,5 @@ jobs:
             - name: run test
               run: |
                   npm ci
+                  npm rebuild
                   npm run test:integration

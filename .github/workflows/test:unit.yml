@@ -21,9 +21,12 @@ jobs:
               uses: actions/setup-node@v3
               with:
                   node-version: '20'
+                  cache: npm
+                  cache-dependency-path: package-lock.json
             - name: Build App
               run: |
                   npm ci
+                  npm rebuild
                   npm run test:coverage
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@v4.0.1
