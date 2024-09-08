@@ -128,7 +128,7 @@ export function createProgram() {
         .option('-s3e --s3-endpoint <url>', 's3 endpoint url', '')
         .option('-3p --s3-force-path-style', 's3 force path style', '')
         .option('-p --port <port>', 'port number')
-        .option('-r --stream <mode>', 'response mode')
+        .option('-r --stream', 'stream mode')
         .option('-D --debug', 'debug mode')
         .action((options) => {
             const serverOptions: InitServerOptions = {
