@@ -11,6 +11,7 @@ describe('initServer', () => {
             port: 8989,
             cache: cache.noneCache(),
             debug: false,
+            stream: false,
         });
         const res = await app.request('/health');
         expect(res.status).toBe(200);
@@ -28,6 +29,7 @@ describe('initServer', () => {
             port: 8989,
             cache: cache.noneCache(),
             debug: true,
+            stream: false,
         });
         const res = await app.request('/health');
         expect(res.status).toBe(200);
@@ -45,6 +47,7 @@ describe('initServer', () => {
             port: 8989,
             cache: cache.noneCache(),
             debug: false,
+            stream: false,
         });
 
         const res = await app.request('/tiles/0/0/0.png');
@@ -71,6 +74,7 @@ describe('initServer', () => {
             port: 8989,
             cache: cache.noneCache(),
             debug: false,
+            stream: false,
         });
 
         const res = await app.request('/clip.png?bbox=0,1,2,3');

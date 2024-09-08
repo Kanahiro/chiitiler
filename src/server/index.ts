@@ -113,6 +113,8 @@ function initServer(options: InitServerOptions): InitializedServer {
             const quality = Number(c.req.query('quality') ?? 100);
             const margin = Number(c.req.query('margin') ?? 0);
 
+            c.header('Content-Type', `image/${ext}`);
+
             try {
                 const sharp = await getRenderedTile({
                     stylejson: style,
@@ -162,6 +164,8 @@ function initServer(options: InitServerOptions): InitializedServer {
             const quality = Number(c.req.query('quality') ?? 100);
             const size = Number(c.req.query('size') ?? 1024);
 
+            c.header('Content-Type', `image/${ext}`);
+
             try {
                 const sharp = await getRenderedBbox({
                     stylejson: url,
@@ -208,6 +212,8 @@ function initServer(options: InitServerOptions): InitializedServer {
 
             const quality = Number(c.req.query('quality') ?? 100);
             const size = Number(c.req.query('size') ?? 1024);
+
+            c.header('Content-Type', `image/${ext}`);
 
             try {
                 const sharp = await getRenderedBbox({
