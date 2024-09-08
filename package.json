@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "chiitiler",
-  "version": "1.12.7",
+  "version": "1.13.0",
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,9 +24,7 @@
   "devDependencies": {
     "@tsconfig/node20": "^20.1.4",
     "@types/better-sqlite3": "^7.6.10",
-    "@types/generic-pool": "^3.8.1",
     "@types/node": "^20.6.0",
-    "@types/object-hash": "^3.0.6",
     "@vitest/coverage-v8": "^1.6.0",
     "image-size": "^1.1.1",
     "maplibre-gl": "^3.3.1",
