@@ -191,6 +191,13 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
         "s3://tiles/{z}/{x}/{y}.pbf"
       ],
       "maxzoom": 6
+    },
+    "cog": {
+      "type": "raster",
+      "tiles": [
+        "cog://https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/54/T/WN/2024/9/S2A_54TWN_20240908_0_L2A/TCI.tif/{z}/{x}/{y}"
+      ],
+      "tileSize": 256
     }
   },
   "layers": [
@@ -232,6 +239,14 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
       "paint": {
         "circle-radius": 3,
         "circle-color": "green"
+      }
+    },
+    {
+      "id": "cog",
+      "source": "cog",
+      "type": "raster",
+      "paint": {
+        "raster-opacity": 0.5
       }
     }
   ]
