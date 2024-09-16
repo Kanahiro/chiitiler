@@ -3,6 +3,7 @@ import { getHttpSource } from './http.js';
 import { getPmtilesSoruce } from './pmtiles.js';
 import { getMbtilesSource } from './mbtiles.js';
 import { getS3Source } from './s3.js';
+import { getCogSource } from './cog.js';
 import { Cache, noneCache } from '../cache/index.js';
 
 /**
@@ -24,6 +25,8 @@ async function getSource(
     else if (uri.startsWith('mbtiles://')) data = await getMbtilesSource(uri);
     else if (uri.startsWith('pmtiles://'))
         data = await getPmtilesSoruce(uri, cache);
+    else if (uri.startsWith('cog://')) data = await getCogSource(uri);
+    else return null;
 
     return data;
 }

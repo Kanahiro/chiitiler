@@ -25,14 +25,15 @@ const TRANSPARENT_BUFFER: Record<string, Buffer> = {
 };
 
 function handleFileExt(uri: string) {
+    if (uri.startsWith('cog://')) return 'png'; // cog:// always returns as png
+
     // extract extension only, take into account query string or hash
     const basename = path.basename(uri).split(/[?#]/)[0];
     const ext = basename.split('.').pop();
     if (ext === undefined) return null;
     const l = ext.toLowerCase();
     if (l === 'jpeg') return 'jpg';
-    if (l in ['png', 'webp', 'jpg']) return l;
-    return 'png';
+    return l;
 }
 
 const mapPoolCache = new LRUCache<string, Pool<mbgl.Map>>({
