@@ -25,6 +25,8 @@ const TRANSPARENT_BUFFER: Record<string, Buffer> = {
 };
 
 function handleFileExt(uri: string) {
+    if (uri.startsWith('cog://')) return 'png'; // cog:// always returns as png
+
     // extract extension only, take into account query string or hash
     const basename = path.basename(uri).split(/[?#]/)[0];
     const ext = basename.split('.').pop();

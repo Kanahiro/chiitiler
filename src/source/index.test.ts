@@ -27,6 +27,13 @@ describe('getSource', () => {
         expect(data).not.toBeNull();
     });
 
+    it('cog://', async () => {
+        const uri =
+            'cog://https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/54/T/WN/2024/9/S2A_54TWN_20240908_0_L2A/TCI.tif/6/32/24';
+        const data = await getSource(uri);
+        expect(data).not.toBeNull();
+    });
+
     it('invalid uri', async () => {
         const uri = 'invalid://localdata/style.json';
         const data = await getSource(uri);

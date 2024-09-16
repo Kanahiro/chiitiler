@@ -1,6 +1,13 @@
 {
-  "version": "8",
+  "version": 8,
   "sources": {
+    "osm": {
+      "type": "raster",
+      "tiles": [
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256
+    },
     "dir": {
       "type": "vector",
       "tiles": [
@@ -35,9 +42,22 @@
         "pmtiles://s3://tiles/school.pmtiles/{z}/{x}/{y}"
       ],
       "maxzoom": 10
+    },
+    "cog": {
+      "type": "raster",
+      "tiles": [
+        "cog://https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/54/T/WN/2024/9/S2A_54TWN_20240908_0_L2A/TCI.tif/{z}/{x}/{y}"
+      ],
+      "tileSize": 256
     }
   },
   "layers": [
+    {
+      "id": "osm",
+      "source": "osm",
+      "type": "raster",
+      "paint": {}
+    },
     {
       "id": "dir",
       "source": "dir",
@@ -86,6 +106,14 @@
       "paint": {
         "circle-radius": 3,
         "circle-color": "purple"
+      }
+    },
+    {
+      "id": "cog",
+      "source": "cog",
+      "type": "raster",
+      "paint": {
+        "raster-opacity": 0.8
       }
     }
   ]
