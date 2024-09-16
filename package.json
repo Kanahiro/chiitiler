@@ -43,6 +43,7 @@
     "better-sqlite3": "^9.6.0",
     "commander": "^11.0.0",
     "file-system-cache": "^2.4.4",
+    "higuruma": "^0.1.6",
     "hono": "^4.5.4",
     "lightning-pool": "^4.2.2",
     "lru-cache": "^11.0.0",
