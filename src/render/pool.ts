@@ -31,7 +31,8 @@ function handleFileExt(uri: string) {
     if (ext === undefined) return null;
     const l = ext.toLowerCase();
     if (l === 'jpeg') return 'jpg';
-    return l;
+    if (l in ['png', 'webp', 'jpg']) return l;
+    return 'png';
 }
 
 const mapPoolCache = new LRUCache<string, Pool<mbgl.Map>>({
