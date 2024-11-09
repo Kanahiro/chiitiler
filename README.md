@@ -18,7 +18,7 @@ chii-tiler: "tiny" in Japanese is "chiisai", shorten into "chii"
 
 ### /tiles
 
-chiitiler provides you with `/tiles` raster-tile endpoint. Once server launched, you can use like this:
+chiitiler provides you with an endpoint `/tiles`. Once server launched, you can use the endpoint like this:
 
 ```planetext
 http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json
@@ -105,7 +105,7 @@ you can pass server options via environment variables
 | CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
 | CHIITILER_S3_FORCE_PATH_STYLE      | false    | force path style for s3, needed for minio      |
 
-### Local
+### CLI (deprecated)
 
 - Node.js v18 or v20
 
@@ -140,21 +140,23 @@ node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
 # caution: TTL is not supported in S3 cache, please utilize S3 lifecycle policy
 ```
 
-#### debug page
+### debug page
 
-- in debug mode, you can access debug page: <http://localhost:3000/debug>
-- You can pass style.json url:
-  - <http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json>
+- in debug mode, you can access:
+    - debug page: <http://localhost:3000/debug>
+        - You can pass style.json url: <http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json>
+    - editor page: <http://localhost:3000/editor>
 
 ## supported protocols in style.json
 
 - `http://` or `https://` protocol are used in Style Specification
 - In addition, chiitiler supports following protocols:
   - `s3://` for S3 bucket
-  - `file://` for local file
-  - `mbtiles://` for local MBTIles files
-  - `pmtiles://` form PMTiles, remote or local or s3
-- Only when `http://` and `https://` chiitiler will cache them with a specified method.
+  - `file://` for file system
+  - `mbtiles://` for MBTIles files
+  - `pmtiles://` for PMTiles, remote or local or s3
+  - `cog://` experimental, for Cloud Optimized GeoTIFF. CRS must be EPSG:3857.
+- Only when `http://` and `https://` chiitiler cache them with a method you specified.
 
 ### example
 
