@@ -1,15 +1,15 @@
 import { Context } from 'hono';
 
 function getDebugPage(c: Context) {
-    //demo tile
-    const url =
-        c.req.query('url') ?? 'https://demotiles.maplibre.org/style.json';
-    const margin = Number(c.req.query('margin') ?? 0);
-    const quality = Number(c.req.query('quality') ?? 100);
-    const tileSize = Number(c.req.query('tileSize') ?? 512);
+	//demo tile
+	const url = c.req.query('url') ?? 'https://demotiles.maplibre.org/style.json';
+	const margin = Number(c.req.query('margin') ?? 0);
+	const quality = Number(c.req.query('quality') ?? 100);
+	const tileSize = Number(c.req.query('tileSize') ?? 512);
+	const scale = Number(c.req.query('scale') ?? 1);
 
-    // show tile in MapLibre GL JS
-    return c.html(`<!DOCTYPE html>
+	// show tile in MapLibre GL JS
+	return c.html(`<!DOCTYPE html>
     <html>
         <head>
             <meta charset="utf-8" />
@@ -37,7 +37,7 @@ function getDebugPage(c: Context) {
             <div id="map" style="height: 100vh"></div>
             <script>
                 // hostname
-                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=${quality}&margin=${margin}&tileSize=${tileSize}';
+                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=${quality}&margin=${margin}&tileSize=${tileSize}&scale=${scale}';
 
                 const map = new maplibregl.Map({
                     hash: true,
@@ -70,7 +70,7 @@ function getDebugPage(c: Context) {
 }
 
 function getEditorgPage(c: Context) {
-    return c.html(`<!DOCTYPE html>
+	return c.html(`<!DOCTYPE html>
     <html>
         <head>
             <meta charset="utf-8" />
