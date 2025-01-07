@@ -14,6 +14,12 @@ chii-tiler: "tiny" in Japanese is "chiisai", shorten into "chii"
 - In this type of server, there is a de-facto - [maptiler/tileserver-gl](https://github.com/maptiler/tileserver-gl), but this is too big for me.
 - I want a server accept style.json-url and respond raster tile, inspired by [developmentseed/titiler](https://github.com/developmentseed/titiler)
 
+## usecases
+
+- [MIERUNE/tiles](https://github.com/MIERUNE/tiles) - You can find example [here](https://mierune.github.io/tiles/color.html#11.62/43.064/141.3375)
+- [dayjournal/qgis-amazonlocationservice-plugin](https://github.com/dayjournal/qgis-amazonlocationservice-plugin) - used in Maps feature
+- [Allmaps Latest - Bluesky](https://bsky.app/profile/latest.allmaps.org)
+
 ## features
 
 ### /tiles
