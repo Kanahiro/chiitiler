@@ -11,6 +11,7 @@ FROM public.ecr.aws/ubuntu/ubuntu:22.04 as runtime
 # Install dependencies
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
+RUN apt-get upgrade -y
 RUN apt-get install -y \
   xvfb \
   libcurl4-openssl-dev \
