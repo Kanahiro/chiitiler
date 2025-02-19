@@ -9,7 +9,7 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "npx esbuild --bundle src/main.ts --minify --outfile=dist/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
+		"build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
 		"dev": "tsx watch src/main.ts tile-server -D",
 		"test:unit": "vitest src",
 		"test:coverage": "vitest src --coverage --coverage.provider=v8",
