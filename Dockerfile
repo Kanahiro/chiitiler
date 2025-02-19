@@ -4,7 +4,7 @@ WORKDIR /app/
 COPY . /app/
 RUN npm install
 RUN npm run build
-# /app/dist
+# /app/build/main.cjs
 
 FROM public.ecr.aws/ubuntu/ubuntu:22.04 as runtime
 
@@ -32,10 +32,10 @@ COPY --from=node:20-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/nod
 
 # Copy /app/dist from builder
 WORKDIR /app/
-COPY --from=builder /app/dist /app/dist
-COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/build /app/build
 COPY --from=builder /app/package.json /app/package.json
+RUN npm install --omit=dev
 
 # start server
-ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node /app/dist/main.js $@", ""]
+ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node /app/build/main.cjs $@", ""]
 CMD ["tile-server"]
