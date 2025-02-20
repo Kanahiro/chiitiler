@@ -99,7 +99,7 @@ class S3Source implements Source {
  * uri = pmtiles://http://url/to/file.pmtiles/{z}/{x}/{y}
  * uri = pmtiles://s3://bucket/key/to/file.pmtiles/{z}/{x}/{y}
  */
-async function getPmtilesSoruce(
+async function getPmtilesSource(
     uri: string,
     cache: Cache = noneCache(),
 ): Promise<Buffer | null> {
@@ -145,4 +145,4 @@ async function getPmtilesSoruce(
     return buf;
 }
 
-export { getPmtilesSoruce };
+export { getPmtilesSource };
