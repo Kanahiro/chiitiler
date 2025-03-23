@@ -115,6 +115,12 @@ you can pass server options via environment variables
     - You can pass style.json url: <http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json>
   - editor page: <http://localhost:3000/editor>
 
+## deployment
+
+### AWS CDK
+
+- you can deploy chiitiler with AWS CDK, check [cdk](./cdk)
+
 ## supported protocols in style.json
 
 - `http://` or `https://` protocol are used in Style Specification
