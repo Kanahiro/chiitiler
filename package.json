@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "chiitiler",
-	"version": "1.14.1",
+	"version": "1.14.2",
 	"description": "Tiny map rendering server for MapLibre Style Spec",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -26,15 +26,17 @@
 		"@vitest/coverage-v8": "^1.6.0",
 		"esbuild": "^0.25.0",
 		"image-size": "^1.1.1",
-		"maplibre-gl": "^3.3.1",
 		"ts-node": "^10.9.1",
 		"tsx": "^4.7.1",
 		"typescript": "^5.2.2",
-		"vitest": "^1.6.0",
+		"vitest": "^1.6.0"
+	},
+	"dependencies": {
 		"@aws-sdk/client-s3": "^3.418.0",
 		"@hono/node-server": "^1.12.0",
 		"@mapbox/sphericalmercator": "^1.2.0",
 		"@mapbox/tilebelt": "^1.0.2",
+		"@maplibre/maplibre-gl-native": "^5.4.0",
 		"@maplibre/maplibre-gl-style-spec": "^20.2.0",
 		"better-sqlite3": "^9.6.0",
 		"commander": "^11.0.0",
@@ -43,10 +45,8 @@
 		"hono": "^4.5.4",
 		"lightning-pool": "^4.2.2",
 		"lru-cache": "^11.0.0",
-		"pmtiles": "^3.0.5"
-	},
-	"dependencies": {
-		"@maplibre/maplibre-gl-native": "^5.4.0",
+		"maplibre-gl": "^3.3.1",
+		"pmtiles": "^3.0.5",
 		"sharp": "^0.32.5"
 	}
 }
