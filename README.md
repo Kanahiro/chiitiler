@@ -87,9 +87,6 @@ docker run -p 3000:3000 -d \
 -e CHIITILER_S3CACHE_BUCKET=bucketname \
 -e CHIITILER_S3_REGION=ap-northeast-1 \
 ghcr.io/kanahiro/chiitiler
-
-# you also can pass options
-docker run -p 8000:8000 ghcr.io/kanahiro/chiitiler tile-server -p 8000 -c s3 -s3b bucketname -s3r ap-northeast-1
 ```
 
 #### Environment Variables
@@ -111,47 +108,12 @@ you can pass server options via environment variables
 | CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
 | CHIITILER_S3_FORCE_PATH_STYLE      | false    | force path style for s3, needed for minio      |
 
-### CLI (deprecated)
-
-- Node.js v18 or v20
-
-```sh
-npm install
-npm run build
-node dist/main.js tile-server
-# running server: http://localhost:3000
-
-# develop
-npm run dev
-# running server: http://localhost:3000
-# debug page: http://localhost:3000/debug
-```
-
-#### options
-
-```sh
-node dist/main.js tile-server -p 8000 -c file -ctl 60 -fcd cachedir -D
-# -p: port number
-# -c: cache method
-# -ctl: cache ttl
-# -fcd: cache directory
-# -D: debug mode
-
-node dist/main.js tile-server -c memory -ctl 60 -mci 1000
-# -mci: max cache items
-
-node dist/main.js tile-server -c s3 -s3b chiitiler -s3r ap-northeast-1
-# -s3b: S3 bucket name for cache
-# -s3r: S3 bucket region
-# caution: TTL is not supported in S3 cache, please utilize S3 lifecycle policy
-```
-
 ### debug page
 
 - in debug mode, you can access:
-    - debug page: <http://localhost:3000/debug>
-        - You can pass style.json url: <http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json>
-    - editor page: <http://localhost:3000/editor>
+  - debug page: <http://localhost:3000/debug>
+    - You can pass style.json url: <http://localhost:3000/debug?url=https://tile.openstreetmap.jp/styles/osm-bright/style.json>
+  - editor page: <http://localhost:3000/editor>
 
 ## supported protocols in style.json
 
