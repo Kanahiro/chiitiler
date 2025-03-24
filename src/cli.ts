@@ -6,7 +6,7 @@ import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
 
 function parseCacheStrategy(
-    method: 'none' | 'memory' | 'file' | 's3',
+    method: 'none' | 'memory' | 'file' | 's3' | 'gcs',
     options: {
         cacheTtl: number;
         memoryCacheMaxItemCount: number;
@@ -15,6 +15,9 @@ function parseCacheStrategy(
         s3Region: string;
         s3Endpoint: string;
         s3ForcePathStyle: boolean;
+        gcsCacheBucket: string;
+        gcsProjectId: string;
+        gcsKeyFilename: string;
     },
 ) {
     // command-line option
@@ -34,6 +37,12 @@ function parseCacheStrategy(
             region: options.s3Region,
             endpoint: options.s3Endpoint,
             forcePathStyle: options.s3ForcePathStyle,
+        });
+    if (method === 'gcs')
+        return caches.gcsCache({
+            bucket: options.gcsCacheBucket,
+            projectId: options.gcsProjectId,
+            keyFilename: options.gcsKeyFilename,
         });
 
     // command-line is not specified -> try to read from env
@@ -57,6 +66,12 @@ function parseCacheStrategy(
             endpoint: process.env.CHIITILER_S3_ENDPOINT,
             forcePathStyle:
                 process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
+        });
+    if (cacheEnv === 'gcs')
+        return caches.gcsCache({
+            bucket: process.env.CHIITILER_GCS_BUCKET ?? '',
+            projectId: process.env.CHIITILER_GCS_PROJECT_ID ?? '',
+            keyFilename: process.env.CHIITILER_GCS_KEY_FILENAME ?? '',
         });
 
     // undefined or invalid
@@ -127,6 +142,21 @@ export function createProgram() {
         )
         .option('-s3e --s3-endpoint <url>', 's3 endpoint url', '')
         .option('-3p --s3-force-path-style', 's3 force path style', '')
+        .option(
+            '-gcsb --gcs-cache-bucket <bucket-name>',
+            'gcs cache bucket name',
+            '',
+        )
+        .option(
+            '-gcsp --gcs-project-id <project-id>',
+            'gcs project id',
+            '',
+        )
+        .option(
+            '-gcsk --gcs-key-filename <key-filename>',
+            'gcs key filename',
+            '',
+        )
         .option('-p --port <port>', 'port number')
         .option('-r --stream', 'stream mode')
         .option('-D --debug', 'debug mode')
@@ -142,6 +172,9 @@ export function createProgram() {
                     s3Region: options.s3Region,
                     s3Endpoint: options.s3Endpoint,
                     s3ForcePathStyle: options.s3ForcePathStyle === 'true',
+                    gcsCacheBucket: options.gcsCacheBucket,
+                    gcsProjectId: options.gcsProjectId,
+                    gcsKeyFilename: options.gcsKeyFilename,
                 }),
                 port: parsePort(options.port),
                 debug: parseDebug(options.debug),

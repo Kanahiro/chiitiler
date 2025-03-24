@@ -99,7 +99,7 @@ you can pass server options via environment variables
 | CHIITILER_PROCESSES                | 1        | num of chiitiler processes. 0 means all-CPUs   |
 | CHIITILER_DEBUG                    | false    | debug mode                                     |
 | CHIITILER_STREAM_MODE              | false    | stream mode                                    |
-| CHIITILER_CACHE_METHOD             | none     | cache method, `none`, `memory`, `file` or `s3` |
+| CHIITILER_CACHE_METHOD             | none     | cache method, `none`, `memory`, `file`, `s3` or `gcs` |
 | CHIITILER_CACHE_TTL_SEC            | 3600     | cache ttl, effect to `memory` and `file`       |
 | CHIITILER_MEMORYCACHE_MAXITEMCOUNT | 1000     | max items for memorycache                      |
 | CHIITILER_FILECACHE_DIR            | .cache   | filecache directory                            |
@@ -107,6 +107,9 @@ you can pass server options via environment variables
 | CHIITILER_S3_REGION                | us-east1 | s3 bucket region for caching/fetching          |
 | CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
 | CHIITILER_S3_FORCE_PATH_STYLE      | false    | force path style for s3, needed for minio      |
+| CHIITILER_GCS_BUCKET               |          | gcs cache bucket name                          |
+| CHIITILER_GCS_PROJECT_ID           |          | gcs project id                                 |
+| CHIITILER_GCS_KEY_FILENAME         |          | gcs key filename                               |
 
 ### debug page
 
@@ -126,6 +129,7 @@ you can pass server options via environment variables
 - `http://` or `https://` protocol are used in Style Specification
 - In addition, chiitiler supports following protocols:
   - `s3://` for S3 bucket
+  - `gs://` for Google Cloud Storage bucket
   - `file://` for file system
   - `mbtiles://` for MBTIles files
   - `pmtiles://` for PMTiles, remote or local or s3
@@ -165,6 +169,13 @@ you can pass server options via environment variables
       "type": "vector",
       "tiles": [
         "s3://tiles/{z}/{x}/{y}.pbf"
+      ],
+      "maxzoom": 6
+    },
+    "gcs": {
+      "type": "vector",
+      "tiles": [
+        "gs://tiles/{z}/{x}/{y}.pbf"
       ],
       "maxzoom": 6
     },
@@ -218,6 +229,26 @@ you can pass server options via environment variables
       }
     },
     {
+      "id": "pmtiles-s3",
+      "source": "pmtiles-s3",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 3,
+        "circle-color": "purple"
+      }
+    },
+    {
+      "id": "gcs",
+      "source": "gcs",
+      "source-layer": "P2921",
+      "type": "circle",
+      "paint": {
+        "circle-radius": 3,
+        "circle-color": "purple"
+      }
+    },
+    {
       "id": "cog",
       "source": "cog",
       "type": "raster",
@@ -257,6 +288,13 @@ const s3Cache = ChiitilerCache.s3Cache({
     endpoint: null,
 });
 // credentials are loaded from environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
+const gcsCache = ChiitilerCache.gcsCache({
+    bucket: 'chiitiler',
+    projectId: 'your-project-id',
+    keyFilename: '/path/to/key.json',
+});
+// credentials are loaded from environment variables: GOOGLE_APPLICATION_CREDENTIALS
 
 const tileBuf = await getRenderedTileBuffer({
     stylejson: 'https://example.com/style.json', // or StyleSpecification object

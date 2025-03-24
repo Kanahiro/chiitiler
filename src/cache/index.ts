@@ -1,5 +1,6 @@
 import { memoryCache } from './memory.js';
 import { s3Cache } from './s3.js';
+import { gcsCache } from './gcs.js';
 import { fileCache } from './file.js';
 
 type Value = Buffer;
@@ -15,4 +16,4 @@ const noneCache: () => Cache = () => ({
     set: async () => undefined,
 });
 
-export { noneCache, memoryCache, s3Cache, fileCache, type Value, type Cache };
+export { noneCache, memoryCache, s3Cache, gcsCache, fileCache, type Value, type Cache };
