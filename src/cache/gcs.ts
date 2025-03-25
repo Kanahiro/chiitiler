@@ -26,7 +26,9 @@ function gcsCache(options: GCSCacheOptions): Cache {
             const file = bucket.file(nameWithPrefix);
 
             try {
-                await file.save(value);
+                await file.save(value, {
+                    resumable: false,
+                });
             } catch (e) {
                 console.log(`[error]: ${e}`);
             }

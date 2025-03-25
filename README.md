@@ -321,4 +321,5 @@ const bboxBuf = await getRenderedBboxBuffer({
 
 ## development
 
-- run `docker compose up`
+- To debug S3, run `docker compose up`
+- To debug GCS, change `CHIITILER_CACHE_METHOD` to `gcs` in `docker-compose.yml`, and then run `docker compose up`

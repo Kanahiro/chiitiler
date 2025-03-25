@@ -13,6 +13,7 @@ const getStorageClient = function ({
     const storageOptions: StorageOptions = {
         projectId,
         keyFilename,
+        apiEndpoint: process.env.STORAGE_EMULATOR_HOST,
     };
 
     storageClient = new Storage(storageOptions);
