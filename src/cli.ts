@@ -18,6 +18,7 @@ function parseCacheStrategy(
         gcsCacheBucket: string;
         gcsProjectId: string;
         gcsKeyFilename: string;
+        gcsCachePrefix: string;
     },
 ) {
     // command-line option
@@ -43,6 +44,7 @@ function parseCacheStrategy(
             bucket: options.gcsCacheBucket,
             projectId: options.gcsProjectId,
             keyFilename: options.gcsKeyFilename,
+            prefix: options.gcsCachePrefix,
         });
 
     // command-line is not specified -> try to read from env
@@ -72,6 +74,7 @@ function parseCacheStrategy(
             bucket: process.env.CHIITILER_GCS_BUCKET ?? '',
             projectId: process.env.CHIITILER_GCS_PROJECT_ID ?? '',
             keyFilename: process.env.CHIITILER_GCS_KEY_FILENAME ?? '',
+            prefix: process.env.CHIITILER_GCS_PREFIX ?? '',
         });
 
     // undefined or invalid
@@ -157,6 +160,11 @@ export function createProgram() {
             'gcs key filename',
             '',
         )
+        .option(
+            '-gcsp --gcs-cache-prefix <prefix>',
+            'gcs cache prefix',
+            '',
+        )
         .option('-p --port <port>', 'port number')
         .option('-r --stream', 'stream mode')
         .option('-D --debug', 'debug mode')
@@ -175,6 +183,7 @@ export function createProgram() {
                     gcsCacheBucket: options.gcsCacheBucket,
                     gcsProjectId: options.gcsProjectId,
                     gcsKeyFilename: options.gcsKeyFilename,
+                    gcsCachePrefix: options.gcsCachePrefix,
                 }),
                 port: parsePort(options.port),
                 debug: parseDebug(options.debug),

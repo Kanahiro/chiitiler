@@ -5,6 +5,7 @@ type GCSCacheOptions = {
     bucket: string;
     projectId?: string;
     keyFilename?: string;
+    prefix?: string;
 };
 
 function gcsCache(options: GCSCacheOptions): Cache {
@@ -13,23 +14,32 @@ function gcsCache(options: GCSCacheOptions): Cache {
         keyFilename: options.keyFilename,
     });
     const bucket = storageClient.bucket(options.bucket);
+    if (options.prefix?.endsWith('/')) {
+        options.prefix = options.prefix.slice(0, -1);
+    }
 
     return {
         name: 'gcs',
         set: async function (key: string, value: Value) {
+            const name = escapeFileName(key);
+            const nameWithPrefix = options.prefix ? `${options.prefix}/${name}` : name;
+            const file = bucket.file(nameWithPrefix);
+
             try {
-                const file = bucket.file(escapeFileName(key));
                 await file.save(value);
             } catch (e) {
                 console.log(`[error]: ${e}`);
             }
         },
         get: async function (key: string): Promise<Value | undefined> {
-            const file = bucket.file(escapeFileName(key));
+            const name = escapeFileName(key);
+            const nameWithPrefix = options.prefix ? `${options.prefix}/${name}` : name;
+            const file = bucket.file(nameWithPrefix);
+
             try {
-                const [buffer] = await file.download();
-                return buffer;
-            } catch (e) {
+                const [content] = await file.download();
+                return Buffer.from(content);
+            } catch {
                 // miss or any error
                 return undefined;
             }

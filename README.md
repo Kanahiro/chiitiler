@@ -110,6 +110,7 @@ you can pass server options via environment variables
 | CHIITILER_GCS_BUCKET               |          | gcs cache bucket name                          |
 | CHIITILER_GCS_PROJECT_ID           |          | gcs project id                                 |
 | CHIITILER_GCS_KEY_FILENAME         |          | gcs key filename                               |
+| CHIITILER_GCS_PREFIX               |          | gcs cache prefix                               |
 
 ### debug page
 
@@ -291,8 +292,6 @@ const s3Cache = ChiitilerCache.s3Cache({
 
 const gcsCache = ChiitilerCache.gcsCache({
     bucket: 'chiitiler',
-    projectId: 'your-project-id',
-    keyFilename: '/path/to/key.json',
 });
 // credentials are loaded from environment variables: GOOGLE_APPLICATION_CREDENTIALS
 
