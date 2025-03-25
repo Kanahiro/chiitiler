@@ -3,9 +3,9 @@ import { getStorageClient } from '../gcs.js';
 
 type GCSCacheOptions = {
     bucket: string;
+    prefix?: string;
     projectId?: string;
     keyFilename?: string;
-    prefix?: string;
 };
 
 function gcsCache(options: GCSCacheOptions): Cache {

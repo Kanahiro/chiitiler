@@ -16,9 +16,9 @@ function parseCacheStrategy(
         s3Endpoint: string;
         s3ForcePathStyle: boolean;
         gcsCacheBucket: string;
+        gcsCachePrefix: string;
         gcsProjectId: string;
         gcsKeyFilename: string;
-        gcsCachePrefix: string;
     },
 ) {
     // command-line option
@@ -71,10 +71,10 @@ function parseCacheStrategy(
         });
     if (cacheEnv === 'gcs')
         return caches.gcsCache({
-            bucket: process.env.CHIITILER_GCS_BUCKET ?? '',
+            bucket: process.env.CHIITILER_GCS_CACHE_BUCKET ?? '',
+            prefix: process.env.CHIITILER_GCS_CACHE_PREFIX ?? '',
             projectId: process.env.CHIITILER_GCS_PROJECT_ID ?? '',
             keyFilename: process.env.CHIITILER_GCS_KEY_FILENAME ?? '',
-            prefix: process.env.CHIITILER_GCS_PREFIX ?? '',
         });
 
     // undefined or invalid
@@ -181,9 +181,9 @@ export function createProgram() {
                     s3Endpoint: options.s3Endpoint,
                     s3ForcePathStyle: options.s3ForcePathStyle === 'true',
                     gcsCacheBucket: options.gcsCacheBucket,
+                    gcsCachePrefix: options.gcsCachePrefix,
                     gcsProjectId: options.gcsProjectId,
                     gcsKeyFilename: options.gcsKeyFilename,
-                    gcsCachePrefix: options.gcsCachePrefix,
                 }),
                 port: parsePort(options.port),
                 debug: parseDebug(options.debug),

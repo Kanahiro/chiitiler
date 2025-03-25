@@ -24,7 +24,7 @@ services:
             - AWS_ACCESS_KEY_ID=minioadmin
             - AWS_SECRET_ACCESS_KEY=minioadmin
             - STORAGE_EMULATOR_HOST=http://fake-gcs-server:4443
-            - CHIITILER_GCS_BUCKET=tiles
+            - CHIITILER_GCS_CACHE_BUCKET=tiles
     minio:
         image: minio/minio:latest
         ports:
