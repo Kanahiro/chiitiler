@@ -4,16 +4,18 @@ let storageClient: Storage; // singleton
 const getStorageClient = function ({
     projectId,
     keyFilename,
+    apiEndpoint
 }: {
     projectId?: string;
     keyFilename?: string;
+    apiEndpoint?: string;
 }) {
     if (storageClient !== undefined) return storageClient;
 
     const storageOptions: StorageOptions = {
         projectId,
         keyFilename,
-        apiEndpoint: process.env.STORAGE_EMULATOR_HOST,
+        apiEndpoint
     };
 
     storageClient = new Storage(storageOptions);

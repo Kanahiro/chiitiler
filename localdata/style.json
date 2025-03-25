@@ -71,7 +71,7 @@
       "source-layer": "P2921",
       "type": "circle",
       "paint": {
-        "circle-radius": 20,
+        "circle-radius": 25,
         "circle-color": "red"
       }
     },
@@ -81,7 +81,7 @@
       "source-layer": "P2921",
       "type": "circle",
       "paint": {
-        "circle-radius": 15,
+        "circle-radius": 20,
         "circle-color": "blue"
       }
     },
@@ -91,7 +91,7 @@
       "source-layer": "P2921",
       "type": "circle",
       "paint": {
-        "circle-radius": 10,
+        "circle-radius": 15,
         "circle-color": "yellow"
       }
     },
@@ -101,7 +101,7 @@
       "source-layer": "P2921",
       "type": "circle",
       "paint": {
-        "circle-radius": 5,
+        "circle-radius": 10,
         "circle-color": "green"
       }
     },
@@ -111,7 +111,7 @@
       "source-layer": "P2921",
       "type": "circle",
       "paint": {
-        "circle-radius": 3,
+        "circle-radius": 5,
         "circle-color": "purple"
       }
     },
@@ -122,7 +122,7 @@
       "type": "circle",
       "paint": {
         "circle-radius": 3,
-        "circle-color": "purple"
+        "circle-color": "orange"
       }
     },
     {

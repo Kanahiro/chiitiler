@@ -23,7 +23,7 @@ services:
             - CHIITILER_STREAM_MODE=true
             - AWS_ACCESS_KEY_ID=minioadmin
             - AWS_SECRET_ACCESS_KEY=minioadmin
-            - STORAGE_EMULATOR_HOST=http://fake-gcs-server:4443
+            - CHIITILER_GCS_API_ENDPOINT=http://fake-gcs-server:4443
             - CHIITILER_GCS_CACHE_BUCKET=tiles
     minio:
         image: minio/minio:latest
@@ -58,5 +58,5 @@ services:
         ports:
             - "4443:4443"
         volumes:
-            - ./localdata:/data/tiles
+            - ./localdata/tiles:/data/tiles
         command: -scheme http

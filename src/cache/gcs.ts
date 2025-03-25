@@ -1,29 +1,37 @@
 import { type Cache, type Value } from './index.js';
 import { getStorageClient } from '../gcs.js';
+import { File } from '@google-cloud/storage';
 
 type GCSCacheOptions = {
     bucket: string;
     prefix?: string;
     projectId?: string;
     keyFilename?: string;
+    apiEndpoint?: string;
 };
 
 function gcsCache(options: GCSCacheOptions): Cache {
+    if (options.prefix?.endsWith('/')) {
+        options.prefix = options.prefix.slice(0, -1);
+    }
+
     const storageClient = getStorageClient({
         projectId: options.projectId,
         keyFilename: options.keyFilename,
+        apiEndpoint: options.apiEndpoint,
     });
     const bucket = storageClient.bucket(options.bucket);
-    if (options.prefix?.endsWith('/')) {
-        options.prefix = options.prefix.slice(0, -1);
+
+    function bucketFile(key: string): File {
+        const name = escapeFileName(key);
+        const nameWithPrefix = options.prefix ? `${options.prefix}/${name}` : name;
+        return bucket.file(nameWithPrefix);
     }
 
     return {
         name: 'gcs',
         set: async function (key: string, value: Value) {
-            const name = escapeFileName(key);
-            const nameWithPrefix = options.prefix ? `${options.prefix}/${name}` : name;
-            const file = bucket.file(nameWithPrefix);
+            const file = bucketFile(key);
 
             try {
                 await file.save(value, {
@@ -34,9 +42,7 @@ function gcsCache(options: GCSCacheOptions): Cache {
             }
         },
         get: async function (key: string): Promise<Value | undefined> {
-            const name = escapeFileName(key);
-            const nameWithPrefix = options.prefix ? `${options.prefix}/${name}` : name;
-            const file = bucket.file(nameWithPrefix);
+            const file = bucketFile(key);
 
             try {
                 const [content] = await file.download();

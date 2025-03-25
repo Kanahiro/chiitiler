@@ -4,6 +4,7 @@ async function getGCSSource(uri: string) {
     const storageClient = getStorageClient({
         projectId: process.env.CHIITILER_GCS_PROJECT_ID,
         keyFilename: process.env.CHIITILER_GCS_KEY_FILENAME,
+        apiEndpoint: process.env.CHIITILER_GCS_API_ENDPOINT,
     });
     const bucket = uri.replace('gs://', '').split('/')[0];
     const path = uri.replace(`gs://${bucket}/`, '');

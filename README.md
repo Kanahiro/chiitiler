@@ -111,6 +111,7 @@ you can pass server options via environment variables
 | CHIITILER_GCS_CACHE_PREFIX         |          | gcs cache prefix                               |
 | CHIITILER_GCS_PROJECT_ID           |          | gcs project id                                 |
 | CHIITILER_GCS_KEY_FILENAME         |          | gcs key filename                               |
+| CHIITILER_GCS_API_ENDPOINT         |          | gcs api endpoint                               |
 
 ### debug page
 
