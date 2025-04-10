@@ -108,7 +108,7 @@ you can pass server options via environment variables
 | CHIITILER_S3_REGION                | us-east1 | s3 bucket region for caching/fetching          |
 | CHIITILER_S3_ENDPOINT              |          | s3 endpoint for caching/fetching               |
 | CHIITILER_S3_FORCE_PATH_STYLE      | false    | force path style for s3, needed for minio      |
-| CHIITILER_GCS_CACHE_BUCKE          |          | gcs cache bucket name                          |
+| CHIITILER_GCS_CACHE_BUCKET         |          | gcs cache bucket name                          |
 | CHIITILER_GCS_CACHE_PREFIX         |          | gcs cache prefix                               |
 | CHIITILER_GCS_PROJECT_ID           |          | gcs project id                                 |
 | CHIITILER_GCS_KEY_FILENAME         |          | gcs key filename                               |
