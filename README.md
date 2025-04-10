@@ -19,7 +19,7 @@ chii-tiler: "tiny" in Japanese is "chiisai", shorten into "chii"
 - [MIERUNE/tiles](https://github.com/MIERUNE/tiles) - You can find example [here](https://mierune.github.io/tiles/color.html#11.62/43.064/141.3375)
 - [dayjournal/qgis-amazonlocationservice-plugin](https://github.com/dayjournal/qgis-amazonlocationservice-plugin) - used in Maps feature
 - [Allmaps Latest - Bluesky](https://bsky.app/profile/latest.allmaps.org)
-- [PLATEAU VIEW](https://plateauview.mlit.go.jp/) - use `/tiles` endpoint with Cesium.js based WebGIS.
+- [PLATEAU VIEW](https://plateauview.mlit.go.jp/) - `/tiles` endpoint is used with Cesium.js based WebGIS.
 
 ## features
 
