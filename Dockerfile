@@ -21,7 +21,7 @@ RUN apt-get install -y \
   libwebp-dev
 
 # Lambda WebAdapter
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.3 /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
 ENV READINESS_CHECK_PATH=/health
 ENV AWS_LWA_INVOKE_MODE=response_stream
@@ -36,6 +36,10 @@ COPY --from=builder /app/build /app/build
 COPY --from=builder /app/package.json /app/package.json
 RUN npm install --omit=dev
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+ENTRYPOINT [ "./docker-entrypoint.sh" ]
+
 # start server
-ENTRYPOINT ["/bin/sh", "-c", "/usr/bin/xvfb-run -a node /app/build/main.cjs $@", ""]
-CMD ["tile-server"]
+CMD ["node", "/app/build/main.cjs", "tile-server"]
