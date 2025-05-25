@@ -31,7 +31,7 @@ function isValidXyz(x: number, y: number, z: number) {
 }
 
 function isSupportedFormat(ext: string): ext is SupportedFormat {
-	return ['png', 'jpeg', 'jpg', 'webp'].includes(ext);
+	return ['png', 'jpeg', 'webp'].includes(ext);
 }
 
 type InitServerOptions = {
@@ -187,10 +187,10 @@ function initServer(options: InitServerOptions): InitializedServer {
 				margin: z.string().optional(),
 			}),
 		),
-		validator('json', z.object({ style: z.string() })),
+		validator('json', z.object({ style: z.any() })),
 		async (c) => {
 			// body
-			const { style } = await c.req.valid('json');
+			const { style } = c.req.valid('json');
 			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
 
 			// path params
@@ -351,7 +351,7 @@ function initServer(options: InitServerOptions): InitializedServer {
 		validator(
 			'json',
 			z.object({
-				style: z.string(),
+				style: z.any(),
 			}),
 		),
 		async (c) => {
