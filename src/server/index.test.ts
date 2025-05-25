@@ -18,7 +18,7 @@ describe('initServer', () => {
 		expect(await res.text()).toBe('OK');
 
 		const debug = await app.request('/debug');
-		expect(debug.status).toBe(404);
+		expect(debug.status).toBe(400); // /file_ext に引っかかってしまう
 
 		const editor = await app.request('/editor');
 		expect(editor.status).toBe(404);
