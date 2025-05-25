@@ -13,6 +13,12 @@ import {
 	getRenderedBbox,
 	type SupportedFormat,
 } from '../render/index.js';
+import { describeRoute, openAPISpecs } from 'hono-openapi';
+import { resolver, validator } from 'hono-openapi/zod';
+import { z } from 'zod';
+
+import packagejson from '../../package.json';
+import { swaggerUI } from '@hono/swagger-ui';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
 	return validateStyleMin(stylejson).length === 0;
@@ -37,220 +43,368 @@ type InitServerOptions = {
 
 type InitializedServer = {
 	app: Hono;
-	tiles: Hono;
-	clip: Hono;
 	start: () => void;
 };
 
 function initServer(options: InitServerOptions): InitializedServer {
-	const tiles = new Hono()
-		.get('/:z/:x/:y_ext', async (c) => {
-			const url = c.req.query('url');
-			if (url === undefined) return c.body('url is required', 400);
-
-			// path params
-			const z = Number(c.req.param('z'));
-			const x = Number(c.req.param('x'));
-			let [_y, ext] = c.req.param('y_ext').split('.');
-			const y = Number(_y);
-
-			if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
-			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
-
-			// query params
-			const tileSize = Number(c.req.query('tileSize') ?? 512);
-			const quality = Number(c.req.query('quality') ?? 100);
-			const margin = Number(c.req.query('margin') ?? 0);
-
-			c.header('Content-Type', `image/${ext}`);
-
-			try {
-				const sharp = await getRenderedTile({
-					stylejson: url,
-					z,
-					x,
-					y,
-					tileSize,
-					cache: options.cache,
-					margin,
-					ext,
-					quality,
-				});
-
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf);
-				}
-			} catch (e) {
-				console.error(`render error: ${e}`);
-				return c.body('failed to render tile', 400);
-			}
-		})
-		.post('/:z/:x/:y_ext', async (c) => {
-			// body
-			const { style } = await c.req.json();
-			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
-
-			// path params
-			const z = Number(c.req.param('z'));
-			const x = Number(c.req.param('x'));
-			let [_y, ext] = c.req.param('y_ext').split('.');
-			const y = Number(_y);
-
-			if (!isValidXyz(x, y, z)) return c.body('invalid xyz', 400);
-			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
-
-			// query params
-			const tileSize = Number(c.req.query('tileSize') ?? 512);
-			const quality = Number(c.req.query('quality') ?? 100);
-			const margin = Number(c.req.query('margin') ?? 0);
-
-			c.header('Content-Type', `image/${ext}`);
-
-			try {
-				const sharp = await getRenderedTile({
-					stylejson: style,
-					z,
-					x,
-					y,
-					tileSize,
-					cache: options.cache,
-					margin,
-					ext,
-					quality,
-				});
-
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf);
-				}
-			} catch (e) {
-				console.error(`render error: ${e}`);
-				return c.body('failed to render tile', 400);
-			}
-		});
-
-	const clip = new Hono()
-		.get('/:filename_ext', async (c) => {
-			// path params
-			const [filename, ext] = c.req.param('filename_ext').split('.');
-			if (filename !== 'clip') return c.body('not found', 404);
-			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
-
-			// query params
-			const bbox = c.req.query('bbox'); // ?bbox=minx,miny,maxx,maxy
-			if (bbox === undefined) return c.body('bbox is required', 400);
-			const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
-			if (minx >= maxx || miny >= maxy) return c.body('invalid bbox', 400);
-
-			const url = c.req.query('url');
-			if (url === undefined) return c.body('url is required', 400);
-			const quality = Number(c.req.query('quality') ?? 100);
-			const size = Number(c.req.query('size') ?? 1024);
-
-			c.header('Content-Type', `image/${ext}`);
-
-			try {
-				const sharp = await getRenderedBbox({
-					stylejson: url,
-					bbox: [minx, miny, maxx, maxy],
-					size,
-					cache: options.cache,
-					ext,
-					quality,
-				});
-
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf);
-				}
-			} catch (e) {
-				console.error(`render error: ${e}`);
-				return c.body('failed to render tile', 400);
-			}
-		})
-		.post('/:filename_ext', async (c) => {
-			// body
-			const { style } = await c.req.json();
-			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
-
-			// path params
-			const [filename, ext] = c.req.param('filename_ext').split('.');
-			if (filename !== 'clip') return c.body('not found', 404);
-			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
-
-			// query params
-			const bbox = c.req.query('bbox'); // ?bbox=minx,miny,maxx,maxy
-			if (bbox === undefined) return c.body('bbox is required', 400);
-			const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
-			if (minx >= maxx || miny >= maxy) return c.body('invalid bbox', 400);
-
-			const quality = Number(c.req.query('quality') ?? 100);
-			const size = Number(c.req.query('size') ?? 1024);
-
-			c.header('Content-Type', `image/${ext}`);
-
-			try {
-				const sharp = await getRenderedBbox({
-					stylejson: style,
-					bbox: [minx, miny, maxx, maxy],
-					size,
-					cache: options.cache,
-					ext,
-					quality,
-				});
-
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf);
-				}
-			} catch (e) {
-				console.error(`render error: ${e}`);
-				return c.body('failed to render tile', 400);
-			}
-		});
-
 	const hono = new Hono();
+	hono.get('/health', (c) => c.text('OK'));
+
 	if (options.debug) {
 		hono.get('/debug', getDebugPage);
 		hono.get('/editor', getEditorgPage);
+
+		// openapi
+		hono.get(
+			'/openapi.json',
+			openAPISpecs(hono, {
+				documentation: {
+					info: {
+						title: 'Chiitiler API',
+						version: packagejson.version,
+						description: 'Chiitiler API',
+					},
+					servers: [
+						{ url: 'http://localhost:3000', description: 'Local Server' },
+					],
+				},
+			}),
+		);
+		hono.get('/openapi', swaggerUI({ url: '/openapi.json' }));
 	}
-	hono.get('/health', (c) => c.text('OK'));
-	hono.route('/tiles', tiles);
-	hono.route('/', clip);
+
+	hono.get(
+		'/tiles/:z/:x/:y_ext',
+		describeRoute({
+			description: 'Get a tile image',
+			tags: ['tiles'],
+			responses: {
+				200: {
+					description: 'tile image',
+					content: {
+						'image/png': { schema: resolver(z.instanceof(Buffer)) },
+						'image/jpeg': { schema: resolver(z.instanceof(Buffer)) },
+						'image/webp': { schema: resolver(z.instanceof(Buffer)) },
+					},
+				},
+			},
+		}),
+		validator(
+			'param',
+			z.object({
+				z: z.string(),
+				x: z.string(),
+				y_ext: z.string(),
+			}),
+		),
+		validator(
+			'query',
+			z.object({
+				url: z.string(),
+				tileSize: z.string().optional(),
+				quality: z.string().optional(),
+				margin: z.string().optional(),
+			}),
+		),
+		async (c) => {
+			let { url, tileSize, quality, margin } = c.req.valid('query');
+			const tileSizeNum = Number(tileSize ?? 512);
+			const qualityNum = Number(quality ?? 100);
+			const marginNum = Number(margin ?? 0);
+
+			const { z, x, y_ext } = c.req.valid('param');
+			const [y, ext] = y_ext.split('.');
+			const zNum = Number(z);
+			const xNum = Number(x);
+			const yNum = Number(y);
+
+			if (!isValidXyz(xNum, yNum, zNum)) return c.body('invalid xyz', 400);
+
+			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+			c.header('Content-Type', `image/${ext}`);
+
+			try {
+				const sharp = await getRenderedTile({
+					stylejson: url,
+					z: zNum,
+					x: xNum,
+					y: yNum,
+					tileSize: tileSizeNum,
+					cache: options.cache,
+					margin: marginNum,
+					ext,
+					quality: qualityNum,
+				});
+
+				if (options.stream) {
+					// stream mode
+					return stream(c, async (stream) => {
+						for await (const chunk of sharp) {
+							stream.write(chunk);
+						}
+					});
+				} else {
+					const buf = await sharp.toBuffer();
+					return c.body(buf);
+				}
+			} catch (e) {
+				console.error(`render error: ${e}`);
+				return c.body('failed to render tile', 400);
+			}
+		},
+	);
+
+	hono.post(
+		'/tiles/:z/:x/:y_ext',
+		describeRoute({
+			description: 'Get a tile image',
+			tags: ['tiles'],
+			responses: {
+				200: {
+					description: 'tile image',
+					content: {
+						'image/png': { schema: resolver(z.instanceof(Buffer)) },
+						'image/jpeg': { schema: resolver(z.instanceof(Buffer)) },
+						'image/webp': { schema: resolver(z.instanceof(Buffer)) },
+					},
+				},
+			},
+		}),
+		validator(
+			'param',
+			z.object({
+				z: z.string(),
+				x: z.string(),
+				y_ext: z.string(),
+			}),
+		),
+		validator(
+			'query',
+			z.object({
+				tileSize: z.string().optional(),
+				quality: z.string().optional(),
+				margin: z.string().optional(),
+			}),
+		),
+		validator('json', z.object({ style: z.string() })),
+		async (c) => {
+			// body
+			const { style } = await c.req.valid('json');
+			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
+
+			// path params
+			const { z, x, y_ext } = c.req.valid('param');
+			const [y, ext] = y_ext.split('.');
+			const zNum = Number(z);
+			const xNum = Number(x);
+			const yNum = Number(y);
+
+			if (!isValidXyz(xNum, yNum, zNum)) return c.body('invalid xyz', 400);
+			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+			// query params
+			const { tileSize, quality, margin } = c.req.valid('query');
+			const tileSizeNum = Number(tileSize ?? 512);
+			const qualityNum = Number(quality ?? 100);
+			const marginNum = Number(margin ?? 0);
+
+			c.header('Content-Type', `image/${ext}`);
+
+			try {
+				const sharp = await getRenderedTile({
+					stylejson: style,
+					z: zNum,
+					x: xNum,
+					y: yNum,
+					tileSize: tileSizeNum,
+					cache: options.cache,
+					margin: marginNum,
+					ext,
+					quality: qualityNum,
+				});
+
+				if (options.stream) {
+					// stream mode
+					return stream(c, async (stream) => {
+						for await (const chunk of sharp) {
+							stream.write(chunk);
+						}
+					});
+				} else {
+					const buf = await sharp.toBuffer();
+					return c.body(buf);
+				}
+			} catch (e) {
+				console.error(`render error: ${e}`);
+				return c.body('failed to render tile', 400);
+			}
+		},
+	);
+
+	hono.get(
+		'/:filename_ext',
+		describeRoute({
+			description: 'Get a clip image',
+			tags: ['clips'],
+			responses: {
+				200: {
+					description: 'clip image',
+					content: {
+						'image/png': { schema: resolver(z.instanceof(Buffer)) },
+						'image/jpeg': { schema: resolver(z.instanceof(Buffer)) },
+						'image/webp': { schema: resolver(z.instanceof(Buffer)) },
+					},
+				},
+			},
+		}),
+		validator(
+			'param',
+			z.object({
+				filename_ext: z.string(),
+			}),
+		),
+		validator(
+			'query',
+			z.object({
+				url: z.string(),
+				bbox: z.string(),
+				size: z.string().optional(),
+				quality: z.string().optional(),
+			}),
+		),
+		async (c) => {
+			// path params
+			const { filename_ext } = c.req.valid('param');
+			const [filename, ext] = filename_ext.split('.');
+			if (filename !== 'clip') return c.body('not found', 404);
+			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+			// query params
+			const { url, bbox, size, quality } = c.req.valid('query');
+			const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
+			if (minx >= maxx || miny >= maxy) return c.body('invalid bbox', 400);
+
+			const qualityNum = Number(quality ?? 100);
+			const sizeNum = Number(size ?? 1024);
+
+			c.header('Content-Type', `image/${ext}`);
+
+			try {
+				const sharp = await getRenderedBbox({
+					stylejson: url,
+					bbox: [minx, miny, maxx, maxy],
+					size: sizeNum,
+					cache: options.cache,
+					ext,
+					quality: qualityNum,
+				});
+
+				if (options.stream) {
+					// stream mode
+					return stream(c, async (stream) => {
+						for await (const chunk of sharp) {
+							stream.write(chunk);
+						}
+					});
+				} else {
+					const buf = await sharp.toBuffer();
+					return c.body(buf);
+				}
+			} catch (e) {
+				console.error(`render error: ${e}`);
+				return c.body('failed to render tile', 400);
+			}
+		},
+	);
+
+	hono.post(
+		'/:filename_ext',
+		describeRoute({
+			description: 'Get a clip image',
+			tags: ['clips'],
+			responses: {
+				200: {
+					description: 'clip image',
+					content: {
+						'image/png': { schema: resolver(z.instanceof(Buffer)) },
+						'image/jpeg': { schema: resolver(z.instanceof(Buffer)) },
+						'image/webp': { schema: resolver(z.instanceof(Buffer)) },
+					},
+				},
+			},
+		}),
+		validator(
+			'param',
+			z.object({
+				filename_ext: z.string(),
+			}),
+		),
+		validator(
+			'query',
+			z.object({
+				bbox: z.string(),
+				size: z.string().optional(),
+				quality: z.string().optional(),
+			}),
+		),
+		validator(
+			'json',
+			z.object({
+				style: z.string(),
+			}),
+		),
+		async (c) => {
+			// body
+			const { style } = c.req.valid('json');
+			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
+
+			// path params
+			const { filename_ext } = c.req.valid('param');
+			const [filename, ext] = filename_ext.split('.');
+			if (filename !== 'clip') return c.body('not found', 404);
+			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+			// query params
+			const { bbox, size, quality } = c.req.valid('query');
+			const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
+			if (minx >= maxx || miny >= maxy) return c.body('invalid bbox', 400);
+
+			const qualityNum = Number(quality ?? 100);
+			const sizeNum = Number(size ?? 1024);
+
+			c.header('Content-Type', `image/${ext}`);
+
+			try {
+				const sharp = await getRenderedBbox({
+					stylejson: style,
+					bbox: [minx, miny, maxx, maxy],
+					size: sizeNum,
+					cache: options.cache,
+					ext,
+					quality: qualityNum,
+				});
+
+				if (options.stream) {
+					// stream mode
+					return stream(c, async (stream) => {
+						for await (const chunk of sharp) {
+							stream.write(chunk);
+						}
+					});
+				} else {
+					const buf = await sharp.toBuffer();
+					return c.body(buf);
+				}
+			} catch (e) {
+				console.error(`render error: ${e}`);
+				return c.body('failed to render tile', 400);
+			}
+		},
+	);
 
 	return {
 		app: hono,
-		tiles,
-		clip,
 		start: () => {
 			const server = serve({ port: options.port, fetch: hono.fetch });
 			process.on('SIGINT', () => {
