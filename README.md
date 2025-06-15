@@ -335,9 +335,7 @@ const stream = await getRenderedTileStream({
     y: 0,
     tileSize: 512,
     ext: 'webp',
-    cache: fileCache,
-    quality: 80,
-    streamMode: true, // stream mode
+    cache: gcsCache,
 }); // returns sharp.Sharp instance
 const buffer = await stream.toBuffer();
 ```
