@@ -274,7 +274,7 @@ you can pass server options via environment variables
 npm install chiitiler
 ```
 
-- chiitiler requires some dependencies in runtime, you can find them in [Dockerfile](./Dockerfile)
+- chiitiler requires some dependencies on runtime, you can find them in [Dockerfile](./Dockerfile)
 
 ### Usage
 
@@ -285,17 +285,25 @@ import {
     ChiitilerCache
 } from 'chiitiler';
 
+// File Cache
+const fileCache = ChiitilerCache.fileCache({
+    dir: './.cache', // default is .cache
+    ttlSec: 3600, // default is 3600 seconds
+});
+
+// Amazon S3
 const s3Cache = ChiitilerCache.s3Cache({
     bucket: 'chiitiler',
     region: 'ap-northeast-1',
     endpoint: null,
+    // credentials are loaded from environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 });
-// credentials are loaded from environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
+// Google Cloud Storage
 const gcsCache = ChiitilerCache.gcsCache({
     bucket: 'chiitiler',
+    // credentials are loaded from environment variables: GOOGLE_APPLICATION_CREDENTIALS
 });
-// credentials are loaded from environment variables: GOOGLE_APPLICATION_CREDENTIALS
 
 const tileBuf = await getRenderedTileBuffer({
     stylejson: 'https://example.com/style.json', // or StyleSpecification object
@@ -304,7 +312,7 @@ const tileBuf = await getRenderedTileBuffer({
     y: 0,
     tileSize: 512,
     ext: 'webp', // png, webp, jpg
-    cache: s3Cache,
+    cache: fileCache,
     quality: 80,
     margin: 0,
 });
@@ -318,7 +326,20 @@ const bboxBuf = await getRenderedBboxBuffer({
     quality: 80,
 });
 
-// return value is Buffer - binary of each image
+// nits: stream
+// it may be usefull to avoid buffering encoded image
+const stream = await getRenderedTileStream({
+    stylejson: 'https://example.com/style.json',
+    z: 0,
+    x: 0,
+    y: 0,
+    tileSize: 512,
+    ext: 'webp',
+    cache: fileCache,
+    quality: 80,
+    streamMode: true, // stream mode
+}); // returns sharp.Sharp instance
+const buffer = await stream.toBuffer();
 ```
 
 ## development
