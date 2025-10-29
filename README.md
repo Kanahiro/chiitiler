@@ -132,7 +132,7 @@ npx tsx src/main.ts tile-server --help
 
 | Option | Description | Environment Fallback | Default |
 | ------ | ----------- | -------------------- | ------- |
-| `--cache <none|memory|file|s3|gcs>` | Select cache backend. | `CHIITILER_CACHE_METHOD` | `none` |
+| `--cache <none/memory/file/s3/gcs>` | Select cache backend. | `CHIITILER_CACHE_METHOD` | `none` |
 | `--cache-ttl <seconds>` | TTL for memory/file caches. | `CHIITILER_CACHE_TTL_SEC` | `3600` |
 | `--memory-cache-max-item-count <n>` | Max items in memory cache. | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
 | `--file-cache-dir <dir>` | Disk cache directory. | `CHIITILER_FILECACHE_DIR` | `./.cache` |
