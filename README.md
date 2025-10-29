@@ -120,7 +120,7 @@ POST requests accept the style object directly in the JSON body (`{ "style": { .
 
 ### Streaming Responses
 
-Enable streaming (Sharp pipeline without buffering) by setting `CHIITILER_STREAM_MODE=true` or passing `--stream`. Useful for large GeoTIFF outputs.
+Enable streaming (Sharp pipeline without buffering) by setting `CHIITILER_STREAM_MODE=true` or passing `--stream`.
 
 ## CLI Reference
 
