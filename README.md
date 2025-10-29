@@ -17,7 +17,6 @@ Chiitiler accepts remote or local `style.json` definitions and serves raster til
 
 - Zero-config startup: point Chiitiler at a style URL or POST a style object to receive tiles.
 - Multiple cache adapters (`memory`, `file`, `s3`, `gcs`) to cache shared source assets (MVT tiles, glyphs, sprites) and reduce redundant fetches.
-- Cluster-friendly worker model with `CHIITILER_PROCESSES` and streaming responses for large imagery.
 - Built-in `/debug` and `/editor` pages to preview styles during development.
 
 ### In Production
