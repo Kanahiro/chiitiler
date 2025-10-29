@@ -159,7 +159,6 @@ In addition to the CLI options above, the server respects:
 | -------- | ------- | ----- |
 | `CHIITILER_PROCESSES` | `1` | Number of worker processes; `0` = `availableParallelism()`. |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | – | Used by the S3 cache adapter. |
-| `AWS_SESSION_TOKEN` | – | Optional token for temporary credentials. |
 | `AWS_REGION` | – | Overrides SDK default region if set. |
 | `GOOGLE_APPLICATION_CREDENTIALS` | – | Path to a service account JSON used by the GCS adapter. |
 
