@@ -16,6 +16,7 @@ Chiitiler accepts remote or local `style.json` definitions and serves raster til
 ### Highlights
 
 - Zero-config startup: point Chiitiler at a style URL or POST a style object to receive tiles.
+- Optimized for ephemeral serverless runtimes such as AWS Lambda.
 - Multiple cache adapters (`memory`, `file`, `s3`, `gcs`) to cache shared source assets (MVT tiles, glyphs, sprites) and reduce redundant fetches.
 - Built-in `/debug` and `/editor` pages to preview styles during development.
 
