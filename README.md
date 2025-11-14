@@ -282,12 +282,3 @@ sources --> cache --> render --> server --/tiles/z/x/y--> png/webp/jpg
 
 cache <--get/set--> memory/file/S3
 ```
-
-## Troubleshooting & Tips
-
-- `sharp` needs system libraries (libvips). If you see install errors, replicate the steps in the Dockerfile.
-- For PMTiles or MBTiles served from S3/GCS, ensure IAM/service-account credentials grant read access to the underlying objects.
-- When caching in S3/GCS, set `CHIITILER_CACHE_TTL_SEC` to balance freshness with bandwidth usage.
-- For high-concurrency workloads, set `CHIITILER_PROCESSES=0` and use `CHIITILER_STREAM_MODE=true` to reduce memory pressure during large renders.
-
-Happy tiling! If you discover issues or ideas, please open an issue or discussion thread on GitHub.
