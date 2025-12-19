@@ -20,12 +20,16 @@ function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
 }
 
 function isValidCamera([, lon, lat, zoom, bearing, pitch]: string[]) {
-    if (Number(lat) < -90 || Number(lat) > 90) return false;
-    if (Number(lon) < -180 || Number(lon) > 180) return false;
-    if (Number(zoom) < 0 || Number(zoom) > 24) return false;
-    if (bearing && Number(bearing) < 0 || Number(bearing) > 360) return false;
-    if (pitch && Number(pitch) < 0 || Number(pitch) > 180) return false;
+    if (Number.isNaN(Number(lat)) || Number(lat) < -90 || Number(lat) > 90) return false;
+    if (Number.isNaN(Number(lon)) || Number(lon) < -180 || Number(lon) > 180) return false;
+    if (Number.isNaN(Number(zoom)) || Number(zoom) < 0 || Number(zoom) > 24) return false;
+    if (bearing && (Number.isNaN(Number(bearing)) || Number(bearing) < 0 || Number(bearing) > 360)) return false;
+    if (pitch && (Number.isNaN(Number(pitch)) || Number(pitch) < 0 || Number(pitch) > 180)) return false;
     return true;
+}
+
+function isValidDimensions([, width, height]: string[]) {
+    return !Number.isNaN(Number(width)) && !Number.isNaN(Number(height));
 }
 
 function isValidXyz(x: number, y: number, z: number) {
@@ -251,14 +255,17 @@ function initServer(options: InitServerOptions): InitializedServer {
     const staticImage = new Hono()
         .get('/:camera/:dimensions_ext', async (c) => {
             // path params
-            const camera = c.req.param('camera').match(/([\d.]+),([\d.]+),(\d+)(?:@(\d+)(?:,(\d+))?)?/);
+            const camera = c.req.param('camera').match(/([\d.]+),([\d.]+),([\d.]+)(?:@(\d+)(?:,(\d+))?)?/);
             const [_dimensions, ext] = c.req.param('dimensions_ext').split('.');
 
+            const dimensions = _dimensions.match(/(\d+)x(\d+)?/);
+
             if (!camera || !isValidCamera(camera)) return c.body('invalid camera', 400);
+            if (!dimensions || !isValidDimensions(dimensions)) return c.body('invalid dimensions', 400);
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             const [, _lon, _lat, _zoom, _bearing, _pitch] = camera;
-            const [_width, _height] = _dimensions.split('x');
+            const [, _width, _height] = dimensions;
 
             const lat = Number(_lat);
             const lon = Number(_lon);
@@ -312,14 +319,17 @@ function initServer(options: InitServerOptions): InitializedServer {
             if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
 
             // path params
-            const camera = c.req.param('camera').match(/([\d.]+),([\d.]+),(\d+)(?:@(\d+)(?:,(\d+))?)?/);
+            const camera = c.req.param('camera').match(/([\d.]+),([\d.]+),([\d.]+)(?:@(\d+)(?:,(\d+))?)?/);
             const [_dimensions, ext] = c.req.param('dimensions_ext').split('.');
 
+            const dimensions = _dimensions.match(/(\d+)x(\d+)?/);
+
             if (!camera || !isValidCamera(camera)) return c.body('invalid camera', 400);
+            if (!dimensions || !isValidDimensions(dimensions)) return c.body('invalid dimensions', 400);
             if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
 
             const [, _lon, _lat, _zoom, _bearing, _pitch] = camera;
-            const [_width, _height] = _dimensions.split('x');
+            const [, _width, _height] = dimensions;
 
             const lat = Number(_lat);
             const lon = Number(_lon);
@@ -362,7 +372,7 @@ function initServer(options: InitServerOptions): InitializedServer {
                 }
             } catch (e) {
                 console.error(`render error: ${e}`);
-                return c.body('failed to render tile', 400);
+                return c.body('failed to render static image', 400);
             }
         });
 

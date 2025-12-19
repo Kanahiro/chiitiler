@@ -22,7 +22,7 @@ type GetRenderedTileOptions = {
     quality: number;
 };
 
-type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
+type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp' | 'raw';
 
 const styleCache = new LRUCache<string, StyleSpecification>({
     max: 5,
@@ -121,6 +121,8 @@ async function getRenderedTile({
             return _sharp.jpeg({ quality });
         case 'webp':
             return _sharp.webp({ quality, effort: 0 });
+        case 'raw':
+            return _sharp;
     }
 }
 
@@ -205,6 +207,8 @@ async function getRenderedBbox({
             return _sharp.jpeg({ quality });
         case 'webp':
             return _sharp.webp({ quality, effort: 0 });
+        case 'raw':
+            return _sharp;
     }
 }
 
@@ -292,6 +296,8 @@ async function getRenderedImage({
             return _sharp.jpeg({ quality });
         case 'webp':
             return _sharp.webp({ quality, effort: 0 });
+        case 'raw':
+            return _sharp;
     }
 }
 
