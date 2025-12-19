@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { RenderOptions } from '@maplibre/maplibre-gl-native';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
@@ -188,13 +189,101 @@ async function getRenderedBbox({
         'static',
     );
 
-    let _sharp = sharp(pixels, {
+    const _sharp = sharp(pixels, {
         raw: {
             width,
             height,
             channels: 4,
         },
     });
+
+    switch (ext) {
+        case 'png':
+            return _sharp.png();
+        case 'jpeg':
+        case 'jpg':
+            return _sharp.jpeg({ quality });
+        case 'webp':
+            return _sharp.webp({ quality, effort: 0 });
+    }
+}
+
+type SizeOrDimensions = {
+    size: number;
+} | {
+    height: number;
+    width: number;
+};
+
+function getDimensions(options: SizeOrDimensions): { height: number; width: number; } {
+    if ('size' in options) {
+        return {
+            height: options.size,
+            width: options.size,
+        };
+    }
+
+    return {
+        height: options.height,
+        width: options.width
+    };
+}
+
+type CenterOrLatLon = {
+    lat: number;
+    lon: number;
+} | {
+    center: RenderOptions['center'];
+}
+
+function getCenter(options: CenterOrLatLon): [number, number] | undefined {
+    if ('center' in options) {
+        return options.center;
+    }
+
+    return [options.lon, options.lat];
+}
+
+type BasicRenderOptions = Pick<RenderOptions, 'bearing' | 'pitch' | 'zoom'>;
+
+type GetRenderedImageOptions = BasicRenderOptions & SizeOrDimensions & CenterOrLatLon & {
+    stylejson: string | StyleSpecification;
+    cache: Cache;
+    ext: SupportedFormat;
+    quality: number;
+};
+
+async function getRenderedImage({
+    stylejson,
+    cache,
+    ext,
+    quality,
+    ...renderOptions
+}: GetRenderedImageOptions) {
+    const style = await loadStyle(stylejson, cache);
+
+    const { height, width } = getDimensions(renderOptions);
+
+    const pixels = await render(
+        style,
+        {
+            center: getCenter(renderOptions),
+            height,
+            width,
+            ...renderOptions,
+        },
+        cache,
+        'static'
+    )
+
+    const _sharp = sharp(pixels, {
+        raw: {
+            width,
+            height,
+            channels: 4,
+        },
+    });
+
     switch (ext) {
         case 'png':
             return _sharp.png();
@@ -209,7 +298,9 @@ async function getRenderedBbox({
 export {
     getRenderedTile,
     getRenderedBbox,
+    getRenderedImage,
     type GetRenderedBboxOptions,
     type GetRenderedTileOptions,
+    type GetRenderedImageOptions,
     type SupportedFormat,
 };

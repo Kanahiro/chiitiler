@@ -94,4 +94,30 @@ describe('initServer', () => {
 
         // rendering will be tested in integration test
     });
+
+    it('static', async () => {
+        const { app } = await initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+            stream: false,
+        });
+
+        const res = await app.request('/static/123.4,56.7,10/1024x1024.png');
+        expect(res.status).toBe(400);
+        expect(await res.text()).toBe('url is required');
+
+        const res2 = await app.request(
+            '/static/123.4,56.7,10/1024x1024.gif?url=file://localdata/style.json',
+        );
+        expect(res2.status).toBe(400);
+
+        const res3 = await app.request(
+            '/static/1234.5,67.8,10/1024x1024.png?url=file://localdata/style.json',
+        );
+        expect(res3.status).toBe(400);
+        expect(await res3.text()).toBe('invalid camera');
+
+        // rendering will be tested in integration test
+    });
 });

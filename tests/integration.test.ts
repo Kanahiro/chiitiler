@@ -176,4 +176,75 @@ describe('intergration test', () => {
         expect(pngsize.width).toBe(1024);
         expect(pngsize.height).toBe(901);
     });
+
+    test('GET /static', async () => {
+        const res = await fetch(
+            'http://localhost:3000/static/123.4,56.7,10/1024x1024.png?url=file://localdata/style.json',
+        );
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toBe('image/png');
+        const png = new Uint8Array(await res.arrayBuffer());
+        const pngsize = sizeof(png);
+        expect(pngsize.width).toBe(1024);
+        expect(pngsize.height).toBe(1024);
+
+        const res2 = await fetch(
+            'http://localhost:3000/static/123.4,56.7,10/512x512.webp?url=file://localdata/style.json',
+        );
+        expect(res2.headers.get('content-type')).toBe('image/webp');
+        const webp = new Uint8Array(await res2.arrayBuffer());
+        const webpsize = sizeof(webp);
+        expect(webpsize.width).toBe(512);
+        expect(webpsize.height).toBe(512);
+    });
+
+    test('POST /static valid', async () => {
+        const res = await fetch(
+            'http://localhost:3000/static/123.4,56.7,10/1024x1024.png',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    style: {
+                        version: 8,
+                        sources: {
+                            point: {
+                                type: 'geojson',
+                                data: {
+                                    type: 'FeatureCollection',
+                                    features: [
+                                        {
+                                            type: 'Feature',
+                                            properties: {},
+                                            geometry: {
+                                                type: 'Point',
+                                                coordinates: [140, 40],
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                        layers: [
+                            {
+                                id: 'geojson',
+                                type: 'circle',
+                                source: 'point',
+                                paint: {
+                                    'circle-radius': 10,
+                                    'circle-color': '#f00',
+                                },
+                            },
+                        ],
+                    },
+                }),
+            },
+        );
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toBe('image/png');
+        const png = new Uint8Array(await res.arrayBuffer());
+        const pngsize = sizeof(png);
+        expect(pngsize.width).toBe(1024);
+        expect(pngsize.height).toBe(1024);
+    });
 });

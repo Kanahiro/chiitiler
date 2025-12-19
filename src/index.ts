@@ -1,8 +1,10 @@
 import {
     getRenderedBbox,
     getRenderedTile,
+    getRenderedImage,
     GetRenderedBboxOptions,
     GetRenderedTileOptions,
+    GetRenderedImageOptions,
 } from './render/index.js';
 
 export async function getRenderedBboxBuffer(
@@ -13,6 +15,15 @@ export async function getRenderedBboxBuffer(
 }
 
 export { getRenderedBbox as getRenderedBboxStream };
+
+export async function getRenderedImageBuffer(
+    options: GetRenderedImageOptions,
+): Promise<Buffer> {
+    const sharp = await getRenderedImage(options);
+    return sharp.toBuffer();
+}
+
+export { getRenderedImage as getRenderedImageStream };
 
 export async function getRenderedTileBuffer(
     options: GetRenderedTileOptions,

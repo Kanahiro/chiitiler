@@ -104,6 +104,7 @@ Volumes mount `localdata/` and `.cache/` so test assets and cached source data p
 | ------ | ------------ | ----------- |
 | GET/POST | `/tiles/{z}/{x}/{y}.{ext}` | Render a raster tile (`png`, `jpeg`, `jpg`, `webp`). |
 | GET/POST | `/clip.{ext}` | Render a bounding box image (`png`, `jpeg`, `jpg`, `webp`). |
+| GET/POST | `/static/{lon},{lat},{zoom}[@{bearing}][,{pitch}]/{width}x{height}.{ext}` | Render a static image (`png`, `jpeg`, `jpg`, `webp`). |
 | GET | `/debug` | Style explorer UI (requires debug mode). |
 | GET | `/editor` | Lightweight style editor (requires debug mode). |
 
@@ -203,8 +204,10 @@ import { createWriteStream } from 'node:fs';
 import {
     getRenderedTileBuffer,
     getRenderedBboxBuffer,
+    getRenderedImageBuffer,
     getRenderedTileStream,
     getRenderedBboxStream,
+    getRenderedImageStream,
     ChiitilerCache,
 } from 'chiitiler';
 
@@ -231,6 +234,19 @@ const clip = await getRenderedBboxBuffer({
     cache: ChiitilerCache.noneCache(),
 });
 
+const image = await getRenderedImageBuffer({
+    stylejson: 'file://localdata/style.json',
+    lat: 123.45,
+    lon: 67.89,
+    zoom: 10,
+    bearing: 180,
+    pitch: 60,
+    size: 1024,
+    ext: 'png',
+    quality: 95,
+    cache,
+});
+
 // you can get Sharp streams directly
 const tileStream = await getRenderedTileStream({
     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
@@ -243,6 +259,7 @@ const tileStream = await getRenderedTileStream({
     quality: 90,
     cache,
 });
+
 const bboxStream = await getRenderedBboxStream({
     stylejson: 'file://localdata/style.json',
     bbox: [123.4, 34.5, 124.5, 35.6],
@@ -251,6 +268,19 @@ const bboxStream = await getRenderedBboxStream({
     quality: 85,
     cache,
 });
+
+const imageStream = await getRenderedImageStream({
+    stylejson: 'file://localdata/style.json',
+    lat: 123.4,
+    lon: 34.5,
+    zoom: 10,
+    bearing: 180,
+    pitch: 60,
+    size: 1024,
+    ext: 'png',
+    quality: 95,
+    cache,
+})
 ```
 
 ## Deployment
