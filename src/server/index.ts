@@ -9,13 +9,27 @@ import {
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, getEditorgPage } from './debug.js';
 import {
-	getRenderedTile,
-	getRenderedBbox,
-	type SupportedFormat,
+    getRenderedTile,
+    getRenderedBbox,
+    getRenderedImage,
+    type SupportedFormat,
 } from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
 	return validateStyleMin(stylejson).length === 0;
+}
+
+function isValidCamera([, lon, lat, zoom, bearing, pitch]: string[]) {
+    if (Number.isNaN(Number(lat)) || Number(lat) < -90 || Number(lat) > 90) return false;
+    if (Number.isNaN(Number(lon)) || Number(lon) < -180 || Number(lon) > 180) return false;
+    if (Number.isNaN(Number(zoom)) || Number(zoom) < 0 || Number(zoom) > 24) return false;
+    if (bearing && (Number.isNaN(Number(bearing)) || Number(bearing) < 0 || Number(bearing) > 360)) return false;
+    if (pitch && (Number.isNaN(Number(pitch)) || Number(pitch) < 0 || Number(pitch) > 180)) return false;
+    return true;
+}
+
+function isValidDimensions([, width, height]: string[]) {
+    return !Number.isNaN(Number(width)) && !Number.isNaN(Number(height));
 }
 
 function isValidXyz(x: number, y: number, z: number) {
@@ -24,8 +38,8 @@ function isValidXyz(x: number, y: number, z: number) {
 	return true;
 }
 
-function isSupportedFormat(ext: string): ext is SupportedFormat {
-	return ['png', 'jpeg', 'jpg', 'webp'].includes(ext);
+function isSupportedFormat(ext: string | undefined): ext is SupportedFormat {
+	return Boolean(ext && ['png', 'jpeg', 'jpg', 'webp'].includes(ext));
 }
 
 type InitServerOptions = {
@@ -238,12 +252,137 @@ function initServer(options: InitServerOptions): InitializedServer {
 			}
 		});
 
+    const staticImage = new Hono()
+        .get('/:camera/:dimensions_ext', async (c) => {
+            // path params
+            const camera = c.req.param('camera').match(/([\d.]+),([\d.]+),([\d.]+)(?:@(\d+)(?:,(\d+))?)?/);
+            const [_dimensions, ext] = c.req.param('dimensions_ext').split('.');
+
+            const dimensions = _dimensions.match(/(\d+)x(\d+)?/);
+
+            if (!camera || !isValidCamera(camera)) return c.body('invalid camera', 400);
+            if (!dimensions || !isValidDimensions(dimensions)) return c.body('invalid dimensions', 400);
+            if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+            const [, _lon, _lat, _zoom, _bearing, _pitch] = camera;
+            const [, _width, _height] = dimensions;
+
+            const lat = Number(_lat);
+            const lon = Number(_lon);
+            const zoom = Number(_zoom);
+            const bearing = Number(_bearing ?? 0);
+            const pitch = Number(_pitch ?? 0);
+            const height = Number(_height);
+            const width = Number(_width);
+
+            // query params
+            const url = c.req.query('url');
+            if (url === undefined) return c.body('url is required', 400);
+            const quality = Number(c.req.query('quality') ?? 100);
+
+            c.header('Content-Type', `image/${ext}`);
+
+            try {
+                const sharp = await getRenderedImage({
+                    stylejson: url,
+                    cache: options.cache,
+                    ext,
+                    quality,
+                    lat,
+                    lon,
+                    zoom,
+                    bearing,
+                    pitch,
+                    height,
+                    width,
+                });
+
+                if (options.stream) {
+                    // stream mode
+                    return stream(c, async (stream) => {
+                        for await (const chunk of sharp) {
+                            stream.write(chunk);
+                        }
+                    });
+                } else {
+                    const buf = await sharp.toBuffer();
+                    return c.body(buf);
+                }
+            } catch (e) {
+                console.error(`render error: ${e}`);
+                return c.body('failed to render static image', 400);
+            }
+        })
+        .post('/:camera/:dimensions_ext', async (c) => {
+            // body
+            const { style } = await c.req.json();
+            if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
+
+            // path params
+            const camera = c.req.param('camera').match(/([\d.]+),([\d.]+),([\d.]+)(?:@(\d+)(?:,(\d+))?)?/);
+            const [_dimensions, ext] = c.req.param('dimensions_ext').split('.');
+
+            const dimensions = _dimensions.match(/(\d+)x(\d+)?/);
+
+            if (!camera || !isValidCamera(camera)) return c.body('invalid camera', 400);
+            if (!dimensions || !isValidDimensions(dimensions)) return c.body('invalid dimensions', 400);
+            if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+
+            const [, _lon, _lat, _zoom, _bearing, _pitch] = camera;
+            const [, _width, _height] = dimensions;
+
+            const lat = Number(_lat);
+            const lon = Number(_lon);
+            const zoom = Number(_zoom);
+            const bearing = Number(_bearing ?? 0);
+            const pitch = Number(_pitch ?? 0);
+            const height = Number(_height);
+            const width = Number(_width);
+
+            // query params
+            const quality = Number(c.req.query('quality') ?? 100);
+
+            c.header('Content-Type', `image/${ext}`);
+
+            try {
+                const sharp = await getRenderedImage({
+                    stylejson: style,
+                    cache: options.cache,
+                    ext,
+                    quality,
+                    lat,
+                    lon,
+                    zoom,
+                    bearing,
+                    pitch,
+                    height,
+                    width,
+                });
+
+                if (options.stream) {
+                    // stream mode
+                    return stream(c, async (stream) => {
+                        for await (const chunk of sharp) {
+                            stream.write(chunk);
+                        }
+                    });
+                } else {
+                    const buf = await sharp.toBuffer();
+                    return c.body(buf);
+                }
+            } catch (e) {
+                console.error(`render error: ${e}`);
+                return c.body('failed to render static image', 400);
+            }
+        });
+
 	const hono = new Hono();
 	if (options.debug) {
 		hono.get('/debug', getDebugPage);
 		hono.get('/editor', getEditorgPage);
 	}
 	hono.get('/health', (c) => c.text('OK'));
+    hono.route('/static', staticImage);
 	hono.route('/tiles', tiles);
 	hono.route('/', clip);
 
