@@ -10,6 +10,7 @@
 	],
 	"scripts": {
 		"build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
+		"check": "tsc --noEmit",
 		"dev": "tsx watch src/main.ts tile-server -D",
 		"test:unit": "vitest src",
 		"test:coverage": "vitest src --coverage --coverage.provider=v8",
@@ -20,34 +21,33 @@
 	"author": "Kanahiro Iguchi",
 	"license": "MIT",
 	"devDependencies": {
-		"@tsconfig/node20": "^20.1.4",
-		"@types/better-sqlite3": "^7.6.10",
-		"@types/node": "^20.6.0",
-		"@vitest/coverage-v8": "^1.6.0",
-		"esbuild": "^0.25.0",
+		"@tsconfig/node24": "^24.0.0",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/node": "^24.0.0",
+		"@vitest/coverage-v8": "^4.0.16",
+		"esbuild": "^0.27.2",
 		"image-size": "^1.1.1",
-		"ts-node": "^10.9.1",
-		"tsx": "^4.7.1",
-		"typescript": "^5.2.2",
-		"vitest": "^1.6.0"
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.16"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.418.0",
 		"@google-cloud/storage": "^7.15.2",
-		"@hono/node-server": "^1.12.0",
+		"@hono/node-server": "^1.19.8",
 		"@mapbox/sphericalmercator": "^1.2.0",
 		"@mapbox/tilebelt": "^1.0.2",
-		"@maplibre/maplibre-gl-native": "^5.4.0",
-		"@maplibre/maplibre-gl-style-spec": "^20.2.0",
-		"better-sqlite3": "^9.6.0",
+		"@maplibre/maplibre-gl-native": "^6.3.0",
+		"@maplibre/maplibre-gl-style-spec": "^24.4.1",
+		"better-sqlite3": "12.6.0",
 		"commander": "^11.0.0",
 		"file-system-cache": "^2.4.4",
 		"higuruma": "^0.1.6",
-		"hono": "^4.5.4",
+		"hono": "^4.11.3",
 		"lightning-pool": "^4.2.2",
 		"lru-cache": "^11.0.0",
-		"maplibre-gl": "^3.3.1",
+		"maplibre-gl": "^5.15.0",
 		"pmtiles": "^3.0.5",
-		"sharp": "^0.32.5"
+		"sharp": "^0.34.5"
 	}
 }

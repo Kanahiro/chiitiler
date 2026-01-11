@@ -5,9 +5,9 @@ on:
         branches:
             - main
         paths:
-            - 'src/**'
-            - 'tests/**'
-            - '.github/workflows/test:integration.yml'
+            - "src/**"
+            - "tests/**"
+            - ".github/workflows/test:integration.yml"
     workflow_dispatch:
 
 jobs:
@@ -15,12 +15,12 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
 
             - name: Setup Node.js
               uses: actions/setup-node@v3
               with:
-                  node-version: '20'
+                  node-version: "24"
             - name: start server
               run: docker compose up -d
             - name: run test
