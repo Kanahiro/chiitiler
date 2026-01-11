@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  unittest:
+  qualitytest:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-      - name: Build App
-        run: |
-          npm install
-          npm run check
+      - name: Install deps
+        run: npm install
+      - name: Run quality checks
+        run: npm run check
