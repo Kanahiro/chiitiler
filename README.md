@@ -1,4 +1,4 @@
-# chiitiler – Tiny MapLibre Server
+# chiitiler – Lightweight Raster Tile Server for MapLibre Style
 
 ![GitHub Release](https://img.shields.io/github/v/release/Kanahiro/chiitiler?label=ghcr.io/kanahiro/chiitiler)
 ![Unit Tests](https://img.shields.io/github/actions/workflow/status/Kanahiro/chiitiler/test:unit.yml?label=unit%20tests)
