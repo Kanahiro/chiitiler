@@ -285,9 +285,7 @@ const imageStream = await getRenderedImageStream({
 
 ## Deployment
 
-- **AWS CDK** – The [`cdk/`](./cdk) directory contains an AWS CDK app for provisioning Chiitiler on ECS/Fargate. See `cdk/README.md` for stack details.
-- **Docker** – The provided `Dockerfile` installs runtime dependencies for `sharp` and exposes `tile-server` as the default entrypoint.
-- **Bench setups** – `docker-compose.yml` provisions MinIO, Fake GCS, and sample data for local smoke tests.
+The [`cdk/`](./cdk) directory contains an AWS CDK app for running Chiitiler on Lambda with Web Adapter.
 
 ## Architecture
 
