@@ -1,12 +1,13 @@
 {
-    "extends": ["@tsconfig/node20/tsconfig.json"],
-    "compilerOptions": {
-        "moduleResolution": "NodeNext",
-        "outDir": "./dist",
-        "resolveJsonModule": true,
-        "esModuleInterop": true,
-        "declaration": true
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
+	"extends": ["@tsconfig/node24/tsconfig.json"],
+	"compilerOptions": {
+		"moduleResolution": "NodeNext",
+		"lib": ["ESNext"],
+		"outDir": "./dist",
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"declaration": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }
