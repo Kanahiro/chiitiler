@@ -5,9 +5,9 @@ import {
 	isValidCamera,
 	isValidDimensions,
 	isValidStylejson,
-} from './utils.js';
-import { getRenderedImage } from '../render/index.js';
-import { Cache } from '../cache/index.js';
+} from '../utils.js';
+import { getRenderedImage } from '../../render/index.js';
+import { Cache } from '../../cache/index.js';
 
 function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 	const camera = new Hono()

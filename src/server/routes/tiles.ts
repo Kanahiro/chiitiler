@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
-import { isSupportedFormat, isValidStylejson } from './utils.js';
-import { getRenderedTile } from '../render/index.js';
-import { Cache } from '../cache/index.js';
+import { isSupportedFormat, isValidStylejson } from '../utils.js';
+import { getRenderedTile } from '../../render/index.js';
+import { Cache } from '../../cache/index.js';
 
 function isValidXyz(x: number, y: number, z: number) {
 	if (x < 0 || y < 0 || z < 0) return false;

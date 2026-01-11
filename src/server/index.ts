@@ -4,9 +4,9 @@ import { serve } from '@hono/node-server';
 import { type Cache } from '../cache/index.js';
 import { getDebugPage, getEditorgPage } from './debug.js';
 
-import { createClipRouter } from './clip.js';
-import { createTilesRouter } from './tiles.js';
-import { createCameraRouter } from './camera.js';
+import { createClipRouter } from './routes/clip.js';
+import { createTilesRouter } from './routes/tiles.js';
+import { createCameraRouter } from './routes/camera.js';
 
 type InitServerOptions = {
 	cache: Cache;

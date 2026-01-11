@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
-import { isSupportedFormat, isValidStylejson } from './utils.js';
-import { getRenderedBbox } from '../render/index.js';
-import { Cache } from '../cache/index.js';
+import { isSupportedFormat, isValidStylejson } from '../utils.js';
+import { getRenderedBbox } from '../../render/index.js';
+import { Cache } from '../../cache/index.js';
 
 function createClipRouter(options: { cache: Cache; stream: boolean }) {
 	const clip = new Hono()
