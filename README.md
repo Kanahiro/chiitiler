@@ -58,7 +58,7 @@ cdk/                # AWS CDK deployment project
 
 ### Requirements
 
-- Node.js 20.10.0 or newer (`.node-version` is provided).
+- Node.js 24.12.0 or newer (`.node-version` is provided).
 - System dependencies to support `sharp` (see [Dockerfile](./Dockerfile) for reference).
 
 ### Run From Source
