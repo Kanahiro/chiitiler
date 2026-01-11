@@ -20,6 +20,9 @@
 	"keywords": [],
 	"author": "Kanahiro Iguchi",
 	"license": "MIT",
+	"repository": {
+		"url": "https://github.com/Kanahiro/chiitiler"
+	},
 	"devDependencies": {
 		"@tsconfig/node24": "^24.0.0",
 		"@types/better-sqlite3": "^7.6.13",
