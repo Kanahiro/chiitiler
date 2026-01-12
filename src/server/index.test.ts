@@ -95,7 +95,7 @@ describe('initServer', () => {
         // rendering will be tested in integration test
     });
 
-    it('static', async () => {
+    it('camera', async () => {
         const { app } = await initServer({
             port: 8989,
             cache: cache.noneCache(),
@@ -103,23 +103,24 @@ describe('initServer', () => {
             stream: false,
         });
 
-        const res = await app.request('/static/123.45,67.89,10/1024x1024.png');
+        const res = await app.request('/camera/10/67.89/123.45/0/0/1024x1024.png');
         expect(res.status).toBe(400);
         expect(await res.text()).toBe('url is required');
 
         const res2 = await app.request(
-            '/static/123.45,67.89,10/1024x1024.gif?url=file://localdata/style.json',
+            '/camera/10/67.89/123.45/0/0/1024x1024.gif?url=file://localdata/style.json',
         );
         expect(res2.status).toBe(400);
+        expect(await res2.text()).toBe('invalid format');
 
         const res3 = await app.request(
-            '/static/1234.5,67.89,10/1024x1024.png?url=file://localdata/style.json',
+            '/camera/10/67.89/1234.5/0/0/1024x1024.png?url=file://localdata/style.json',
         );
         expect(res3.status).toBe(400);
         expect(await res3.text()).toBe('invalid camera');
 
         const res4 = await app.request(
-            '/static/123.45,67.89,10/1024xno.png?url=file://localdata/style.json',
+            '/camera/10/67.89/123.45/0/0/1024xno.png?url=file://localdata/style.json',
         );
         expect(res4.status).toBe(400);
         expect(await res4.text()).toBe('invalid dimensions');
