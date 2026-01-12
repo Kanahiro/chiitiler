@@ -1,35 +1,33 @@
 import {
-    getRenderedBbox,
-    getRenderedTile,
-    getRenderedImage,
-    GetRenderedBboxOptions,
-    GetRenderedTileOptions,
-    GetRenderedImageOptions,
+	getRenderedClip,
+	getRenderedTile,
+	getRenderedCamera,
+	GetRenderedClipOptions,
+	GetRenderedTileOptions,
+	GetRenderedCameraOptions,
 } from './render/index.js';
 
-export async function getRenderedBboxBuffer(
-    options: GetRenderedBboxOptions,
+export async function getRenderedClipBuffer(
+	options: GetRenderedClipOptions,
 ): Promise<Buffer> {
-    const sharp = await getRenderedBbox(options);
-    return sharp.toBuffer();
+	const sharp = await getRenderedClip(options);
+	return sharp.toBuffer();
 }
 
-export { getRenderedBbox as getRenderedBboxStream };
-
-export async function getRenderedImageBuffer(
-    options: GetRenderedImageOptions,
+export { getRenderedClip as getRenderedClipStream };
+export async function getRenderedCameraBuffer(
+	options: GetRenderedCameraOptions,
 ): Promise<Buffer> {
-    const sharp = await getRenderedImage(options);
-    return sharp.toBuffer();
+	const sharp = await getRenderedCamera(options);
+	return sharp.toBuffer();
 }
 
-export { getRenderedImage as getRenderedImageStream };
-
+export { getRenderedCamera as getRenderedCameraStream };
 export async function getRenderedTileBuffer(
-    options: GetRenderedTileOptions,
+	options: GetRenderedTileOptions,
 ): Promise<Buffer> {
-    const sharp = await getRenderedTile(options);
-    return sharp.toBuffer();
+	const sharp = await getRenderedTile(options);
+	return sharp.toBuffer();
 }
 
 export { getRenderedTile as getRenderedTileStream };
