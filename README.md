@@ -200,7 +200,6 @@ Benchmark scenarios and recent measurements live in [BENCHMARK.md](./BENCHMARK.m
 Chiitiler is also published as an npm library. Core helpers return Sharp instances or encoded buffers so you can integrate the renderer into other pipelines.
 
 ```ts
-import { createWriteStream } from 'node:fs';
 import {
     getRenderedTileBuffer,
     getRenderedBboxBuffer,
@@ -236,12 +235,12 @@ const clip = await getRenderedBboxBuffer({
 
 const image = await getRenderedImageBuffer({
     stylejson: 'file://localdata/style.json',
-    lat: 123.45,
-    lon: 67.89,
+    center: [139.69, 35.68],
     zoom: 10,
     bearing: 180,
     pitch: 60,
-    size: 1024,
+    width: 1024,
+    height: 1024,
     ext: 'png',
     quality: 95,
     cache,
@@ -271,12 +270,12 @@ const bboxStream = await getRenderedBboxStream({
 
 const imageStream = await getRenderedImageStream({
     stylejson: 'file://localdata/style.json',
-    lat: 123.4,
-    lon: 34.5,
+    center: [139.69, 35.68],
     zoom: 10,
     bearing: 180,
     pitch: 60,
-    size: 1024,
+    width: 1024,
+    height: 1024,
     ext: 'png',
     quality: 95,
     cache,
