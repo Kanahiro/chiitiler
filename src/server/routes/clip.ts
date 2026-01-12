@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { isSupportedFormat, isValidStylejson } from '../utils.js';
-import { getRenderedBbox } from '../../render/index.js';
+import { getRenderedClip } from '../../render/index.js';
 import { Cache } from '../../cache/index.js';
 
 function createClipRouter(options: { cache: Cache }) {
@@ -25,7 +25,7 @@ function createClipRouter(options: { cache: Cache }) {
 			c.header('Content-Type', `image/${ext}`);
 
 			try {
-				const sharp = await getRenderedBbox({
+				const sharp = await getRenderedClip({
 					stylejson: url,
 					bbox: [minx, miny, maxx, maxy],
 					size,
@@ -63,7 +63,7 @@ function createClipRouter(options: { cache: Cache }) {
 			c.header('Content-Type', `image/${ext}`);
 
 			try {
-				const sharp = await getRenderedBbox({
+				const sharp = await getRenderedClip({
 					stylejson: style,
 					bbox: [minx, miny, maxx, maxy],
 					size,
