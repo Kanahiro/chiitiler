@@ -138,7 +138,7 @@ npx tsx src/main.ts tile-server --help
 | `--memory-cache-max-item-count <n>` | Max items in memory cache. | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
 | `--file-cache-dir <dir>` | Disk cache directory. | `CHIITILER_FILECACHE_DIR` | `./.cache` |
 | `--s3-cache-bucket <name>` | S3 bucket for caching. | `CHIITILER_S3CACHE_BUCKET` | `""` |
-| `--s3-region <region>` | S3 region used for requests. | `CHIITILER_S3_REGION` | `us-east1` |
+| `--s3-region <region>` | S3 region used for requests. | `CHIITILER_S3_REGION` | `us-east-1` |
 | `--s3-endpoint <url>` | S3-compatible endpoint. | `CHIITILER_S3_ENDPOINT` | `""` |
 | `--s3-force-path-style` | Force path-style requests. | `CHIITILER_S3_FORCE_PATH_STYLE` (`true/false`) | `false` |
 | `--gcs-cache-bucket <name>` | GCS bucket for caching. | `CHIITILER_GCS_CACHE_BUCKET` | `""` |
@@ -307,5 +307,5 @@ graph LR
 
 sources --> cache --> render --> server --/tiles/z/x/y--> png/webp/jpg
 
-cache <--get/set--> memory/file/S3
+cache <--get/set--> memory/file/s3/gcs
 ```

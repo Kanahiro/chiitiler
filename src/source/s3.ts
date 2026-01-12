@@ -4,7 +4,7 @@ import { getS3Client } from '../s3.js';
 
 async function getS3Source(uri: string) {
     const s3Client = getS3Client({
-        region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
+        region: process.env.CHIITILER_S3_REGION ?? 'us-east-1',
         endpoint: process.env.CHIITILER_S3_ENDPOINT,
         forcePathStyle: process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
     });

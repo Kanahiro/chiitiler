@@ -2,7 +2,7 @@ import { Hono } from 'hono/quick';
 import { serve } from '@hono/node-server';
 
 import { type Cache } from '../cache/index.js';
-import { getDebugPage, getEditorgPage } from './debug.js';
+import { getDebugPage, getEditorPage } from './debug.js';
 
 import { createClipRouter } from './routes/clip.js';
 import { createTilesRouter } from './routes/tiles.js';
@@ -24,7 +24,7 @@ function initServer(options: InitServerOptions): InitializedServer {
 	const hono = new Hono();
 	if (options.debug) {
 		hono.get('/debug', getDebugPage);
-		hono.get('/editor', getEditorgPage);
+		hono.get('/editor', getEditorPage);
 	}
 	hono.get('/health', (c) => c.text('OK'));
 	hono.route(

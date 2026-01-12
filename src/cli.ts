@@ -66,7 +66,7 @@ function parseCacheStrategy(
     if (cacheEnv === 's3')
         return caches.s3Cache({
             bucket: process.env.CHIITILER_S3CACHE_BUCKET ?? '',
-            region: process.env.CHIITILER_S3_REGION ?? 'us-east1',
+            region: process.env.CHIITILER_S3_REGION ?? 'us-east-1',
             endpoint: process.env.CHIITILER_S3_ENDPOINT,
             forcePathStyle:
                 process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
@@ -139,7 +139,7 @@ export function createProgram() {
         .option(
             '-s3r --s3-region <region-name>',
             's3 bucket region for get/put',
-            'us-east1',
+            'us-east-1',
         )
         .option(
             '-s3b --s3-cache-bucket <bucket-name>',
