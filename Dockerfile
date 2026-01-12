@@ -24,7 +24,6 @@ RUN apt-get install -y \
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
 ENV READINESS_CHECK_PATH=/health
-ENV AWS_LWA_INVOKE_MODE=response_stream
 
 # Copy Node.js executable from node:24-bookworm-slim
 COPY --from=node:24-bookworm-slim /usr/local/bin /usr/local/bin

@@ -108,18 +108,6 @@ function parseDebug(debug: boolean | undefined) {
     return false;
 }
 
-function parseStream(stream: boolean | undefined) {
-    // command-line option
-    if (stream) return true;
-
-    // command-line is not specified or false -> try to read from env
-    const streamEnv = process.env.CHIITILER_STREAM_MODE;
-    if (streamEnv !== undefined) return streamEnv === 'true';
-
-    // undefined or invalid
-    return false;
-}
-
 export function createProgram() {
     const program = new Command();
     program
@@ -174,7 +162,6 @@ export function createProgram() {
             '',
         )
         .option('-p --port <port>', 'port number')
-        .option('-r --stream', 'stream mode')
         .option('-D --debug', 'debug mode')
         .action((options) => {
             const serverOptions: InitServerOptions = {
@@ -196,7 +183,6 @@ export function createProgram() {
                 }),
                 port: parsePort(options.port),
                 debug: parseDebug(options.debug),
-                stream: parseStream(options.stream),
             };
 
             if (serverOptions.debug) {
@@ -209,10 +195,6 @@ export function createProgram() {
                 );
                 console.log(
                     `editor page: http://localhost:${serverOptions.port}/editor`,
-                );
-                console.log(
-                    'stream mode:',
-                    serverOptions.stream ? 'enabled' : 'disabled',
                 );
             }
 

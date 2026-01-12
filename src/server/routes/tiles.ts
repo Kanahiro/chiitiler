@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
 import { isSupportedFormat, isValidStylejson } from '../utils.js';
 import { getRenderedTile } from '../../render/index.js';
 import { Cache } from '../../cache/index.js';
@@ -10,7 +9,7 @@ function isValidXyz(x: number, y: number, z: number) {
 	return true;
 }
 
-function createTilesRouter(options: { cache: Cache; stream: boolean }) {
+function createTilesRouter(options: { cache: Cache }) {
 	const tiles = new Hono()
 		.get('/:z/:x/:y_ext', async (c) => {
 			const url = c.req.query('url');
@@ -45,17 +44,8 @@ function createTilesRouter(options: { cache: Cache; stream: boolean }) {
 					quality,
 				});
 
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf as Uint8Array<ArrayBuffer>);
-				}
+				const buf = await sharp.toBuffer();
+				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
 				return c.body('failed to render tile', 400);
@@ -95,17 +85,8 @@ function createTilesRouter(options: { cache: Cache; stream: boolean }) {
 					quality,
 				});
 
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf as Uint8Array<ArrayBuffer>);
-				}
+				const buf = await sharp.toBuffer();
+				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
 				return c.body('failed to render tile', 400);

@@ -119,10 +119,6 @@ Volumes mount `localdata/` and `.cache/` so test assets and cached source data p
 
 POST requests accept the style object directly in the JSON body (`{ "style": { ... } }`).
 
-### Streaming Responses
-
-Enable streaming (Sharp pipeline without buffering) by setting `CHIITILER_STREAM_MODE=true` or passing `--stream`.
-
 ## CLI Reference
 
 Chiitiler exposes a single command: `tile-server`.
@@ -147,7 +143,6 @@ npx tsx src/main.ts tile-server --help
 | `--gcs-cache-prefix <prefix>` | GCS object prefix. | `CHIITILER_GCS_CACHE_PREFIX` | `""` |
 | `--gcs-api-endpoint <url>` | Custom GCS endpoint. | `CHIITILER_GCS_API_ENDPOINT` | `""` |
 | `--port <number>` | HTTP listen port. | `CHIITILER_PORT` | `3000` |
-| `--stream` | Enable streaming mode. | `CHIITILER_STREAM_MODE` | `false` |
 | `--debug` | Enable debug UI routes. | `CHIITILER_DEBUG` | `false` |
 
 Set `CHIITILER_PROCESSES` to control clustering (`0` uses all CPUs). When `>1`, the primary process forks workers that all share the same cache adapter.

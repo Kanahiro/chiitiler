@@ -1,10 +1,9 @@
 import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
 import { isSupportedFormat, isValidStylejson } from '../utils.js';
 import { getRenderedBbox } from '../../render/index.js';
 import { Cache } from '../../cache/index.js';
 
-function createClipRouter(options: { cache: Cache; stream: boolean }) {
+function createClipRouter(options: { cache: Cache }) {
 	const clip = new Hono()
 		.get('/:filename_ext', async (c) => {
 			// path params
@@ -35,17 +34,8 @@ function createClipRouter(options: { cache: Cache; stream: boolean }) {
 					quality,
 				});
 
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf as Uint8Array<ArrayBuffer>);
-				}
+				const buf = await sharp.toBuffer();
+				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
 				return c.body('failed to render tile', 400);
@@ -82,17 +72,8 @@ function createClipRouter(options: { cache: Cache; stream: boolean }) {
 					quality,
 				});
 
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf as Uint8Array<ArrayBuffer>);
-				}
+				const buf = await sharp.toBuffer();
+				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
 				return c.body('failed to render tile', 400);
