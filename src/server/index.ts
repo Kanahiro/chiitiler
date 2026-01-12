@@ -12,7 +12,6 @@ type InitServerOptions = {
 	cache: Cache;
 	port: number;
 	debug: boolean;
-	stream: boolean;
 };
 
 type InitializedServer = {
@@ -31,21 +30,18 @@ function initServer(options: InitServerOptions): InitializedServer {
 		'/camera',
 		createCameraRouter({
 			cache: options.cache,
-			stream: options.stream,
 		}),
 	);
 	hono.route(
 		'/tiles',
 		createTilesRouter({
 			cache: options.cache,
-			stream: options.stream,
 		}),
 	);
 	hono.route(
 		'/',
 		createClipRouter({
 			cache: options.cache,
-			stream: options.stream,
 		}),
 	);
 

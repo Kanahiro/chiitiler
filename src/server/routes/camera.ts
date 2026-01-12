@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
 import { isSupportedFormat, isValidStylejson } from '../utils.js';
 import { getRenderedImage } from '../../render/index.js';
 import { Cache } from '../../cache/index.js';
@@ -35,7 +34,7 @@ function isValidDimensions({
 	return !Number.isNaN(width) && !Number.isNaN(height);
 }
 
-function createCameraRouter(options: { cache: Cache; stream: boolean }) {
+function createCameraRouter(options: { cache: Cache }) {
 	const camera = new Hono()
 		.get('/:zoom/:lat/:lon/:bearing/:pitch/:dimensions_ext', async (c) => {
 			// path params
@@ -89,17 +88,8 @@ function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 					width: _width,
 				});
 
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf as Uint8Array<ArrayBuffer>);
-				}
+				const buf = await sharp.toBuffer();
+				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
 				return c.body('failed to render static image', 400);
@@ -159,17 +149,8 @@ function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 					width: _width,
 				});
 
-				if (options.stream) {
-					// stream mode
-					return stream(c, async (stream) => {
-						for await (const chunk of sharp) {
-							stream.write(chunk);
-						}
-					});
-				} else {
-					const buf = await sharp.toBuffer();
-					return c.body(buf as Uint8Array<ArrayBuffer>);
-				}
+				const buf = await sharp.toBuffer();
+				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
 				return c.body('failed to render static image', 400);
