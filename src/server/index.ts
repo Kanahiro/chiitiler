@@ -28,7 +28,7 @@ function initServer(options: InitServerOptions): InitializedServer {
 	}
 	hono.get('/health', (c) => c.text('OK'));
 	hono.route(
-		'/static',
+		'/camera',
 		createCameraRouter({
 			cache: options.cache,
 			stream: options.stream,

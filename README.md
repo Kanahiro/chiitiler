@@ -104,7 +104,7 @@ Volumes mount `localdata/` and `.cache/` so test assets and cached source data p
 | ------ | ------------ | ----------- |
 | GET/POST | `/tiles/{z}/{x}/{y}.{ext}` | Render a raster tile (`png`, `jpeg`, `jpg`, `webp`). |
 | GET/POST | `/clip.{ext}` | Render a bounding box image (`png`, `jpeg`, `jpg`, `webp`). |
-| GET/POST | `/static/{lon},{lat},{zoom}[@{bearing}][,{pitch}]/{width}x{height}.{ext}` | Render a static image (`png`, `jpeg`, `jpg`, `webp`). |
+| GET/POST | `/camera/{zoom}/{lat}/{lon}/{bearing}/{pitch}/{width}x{height}.{ext}` | Render a static image (`png`, `jpeg`, `jpg`, `webp`). |
 | GET | `/debug` | Style explorer UI (requires debug mode). |
 | GET | `/editor` | Lightweight style editor (requires debug mode). |
 

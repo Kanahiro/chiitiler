@@ -1,5 +1,4 @@
 import sharp from 'sharp';
-import type { RenderOptions } from '@maplibre/maplibre-gl-native';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 // @ts-ignore
 import SphericalMercator from '@mapbox/sphericalmercator';
