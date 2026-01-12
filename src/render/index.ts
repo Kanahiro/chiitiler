@@ -155,7 +155,7 @@ const calcRenderingParams = (
 	return { zoom, width, height, center };
 };
 
-type GetRenderedBboxOptions = {
+type GetRenderedClipOptions = {
 	stylejson: string | StyleSpecification;
 	bbox: [number, number, number, number];
 	size: number;
@@ -164,14 +164,14 @@ type GetRenderedBboxOptions = {
 	quality: number;
 };
 
-async function getRenderedBbox({
+async function getRenderedClip({
 	stylejson,
 	bbox,
 	size,
 	cache,
 	ext,
 	quality,
-}: GetRenderedBboxOptions): Promise<sharp.Sharp> {
+}: GetRenderedClipOptions): Promise<sharp.Sharp> {
 	const style = await loadStyle(stylejson, cache);
 
 	const { zoom, width, height, center } = calcRenderingParams(bbox, size);
@@ -207,7 +207,7 @@ async function getRenderedBbox({
 	}
 }
 
-type GetRenderedImageOptions = {
+type GetRenderedCameraOptions = {
 	stylejson: string | StyleSpecification;
 	cache: Cache;
 	ext: SupportedFormat;
@@ -220,7 +220,7 @@ type GetRenderedImageOptions = {
 	width: number;
 };
 
-async function getRenderedImage(options: GetRenderedImageOptions) {
+async function getRenderedCamera(options: GetRenderedCameraOptions) {
 	const style = await loadStyle(options.stylejson, options.cache);
 
 	const pixels = await render(
@@ -258,10 +258,10 @@ async function getRenderedImage(options: GetRenderedImageOptions) {
 
 export {
 	getRenderedTile,
-	getRenderedBbox,
-	getRenderedImage,
-	type GetRenderedBboxOptions,
+	getRenderedClip,
+	getRenderedCamera,
+	type GetRenderedClipOptions,
 	type GetRenderedTileOptions,
-	type GetRenderedImageOptions,
+	type GetRenderedCameraOptions,
 	type SupportedFormat,
 };

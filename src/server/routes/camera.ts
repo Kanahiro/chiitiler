@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { isSupportedFormat, isValidStylejson } from '../utils.js';
-import { getRenderedImage } from '../../render/index.js';
+import { getRenderedCamera } from '../../render/index.js';
 import { Cache } from '../../cache/index.js';
 
 function isValidCamera({
@@ -75,7 +75,7 @@ function createCameraRouter(options: { cache: Cache }) {
 			c.header('Content-Type', `image/${ext}`);
 
 			try {
-				const sharp = await getRenderedImage({
+				const sharp = await getRenderedCamera({
 					stylejson: url,
 					cache: options.cache,
 					ext,
@@ -136,7 +136,7 @@ function createCameraRouter(options: { cache: Cache }) {
 			c.header('Content-Type', `image/${ext}`);
 
 			try {
-				const sharp = await getRenderedImage({
+				const sharp = await getRenderedCamera({
 					stylejson: style,
 					cache: options.cache,
 					ext,

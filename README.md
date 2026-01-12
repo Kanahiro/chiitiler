@@ -197,11 +197,11 @@ Chiitiler is also published as an npm library. Core helpers return Sharp instanc
 ```ts
 import {
     getRenderedTileBuffer,
-    getRenderedBboxBuffer,
-    getRenderedImageBuffer,
+    getRenderedClipBuffer,
+    getRenderedCameraBuffer,
     getRenderedTileStream,
-    getRenderedBboxStream,
-    getRenderedImageStream,
+    getRenderedClipStream,
+    getRenderedCameraStream,
     ChiitilerCache,
 } from 'chiitiler';
 
@@ -219,7 +219,7 @@ const tile = await getRenderedTileBuffer({
     cache,
 });
 
-const clip = await getRenderedBboxBuffer({
+const clip = await getRenderedClipBuffer({
     stylejson: 'file://localdata/style.json',
     bbox: [123.4, 34.5, 124.5, 35.6],
     size: 1024,
@@ -228,7 +228,7 @@ const clip = await getRenderedBboxBuffer({
     cache: ChiitilerCache.noneCache(),
 });
 
-const image = await getRenderedImageBuffer({
+const camera = await getRenderedCameraBuffer({
     stylejson: 'file://localdata/style.json',
     center: [139.69, 35.68],
     zoom: 10,
@@ -254,7 +254,7 @@ const tileStream = await getRenderedTileStream({
     cache,
 });
 
-const bboxStream = await getRenderedBboxStream({
+const clipStream = await getRenderedClipStream({
     stylejson: 'file://localdata/style.json',
     bbox: [123.4, 34.5, 124.5, 35.6],
     size: 1024,
@@ -263,7 +263,7 @@ const bboxStream = await getRenderedBboxStream({
     cache,
 });
 
-const imageStream = await getRenderedImageStream({
+const cameraStream = await getRenderedCameraStream({
     stylejson: 'file://localdata/style.json',
     center: [139.69, 35.68],
     zoom: 10,
