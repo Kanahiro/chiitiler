@@ -1,41 +1,72 @@
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
-import {
-	isSupportedFormat,
-	isValidCamera,
-	isValidDimensions,
-	isValidStylejson,
-} from '../utils.js';
+import { isSupportedFormat, isValidStylejson } from '../utils.js';
 import { getRenderedImage } from '../../render/index.js';
 import { Cache } from '../../cache/index.js';
 
+function isValidCamera({
+	zoom,
+	lat,
+	lon,
+	bearing,
+	pitch,
+}: {
+	zoom: number;
+	lat: number;
+	lon: number;
+	bearing: number;
+	pitch: number;
+}): boolean {
+	if (Number.isNaN(lat) || lat < -90 || lat > 90) return false;
+	if (Number.isNaN(lon) || lon < -180 || lon > 180) return false;
+	if (Number.isNaN(zoom) || zoom < 0 || zoom > 24) return false;
+	if (Number.isNaN(bearing) || bearing < 0 || bearing > 360) return false;
+	if (Number.isNaN(pitch) || pitch < 0 || pitch > 180) return false;
+	return true;
+}
+
+function isValidDimensions({
+	width,
+	height,
+}: {
+	width: number;
+	height: number;
+}): boolean {
+	return !Number.isNaN(width) && !Number.isNaN(height);
+}
+
 function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 	const camera = new Hono()
-		.get('/:camera/:dimensions_ext', async (c) => {
+		.get('/:zoom/:lat/:lon/:bearing/:pitch/:dimensions_ext', async (c) => {
 			// path params
-			const camera = c.req
-				.param('camera')
-				.match(/([\d.]+),([\d.]+),([\d.]+)(?:@(\d+)(?:,(\d+))?)?/);
+			const { zoom, lat, lon, bearing, pitch } = c.req.param();
+
 			const [_dimensions, ext] = c.req.param('dimensions_ext').split('.');
-
-			const dimensions = _dimensions.match(/(\d+)x(\d+)?/);
-
-			if (!camera || !isValidCamera(camera))
-				return c.body('invalid camera', 400);
-			if (!dimensions || !isValidDimensions(dimensions))
-				return c.body('invalid dimensions', 400);
 			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+			const dimensions = _dimensions.split('x').map(Number);
+			const [width, height] = dimensions;
 
-			const [, _lon, _lat, _zoom, _bearing, _pitch] = camera;
-			const [, _width, _height] = dimensions;
+			const _lat = Number(lat);
+			const _lon = Number(lon);
+			const _zoom = Number(zoom);
+			const _bearing = Number(bearing);
+			const _pitch = Number(pitch);
+			const _height = Number(height);
+			const _width = Number(width);
 
-			const lat = Number(_lat);
-			const lon = Number(_lon);
-			const zoom = Number(_zoom);
-			const bearing = Number(_bearing ?? 0);
-			const pitch = Number(_pitch ?? 0);
-			const height = Number(_height);
-			const width = Number(_width);
+			if (!isValidDimensions({ width: _width, height: _height }))
+				return c.body('invalid dimensions', 400);
+
+			if (
+				!isValidCamera({
+					zoom: _zoom,
+					lat: _lat,
+					lon: _lon,
+					bearing: _bearing,
+					pitch: _pitch,
+				})
+			)
+				return c.body('invalid camera', 400);
 
 			// query params
 			const url = c.req.query('url');
@@ -50,12 +81,12 @@ function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 					cache: options.cache,
 					ext,
 					quality,
-					center: [lon, lat],
-					zoom,
-					bearing,
-					pitch,
-					height,
-					width,
+					center: [_lon, _lat],
+					zoom: _zoom,
+					bearing: _bearing,
+					pitch: _pitch,
+					height: _height,
+					width: _width,
 				});
 
 				if (options.stream) {
@@ -74,35 +105,40 @@ function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 				return c.body('failed to render static image', 400);
 			}
 		})
-		.post('/:camera/:dimensions_ext', async (c) => {
+		.post('/:zoom/:lat/:lon/:bearing/:pitch/:dimensions_ext', async (c) => {
 			// body
 			const { style } = await c.req.json();
 			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
 
 			// path params
-			const camera = c.req
-				.param('camera')
-				.match(/([\d.]+),([\d.]+),([\d.]+)(?:@(\d+)(?:,(\d+))?)?/);
+			const { zoom, lat, lon, bearing, pitch } = c.req.param();
+
 			const [_dimensions, ext] = c.req.param('dimensions_ext').split('.');
-
-			const dimensions = _dimensions.match(/(\d+)x(\d+)?/);
-
-			if (!camera || !isValidCamera(camera))
-				return c.body('invalid camera', 400);
-			if (!dimensions || !isValidDimensions(dimensions))
-				return c.body('invalid dimensions', 400);
 			if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+			const dimensions = _dimensions.split('x').map(Number);
+			const [width, height] = dimensions;
 
-			const [, _lon, _lat, _zoom, _bearing, _pitch] = camera;
-			const [, _width, _height] = dimensions;
+			const _lat = Number(lat);
+			const _lon = Number(lon);
+			const _zoom = Number(zoom);
+			const _bearing = Number(bearing);
+			const _pitch = Number(pitch);
+			const _height = Number(height);
+			const _width = Number(width);
 
-			const lat = Number(_lat);
-			const lon = Number(_lon);
-			const zoom = Number(_zoom);
-			const bearing = Number(_bearing ?? 0);
-			const pitch = Number(_pitch ?? 0);
-			const height = Number(_height);
-			const width = Number(_width);
+			if (!isValidDimensions({ width: _width, height: _height }))
+				return c.body('invalid dimensions', 400);
+
+			if (
+				!isValidCamera({
+					zoom: _zoom,
+					lat: _lat,
+					lon: _lon,
+					bearing: _bearing,
+					pitch: _pitch,
+				})
+			)
+				return c.body('invalid camera', 400);
 
 			// query params
 			const quality = Number(c.req.query('quality') ?? 100);
@@ -115,12 +151,12 @@ function createCameraRouter(options: { cache: Cache; stream: boolean }) {
 					cache: options.cache,
 					ext,
 					quality,
-					center: [lon, lat],
-					zoom,
-					bearing,
-					pitch,
-					height,
-					width,
+					center: [_lon, _lat],
+					zoom: _zoom,
+					bearing: _bearing,
+					pitch: _pitch,
+					height: _height,
+					width: _width,
 				});
 
 				if (options.stream) {
