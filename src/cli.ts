@@ -113,56 +113,56 @@ export function createProgram() {
     program
         .command('tile-server')
         .option('-c, --cache <type>', 'cache type', 'none')
-        .option('-ctl --cache-ttl', 'cache ttl', '3600')
+        .option('--cache-ttl', 'cache ttl', '3600')
         .option(
-            '-mci --memory-cache-max-item-count',
+            '--memory-cache-max-item-count',
             'memory cache max item count',
             '1000',
         )
         .option(
-            '-fcd --file-cache-dir <dir>',
+            '--file-cache-dir <dir>',
             'file cache directory',
             './.cache',
         )
         .option(
-            '-s3r --s3-region <region-name>',
+            '--s3-region <region-name>',
             's3 bucket region for get/put',
             'us-east-1',
         )
         .option(
-            '-s3b --s3-cache-bucket <bucket-name>',
+            '--s3-cache-bucket <bucket-name>',
             's3 cache bucket name',
             '',
         )
-        .option('-s3e --s3-endpoint <url>', 's3 endpoint url', '')
-        .option('-3p --s3-force-path-style', 's3 force path style', '')
+        .option('--s3-endpoint <url>', 's3 endpoint url', '')
+        .option('--s3-force-path-style', 's3 force path style', '')
         .option(
-            '-gcsb --gcs-cache-bucket <bucket-name>',
+            '--gcs-cache-bucket <bucket-name>',
             'gcs cache bucket name',
             '',
         )
         .option(
-            '-gcsp --gcs-project-id <project-id>',
+            '--gcs-project-id <project-id>',
             'gcs project id',
             '',
         )
         .option(
-            '-gcsk --gcs-key-filename <key-filename>',
+            '--gcs-key-filename <key-filename>',
             'gcs key filename',
             '',
         )
         .option(
-            '-gcsp --gcs-cache-prefix <prefix>',
+            '--gcs-cache-prefix <prefix>',
             'gcs cache prefix',
             '',
         )
         .option(
-            '-gcse --gcs-api-endpoint <api-endpoint>',
+            '--gcs-api-endpoint <api-endpoint>',
             'gcs api endpoint',
             '',
         )
-        .option('-p --port <port>', 'port number')
-        .option('-D --debug', 'debug mode')
+        .option('-p, --port <port>', 'port number')
+        .option('-D, --debug', 'debug mode')
         .action((options) => {
             const serverOptions: InitServerOptions = {
                 cache: parseCacheStrategy(options.cache, {

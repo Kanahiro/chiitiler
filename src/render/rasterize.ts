@@ -1,5 +1,4 @@
-// @ts-ignore
-import SphericalMercator from '@mapbox/sphericalmercator';
+import { SphericalMercator } from '@mapbox/sphericalmercator';
 import type { RenderOptions } from '@maplibre/maplibre-gl-native';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 

@@ -1,7 +1,6 @@
 import sharp from 'sharp';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
-// @ts-ignore
-import SphericalMercator from '@mapbox/sphericalmercator';
+import { SphericalMercator } from '@mapbox/sphericalmercator';
 const mercator = new SphericalMercator();
 import { LRUCache } from 'lru-cache';
 
