@@ -40,6 +40,23 @@ describe('getSource', () => {
         expect(data).toBeNull();
     });
 
+    it('single-flight: concurrent requests for the same uri share one fetch', async () => {
+        const uri = 'https://demotiles.maplibre.org/style.json';
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+        const before = fetchSpy.mock.calls.length;
+        const [a, b, c] = await Promise.all([
+            getSource(uri),
+            getSource(uri),
+            getSource(uri),
+        ]);
+        const after = fetchSpy.mock.calls.length;
+        expect(a).not.toBeNull();
+        expect(b).not.toBeNull();
+        expect(c).not.toBeNull();
+        expect(after - before).toBe(1);
+        fetchSpy.mockRestore();
+    });
+
     /**
     it('s3://', async () => {
         const uri = 's3://chiitiler/tiles/0/0/0.pbf';
