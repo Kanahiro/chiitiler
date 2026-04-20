@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"moduleResolution": "NodeNext",
 		"lib": ["ESNext"],
+		"rootDir": "./src",
 		"outDir": "./dist",
 		"resolveJsonModule": true,
 		"esModuleInterop": true,
