@@ -5,7 +5,7 @@
 ![Integration Tests](https://img.shields.io/github/actions/workflow/status/Kanahiro/chiitiler/test:integration.yml?label=integration)
 [![codecov](https://codecov.io/gh/Kanahiro/chiitiler/graph/badge.svg?token=9RVLAJG126)](https://codecov.io/gh/Kanahiro/chiitiler)
 
-![chiitiler logo](./logo.webp)
+![chiitiler logo](./logo.svg)
 
 > Chiitiler is a tiny MapLibre server that renders raster tiles and map cut-outs from any MapLibre Style JSON, with built-in caching backends for source assets and a lightweight debug UI.
 
