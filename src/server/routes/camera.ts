@@ -97,8 +97,10 @@ function createCameraRouter(options: { cache: Cache }) {
 		})
 		.post('/:zoom/:lat/:lon/:bearing/:pitch/:dimensions_ext', async (c) => {
 			// body
-			const { style } = await c.req.json();
-			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
+			const body = await c.req.json().catch(() => null);
+			if (!isValidStylejson(body?.style))
+				return c.body('invalid stylejson', 400);
+			const { style } = body;
 
 			// path params
 			const { zoom, lat, lon, bearing, pitch } = c.req.param();

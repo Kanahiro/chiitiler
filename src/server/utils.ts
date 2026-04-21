@@ -5,6 +5,7 @@ import {
 import type { SupportedFormat } from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
+	if (stylejson === null || typeof stylejson !== 'object') return false;
 	return validateStyleMin(stylejson).length === 0;
 }
 

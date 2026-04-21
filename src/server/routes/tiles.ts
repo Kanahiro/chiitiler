@@ -53,8 +53,10 @@ function createTilesRouter(options: { cache: Cache }) {
 		})
 		.post('/:z/:x/:y_ext', async (c) => {
 			// body
-			const { style } = await c.req.json();
-			if (!isValidStylejson(style)) return c.body('invalid stylejson', 400);
+			const body = await c.req.json().catch(() => null);
+			if (!isValidStylejson(body?.style))
+				return c.body('invalid stylejson', 400);
+			const { style } = body;
 
 			// path params
 			const z = Number(c.req.param('z'));

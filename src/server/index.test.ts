@@ -95,6 +95,43 @@ describe('initServer', () => {
         // rendering will be tested in integration test
     });
 
+    it('POST with missing or invalid body returns 400', async () => {
+        const { app } = await initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+            stream: false,
+        });
+
+        const jsonPost = (path: string, body: string) =>
+            app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+
+        for (const path of [
+            '/tiles/0/0/0.png',
+            '/clip.png?bbox=0,1,2,3',
+            '/camera/10/67.89/123.45/0/0/1024x1024.png',
+        ]) {
+            // empty object body - missing style key
+            const res1 = await jsonPost(path, '{}');
+            expect(res1.status).toBe(400);
+            expect(await res1.text()).toBe('invalid stylejson');
+
+            // malformed JSON body
+            const res2 = await jsonPost(path, 'not-json');
+            expect(res2.status).toBe(400);
+            expect(await res2.text()).toBe('invalid stylejson');
+
+            // null style
+            const res3 = await jsonPost(path, '{"style":null}');
+            expect(res3.status).toBe(400);
+            expect(await res3.text()).toBe('invalid stylejson');
+        }
+    });
+
     it('camera', async () => {
         const { app } = await initServer({
             port: 8989,
