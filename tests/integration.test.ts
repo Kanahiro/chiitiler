@@ -106,6 +106,35 @@ describe('intergration test', () => {
         expect(await res.text()).toBe('invalid stylejson');
     });
 
+    test('POST /tiles missing/malformed body', async () => {
+        // empty object - missing style key (#136)
+        const res1 = await fetch('http://localhost:3000/tiles/0/0/0.png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+        });
+        expect(res1.status).toBe(400);
+        expect(await res1.text()).toBe('invalid stylejson');
+
+        // non-JSON body
+        const res2 = await fetch('http://localhost:3000/tiles/0/0/0.png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: 'not-json',
+        });
+        expect(res2.status).toBe(400);
+        expect(await res2.text()).toBe('invalid stylejson');
+
+        // null style
+        const res3 = await fetch('http://localhost:3000/tiles/0/0/0.png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ style: null }),
+        });
+        expect(res3.status).toBe(400);
+        expect(await res3.text()).toBe('invalid stylejson');
+    });
+
     test('GET /bbox', async () => {
         const res = await fetch(
             'http://localhost:3000/clip.png?bbox=100,30,150,60&url=file://localdata/style.json',
@@ -177,6 +206,30 @@ describe('intergration test', () => {
         expect(pngsize.height).toBe(901);
     });
 
+    test('POST /bbox missing/malformed body', async () => {
+        const res1 = await fetch(
+            'http://localhost:3000/clip.png?bbox=100,30,150,60',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            },
+        );
+        expect(res1.status).toBe(400);
+        expect(await res1.text()).toBe('invalid stylejson');
+
+        const res2 = await fetch(
+            'http://localhost:3000/clip.png?bbox=100,30,150,60',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: 'not-json',
+            },
+        );
+        expect(res2.status).toBe(400);
+        expect(await res2.text()).toBe('invalid stylejson');
+    });
+
     test('GET /static', async () => {
         const res = await fetch(
             'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png?url=file://localdata/style.json',
@@ -246,5 +299,29 @@ describe('intergration test', () => {
         const pngsize = sizeof(png);
         expect(pngsize.width).toBe(1024);
         expect(pngsize.height).toBe(1024);
+    });
+
+    test('POST /static missing/malformed body', async () => {
+        const res1 = await fetch(
+            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            },
+        );
+        expect(res1.status).toBe(400);
+        expect(await res1.text()).toBe('invalid stylejson');
+
+        const res2 = await fetch(
+            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: 'not-json',
+            },
+        );
+        expect(res2.status).toBe(400);
+        expect(await res2.text()).toBe('invalid stylejson');
     });
 });
