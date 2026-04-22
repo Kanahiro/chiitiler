@@ -142,7 +142,7 @@ Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final r
 ## Deployment
 
 - **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (entrypoint: `tile-server`)
-- **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes MinIO + fake-gcs-server for local testing)
+- **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 - **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
 ## Develop
