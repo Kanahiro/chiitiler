@@ -1,0 +1,52 @@
+name: test:benchmark
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "src/**"
+            - "tests/**"
+            - "localdata/**"
+            - "package.json"
+            - ".github/workflows/test:benchmark.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    benchmark:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "24"
+                  cache: "npm"
+            - name: Install deps
+              run: npm install
+            - name: Run benchmark
+              run: xvfb-run -a npm run test:benchmark
+              env:
+                  CHIITILER_BENCH_OUTPUT: benchmark.json
+                  CHIITILER_BENCH_MARKDOWN: benchmark.md
+            - name: Post results to PR
+              if: github.event_name == 'pull_request'
+              uses: marocchino/sticky-pull-request-comment@v2
+              with:
+                  header: benchmark
+                  path: benchmark.md
+            - name: Upload benchmark results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: benchmark-results
+                  path: |
+                      benchmark.json
+                      benchmark.md
+                  if-no-files-found: ignore

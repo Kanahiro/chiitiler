@@ -1,40 +1,56 @@
-v1.13.0 stream mode: disabled
+# Benchmark
 
-```planetext
- ✓ tests/test.benchmark.ts (10) 15606ms
-   ✓ warmup (1) 623ms
-     name                  hz     min      max    mean     p75      p99     p995     p999     rme  samples
-   · warmup chiitiler  121.48  7.3079  11.4564  8.2318  8.4843  11.4564  11.4564  11.4564  ±2.95%       61
-   ✓ render (3) 5785ms
-     name                hz     min     max    mean     p75     p99    p995    p999     rme  samples
-   · render as png   7.6663  120.66  142.94  130.44  133.33  142.94  142.94  142.94  ±3.70%       10   slowest
-   · render as webp  7.8825  120.75  136.90  126.86  128.98  136.90  136.90  136.90  ±3.12%       10
-   · render as jpeg  8.3103  116.32  126.72  120.33  122.50  126.72  126.72  126.72  ±1.90%       10   fastest
-   ✓ render with margin (3) 4292ms
-     name                             hz      min     max     mean      p75     p99    p995    p999     rme  samples
-   · render as png with margin   10.1489  90.6246  121.02  98.5326   102.42  121.02  121.02  121.02  ±6.68%       10
-   · render as webp with margin   9.9230  91.8121  117.60   100.78   106.96  117.60  117.60  117.60  ±5.89%       10   slowest
-   · render as jpeg with margin  11.1188  82.7890  116.44  89.9379  89.0628  116.44  116.44  116.44  ±7.68%       10   fastest
-   ✓ render tileSize=2048 (3) 4904ms
-     name                         hz      min      max     mean      p75      p99     p995     p999     rme  samples
-   · render as png: 2048px   12.3602  70.9358  96.1278  80.9046  88.8528  96.1278  96.1278  96.1278  ±7.47%       10
-   · render as webp: 2048px   5.0496   187.04   233.38   198.04   197.61   233.38   233.38   233.38  ±4.74%       10   slowest
-   · render as jpeg: 2048px  29.6039  28.5111  46.9135  33.7793  37.3103  46.9135  46.9135  46.9135  ±8.23%       15   fastest
+`npm run test:benchmark` spawns `tile-server`, primes it with a warmup
+request, then runs [autocannon](https://github.com/mcollina/autocannon)
+against each scenario and reports throughput + latency percentiles.
 
+## Setup
 
- BENCH  Summary
+- Style: [`tests/fixtures/bench-style.json`](./tests/fixtures/bench-style.json)
+  — single `file://` vector source, no external network dependencies,
+  so numbers reflect render + encode cost only.
+- Target tile: `/tiles/5/28/12.png`.
+- Server: single process (`CHIITILER_PROCESSES=1`, `CHIITILER_CACHE_METHOD=none`).
+- Each scenario runs for `CHIITILER_BENCH_DURATION` seconds (default
+  `10`).
 
-  warmup chiitiler - tests/test.benchmark.ts > warmup
+## Scenarios
 
-  render as jpeg - tests/test.benchmark.ts > render
-    1.05x faster than render as webp
-    1.08x faster than render as png
+| Scenario | What it stresses |
+|---|---|
+| `png c=1` | baseline render + PNG encode |
+| `png c=10` | render under concurrency (renderer-pool saturation) |
+| `webp c=1` | WebP encode path |
+| `jpeg c=1` | JPEG encode path |
+| `png tileSize=1024 c=1` | larger output buffer |
 
-  render as jpeg with margin - tests/test.benchmark.ts > render with margin
-    1.10x faster than render as png with margin
-    1.12x faster than render as webp with margin
+## Running
 
-  render as jpeg: 2048px - tests/test.benchmark.ts > render tileSize=2048
-    2.40x faster than render as png: 2048px
-    5.86x faster than render as webp: 2048px
+```sh
+npm run test:benchmark
 ```
+
+Knobs via env:
+
+- `CHIITILER_BENCH_DURATION` — seconds per scenario (default `10`).
+- `CHIITILER_BENCH_PORT` — port to spawn the server on (default `3030`).
+- `CHIITILER_BENCH_OUTPUT` — if set, writes the JSON result array to
+  the given path.
+- `GITHUB_STEP_SUMMARY` — when set (as in CI), the markdown table is
+  also appended to the step summary.
+
+On macOS you can run it directly. On headless Linux (including the CI
+runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
+needs a display.
+
+## Sample output
+
+M1 MacBook Air, `CHIITILER_BENCH_DURATION=5`:
+
+| Scenario | Conns | Req/s (mean) | p50 (ms) | p90 (ms) | p99 (ms) | Errors | non-2xx |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| png c=1 | 1 | 190.0 | 4.0 | 5.0 | 9.0 | 0 | 0 |
+| png c=10 | 10 | 419.0 | 24.0 | 33.0 | 47.0 | 0 | 0 |
+| webp c=1 | 1 | 112.0 | 8.0 | 9.0 | 13.0 | 0 | 0 |
+| jpeg c=1 | 1 | 190.6 | 5.0 | 6.0 | 10.0 | 0 | 0 |
+| png tileSize=1024 c=1 | 1 | 178.0 | 5.0 | 6.0 | 11.0 | 0 | 0 |
