@@ -1,15 +1,45 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { createServer } from 'node:net';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
 import autocannon from 'autocannon';
 
-const PORT = Number(process.env.CHIITILER_BENCH_PORT ?? 3030);
-const BASE = `http://127.0.0.1:${PORT}`;
 const DURATION = Number(process.env.CHIITILER_BENCH_DURATION ?? 10);
 const STYLE_URL = `file://${path.resolve('tests/fixtures/bench-style.json')}`;
 const STYLE_QS = `url=${encodeURIComponent(STYLE_URL)}`;
+
+function isPortFree(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        const tester = createServer()
+            .once('error', () => resolve(false))
+            .once('listening', () => {
+                tester.close(() => resolve(true));
+            })
+            .listen(port, '127.0.0.1');
+    });
+}
+
+async function pickPort(): Promise<number> {
+    const configured = process.env.CHIITILER_BENCH_PORT;
+    if (configured) {
+        const p = Number(configured);
+        if (!(await isPortFree(p))) {
+            throw new Error(
+                `CHIITILER_BENCH_PORT=${p} is already in use. Free it or unset the env.`,
+            );
+        }
+        return p;
+    }
+    for (let p = 3030; p <= 3049; p++) {
+        if (await isPortFree(p)) return p;
+    }
+    throw new Error('no free port in 3030-3049');
+}
+
+let PORT: number;
+let BASE: string;
 
 type Scenario = {
     name: string;
@@ -60,7 +90,12 @@ async function waitForReady(timeoutMs = 60_000): Promise<void> {
 }
 
 function startServer(): ChildProcess {
-    return spawn('npx', ['tsx', 'src/main.ts', 'tile-server'], {
+    // Spawn the tsx binary directly instead of going through `npx`, so a
+    // SIGTERM to `server.kill()` hits the actual node process (otherwise
+    // it only hits the npx wrapper and the real server is orphaned,
+    // holding the port).
+    const tsxBin = path.resolve('node_modules/.bin/tsx');
+    return spawn(tsxBin, ['src/main.ts', 'tile-server'], {
         env: {
             ...process.env,
             CHIITILER_PORT: String(PORT),
@@ -84,6 +119,8 @@ async function stopServer(server: ChildProcess): Promise<void> {
             resolve();
         });
     });
+    // give the OS a beat to release the port before the next run
+    await new Promise((r) => setTimeout(r, 250));
 }
 
 type Row = {
@@ -110,6 +147,9 @@ function toMarkdown(rows: Row[]): string {
 }
 
 async function main() {
+    PORT = await pickPort();
+    BASE = `http://127.0.0.1:${PORT}`;
+    process.stderr.write(`using port ${PORT}\n`);
     const server = startServer();
     const rows: Row[] = [];
     try {
