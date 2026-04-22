@@ -1,0 +1,89 @@
+name: test:benchmark
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "src/**"
+            - "tests/**"
+            - "localdata/**"
+            - "package.json"
+            - ".github/workflows/test:benchmark.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    benchmark:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  # Need main's history to check out its src for the baseline run.
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "24"
+                  cache: "npm"
+            - name: Install native deps for maplibre-gl-native
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                      xvfb \
+                      libcurl4-openssl-dev \
+                      libglfw3-dev \
+                      libuv1-dev \
+                      libjpeg-turbo8-dev \
+                      libpng-dev \
+                      libwebp-dev
+            - name: Install deps
+              run: npm install
+
+            - name: Run benchmark (PR)
+              run: xvfb-run -a npm run test:benchmark
+              env:
+                  CHIITILER_BENCH_OUTPUT: benchmark-pr.json
+
+            - name: Swap in main's source for baseline run
+              run: |
+                  git fetch origin main --depth=1
+                  git checkout origin/main -- src localdata
+            - name: Run benchmark (main baseline)
+              run: xvfb-run -a npm run test:benchmark
+              env:
+                  CHIITILER_BENCH_OUTPUT: benchmark-main.json
+              continue-on-error: true
+            - name: Restore PR source
+              if: always()
+              run: git checkout HEAD -- src localdata
+
+            - name: Compare results
+              run: |
+                  npx tsx tests/compare-benchmarks.ts \
+                      benchmark-main.json \
+                      benchmark-pr.json \
+                      benchmark.md
+                  cat benchmark.md
+
+            - name: Post results to PR
+              if: github.event_name == 'pull_request'
+              uses: marocchino/sticky-pull-request-comment@v2
+              with:
+                  header: benchmark
+                  path: benchmark.md
+            - name: Upload benchmark results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: benchmark-results
+                  path: |
+                      benchmark-pr.json
+                      benchmark-main.json
+                      benchmark.md
+                  if-no-files-found: ignore

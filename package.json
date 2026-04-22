@@ -15,7 +15,7 @@
 		"test:unit": "vitest src",
 		"test:coverage": "vitest src --coverage --coverage.provider=v8",
 		"test:integration": "vitest tests/integration.test.ts",
-		"test:benchmark": "vitest bench"
+		"test:benchmark": "tsx tests/benchmark.ts"
 	},
 	"keywords": [],
 	"author": "Kanahiro Iguchi",
@@ -25,9 +25,11 @@
 	},
 	"devDependencies": {
 		"@tsconfig/node24": "^24.0.4",
+		"@types/autocannon": "^7.12.7",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/node": "^25.6.0",
 		"@vitest/coverage-v8": "^4.1.4",
+		"autocannon": "^8.0.0",
 		"esbuild": "^0.28.0",
 		"image-size": "^2.0.2",
 		"tsx": "^4.21.0",
