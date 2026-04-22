@@ -67,7 +67,7 @@ function startServer(): ChildProcess {
             CHIITILER_CACHE_METHOD: 'none',
             CHIITILER_PROCESSES: '1',
         },
-        stdio: 'ignore',
+        stdio: ['ignore', 'inherit', 'inherit'],
     });
 }
 
