@@ -22,6 +22,9 @@ jobs:
 
         steps:
             - uses: actions/checkout@v6
+              with:
+                  # Need main's history to check out its src for the baseline run.
+                  fetch-depth: 0
 
             - name: Setup Node.js
               uses: actions/setup-node@v3
@@ -41,11 +44,33 @@ jobs:
                       libwebp-dev
             - name: Install deps
               run: npm install
-            - name: Run benchmark
+
+            - name: Run benchmark (PR)
               run: xvfb-run -a npm run test:benchmark
               env:
-                  CHIITILER_BENCH_OUTPUT: benchmark.json
-                  CHIITILER_BENCH_MARKDOWN: benchmark.md
+                  CHIITILER_BENCH_OUTPUT: benchmark-pr.json
+
+            - name: Swap in main's source for baseline run
+              run: |
+                  git fetch origin main --depth=1
+                  git checkout origin/main -- src localdata
+            - name: Run benchmark (main baseline)
+              run: xvfb-run -a npm run test:benchmark
+              env:
+                  CHIITILER_BENCH_OUTPUT: benchmark-main.json
+              continue-on-error: true
+            - name: Restore PR source
+              if: always()
+              run: git checkout HEAD -- src localdata
+
+            - name: Compare results
+              run: |
+                  npx tsx tests/compare-benchmarks.ts \
+                      benchmark-main.json \
+                      benchmark-pr.json \
+                      benchmark.md
+                  cat benchmark.md
+
             - name: Post results to PR
               if: github.event_name == 'pull_request'
               uses: marocchino/sticky-pull-request-comment@v2
@@ -58,6 +83,7 @@ jobs:
               with:
                   name: benchmark-results
                   path: |
-                      benchmark.json
+                      benchmark-pr.json
+                      benchmark-main.json
                       benchmark.md
                   if-no-files-found: ignore

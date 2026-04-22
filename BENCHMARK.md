@@ -36,12 +36,32 @@ Knobs via env:
 - `CHIITILER_BENCH_PORT` — port to spawn the server on (default `3030`).
 - `CHIITILER_BENCH_OUTPUT` — if set, writes the JSON result array to
   the given path.
+- `CHIITILER_BENCH_MARKDOWN` — if set, writes the markdown table
+  (without baseline comparison) to the given path.
 - `GITHUB_STEP_SUMMARY` — when set (as in CI), the markdown table is
   also appended to the step summary.
 
 On macOS you can run it directly. On headless Linux (including the CI
 runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
 needs a display.
+
+## Baseline comparison in CI
+
+Each PR run also executes the benchmark against `main`'s source on the
+same runner, then diffs the two via
+[`tests/compare-benchmarks.ts`](./tests/compare-benchmarks.ts). The
+resulting table is posted as a sticky comment on the PR so regressions
+are visible at a glance. Running on the same runner back-to-back keeps
+machine-level noise from dominating the comparison.
+
+Manual comparison:
+
+```sh
+CHIITILER_BENCH_OUTPUT=a.json npm run test:benchmark
+# ...make changes...
+CHIITILER_BENCH_OUTPUT=b.json npm run test:benchmark
+npx tsx tests/compare-benchmarks.ts a.json b.json
+```
 
 ## Sample output
 
