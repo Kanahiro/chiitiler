@@ -1,18 +1,15 @@
-import { SphericalMercator } from '@mapbox/sphericalmercator';
 import type { RenderOptions } from '@maplibre/maplibre-gl-native';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { getRenderPool } from './pool.js';
+import { invMercX, invMercY } from './mercator.js';
 import type { Cache } from '../cache/index.js';
 
-function getTileCenter(z: number, x: number, y: number, tileSize = 256) {
-    const mercator = new SphericalMercator({
-        size: tileSize,
-    });
-    const px = tileSize / 2 + x * tileSize;
-    const py = tileSize / 2 + y * tileSize;
-    const tileCenter = mercator.ll([px, py], z);
-    return tileCenter;
+function getTileCenter(z: number, x: number, y: number): [number, number] {
+    // tile (x, y) center as a world fraction is (x + 0.5) / 2^z, independent
+    // of tile pixel size; convert that back to lon/lat.
+    const n = 2 ** z;
+    return [invMercX((x + 0.5) / n), invMercY((y + 0.5) / n)];
 }
 
 async function render(
@@ -85,7 +82,7 @@ async function renderTile(
             zoom: renderingParams.zoom,
             width: renderingParams.width + (options.margin ?? 0),
             height: renderingParams.height + (options.margin ?? 0),
-            center: getTileCenter(z, x, y, options.tileSize),
+            center: getTileCenter(z, x, y),
             bearing: 0,
             pitch: 0,
         },

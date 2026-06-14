@@ -1,58 +1,57 @@
 {
-  "type": "module",
-  "name": "chiitiler",
-  "version": "1.20.3",
-  "description": "Tiny map rendering server for MapLibre Style Spec",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
-    "check": "tsc --noEmit",
-    "dev": "tsx watch src/main.ts tile-server -D",
-    "test:unit": "vitest src",
-    "test:coverage": "vitest src --coverage --coverage.provider=v8",
-    "test:integration": "vitest tests/integration.test.ts",
-    "test:benchmark": "tsx tests/benchmark.ts"
-  },
-  "keywords": [],
-  "author": "Kanahiro Iguchi",
-  "license": "MIT",
-  "repository": {
-    "url": "https://github.com/Kanahiro/chiitiler"
-  },
-  "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
-    "@types/autocannon": "^7.12.7",
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.6.0",
-    "@vitest/coverage-v8": "^4.1.4",
-    "autocannon": "^8.0.0",
-    "esbuild": "^0.28.0",
-    "image-size": "^2.0.2",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1032.0",
-    "@google-cloud/storage": "^7.19.0",
-    "@hono/node-server": "^2.0.0",
-    "@mapbox/sphericalmercator": "^2.0.2",
-    "@mapbox/tilebelt": "^2.0.3",
-    "@maplibre/maplibre-gl-native": "^6.4.1",
-    "@maplibre/maplibre-gl-style-spec": "^24.8.1",
-    "better-sqlite3": "12.9.0",
-    "commander": "^14.0.3",
-    "file-system-cache": "^2.4.7",
-    "higuruma": "^0.1.6",
-    "hono": "^4.12.14",
-    "lightning-pool": "^4.12.0",
-    "lru-cache": "^11.3.5",
-    "maplibre-gl": "^5.23.0",
-    "pmtiles": "^4.4.1",
-    "sharp": "^0.34.5"
-  }
+	"type": "module",
+	"name": "chiitiler",
+	"version": "1.20.3",
+	"description": "Tiny map rendering server for MapLibre Style Spec",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
+		"check": "tsc --noEmit",
+		"dev": "tsx watch src/main.ts tile-server -D",
+		"test:unit": "vitest src",
+		"test:coverage": "vitest src --coverage --coverage.provider=v8",
+		"test:integration": "vitest tests/integration.test.ts",
+		"test:benchmark": "tsx tests/benchmark.ts"
+	},
+	"keywords": [],
+	"author": "Kanahiro Iguchi",
+	"license": "MIT",
+	"repository": {
+		"url": "https://github.com/Kanahiro/chiitiler"
+	},
+	"devDependencies": {
+		"@tsconfig/node24": "^24.0.4",
+		"@types/autocannon": "^7.12.7",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/node": "^25.6.0",
+		"@vitest/coverage-v8": "^4.1.4",
+		"autocannon": "^8.0.0",
+		"esbuild": "^0.28.0",
+		"image-size": "^2.0.2",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.4"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1032.0",
+		"@google-cloud/storage": "^7.19.0",
+		"@hono/node-server": "^2.0.0",
+		"@mapbox/tilebelt": "^2.0.3",
+		"@maplibre/maplibre-gl-native": "^6.4.1",
+		"@maplibre/maplibre-gl-style-spec": "^24.8.1",
+		"better-sqlite3": "12.9.0",
+		"commander": "^14.0.3",
+		"file-system-cache": "^2.4.7",
+		"higuruma": "^0.1.6",
+		"hono": "^4.12.14",
+		"lightning-pool": "^4.12.0",
+		"lru-cache": "^11.3.5",
+		"maplibre-gl": "^5.23.0",
+		"pmtiles": "^4.4.1",
+		"sharp": "^0.34.5"
+	}
 }
