@@ -80,6 +80,17 @@ describe('intergration test', () => {
         expect(pngsize.width).toBe(512);
         expect(pngsize.height).toBe(512);
     });
+    test('GET /tiles render failure -> 500 text/plain', async () => {
+        // unresolvable style url: render throws, must not be reported as a
+        // client error nor mislabeled with the image content-type set earlier
+        const res = await fetch(
+            'http://localhost:3000/tiles/0/0/0.png?url=file://localdata/nonexistent.json',
+        );
+        expect(res.status).toBe(500);
+        expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
+        expect(await res.text()).toBe('failed to render tile');
+    });
+
     test('POST /tiles invalid', async () => {
         const res = await fetch('http://localhost:3000/tiles/0/0/0.png', {
             method: 'POST',
@@ -154,6 +165,15 @@ describe('intergration test', () => {
         const webpsize = sizeof(webp);
         expect(webpsize.width).toBe(512);
         expect(webpsize.height).toBe(451);
+    });
+
+    test('GET /bbox render failure -> 500 text/plain', async () => {
+        const res = await fetch(
+            'http://localhost:3000/clip.png?bbox=100,30,150,60&url=file://localdata/nonexistent.json',
+        );
+        expect(res.status).toBe(500);
+        expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
+        expect(await res.text()).toBe('failed to render tile');
     });
 
     test('POST /bbox valid', async () => {
@@ -249,6 +269,15 @@ describe('intergration test', () => {
         const webpsize = sizeof(webp);
         expect(webpsize.width).toBe(512);
         expect(webpsize.height).toBe(512);
+    });
+
+    test('GET /static render failure -> 500 text/plain', async () => {
+        const res = await fetch(
+            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png?url=file://localdata/nonexistent.json',
+        );
+        expect(res.status).toBe(500);
+        expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
+        expect(await res.text()).toBe('failed to render static image');
     });
 
     test('POST /static valid', async () => {

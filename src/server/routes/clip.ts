@@ -38,7 +38,9 @@ function createClipRouter(options: { cache: Cache }) {
 				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
-				return c.body('failed to render tile', 400);
+				// c.text overrides the image/* Content-Type set above; a render
+				// failure is a server-side error so respond 500, not 400.
+				return c.text('failed to render tile', 500);
 			}
 		})
 		.post('/:filename_ext', async (c) => {
@@ -78,7 +80,9 @@ function createClipRouter(options: { cache: Cache }) {
 				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
-				return c.body('failed to render tile', 400);
+				// c.text overrides the image/* Content-Type set above; a render
+				// failure is a server-side error so respond 500, not 400.
+				return c.text('failed to render tile', 500);
 			}
 		});
 	return clip;

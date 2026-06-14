@@ -92,7 +92,9 @@ function createCameraRouter(options: { cache: Cache }) {
 				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
-				return c.body('failed to render static image', 400);
+				// c.text overrides the image/* Content-Type set above; a render
+				// failure is a server-side error so respond 500, not 400.
+				return c.text('failed to render static image', 500);
 			}
 		})
 		.post('/:zoom/:lat/:lon/:bearing/:pitch/:dimensions_ext', async (c) => {
@@ -155,7 +157,9 @@ function createCameraRouter(options: { cache: Cache }) {
 				return c.body(buf as Uint8Array<ArrayBuffer>);
 			} catch (e) {
 				console.error(`render error: ${e}`);
-				return c.body('failed to render static image', 400);
+				// c.text overrides the image/* Content-Type set above; a render
+				// failure is a server-side error so respond 500, not 400.
+				return c.text('failed to render static image', 500);
 			}
 		});
 	return camera;
