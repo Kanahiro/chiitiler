@@ -1,9 +1,16 @@
-import Database, { Statement } from 'better-sqlite3';
+import { DatabaseSync, StatementSync } from 'node:sqlite';
 import { unzip } from 'zlib';
 import { LRUCache } from 'lru-cache';
 
-const mbtilesCache = new LRUCache<string, Statement>({
+// A StatementSync is only valid while its DatabaseSync is alive, and node:sqlite
+// does not guarantee the statement keeps the database from being GC'd. Cache the
+// database alongside the statement so both share the entry's lifetime.
+const mbtilesCache = new LRUCache<
+    string,
+    { db: DatabaseSync; statement: StatementSync }
+>({
     max: 20,
+    dispose: ({ db }) => db.close(),
 });
 
 /**
@@ -13,14 +20,16 @@ async function getMbtilesSource(uri: string): Promise<Buffer | null> {
     const mbtilesFilepath = uri
         .replace('mbtiles://', '')
         .replace(/\/\d+\/\d+\/\d+$/, '');
-    let statement = mbtilesCache.get(mbtilesFilepath);
-    if (statement === undefined) {
-        const db = new Database(mbtilesFilepath, { readonly: true });
-        statement = db.prepare(
+    let entry = mbtilesCache.get(mbtilesFilepath);
+    if (entry === undefined) {
+        const db = new DatabaseSync(mbtilesFilepath, { readOnly: true });
+        const statement = db.prepare(
             'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
         );
-        mbtilesCache.set(mbtilesFilepath, statement);
+        entry = { db, statement };
+        mbtilesCache.set(mbtilesFilepath, entry);
     }
+    const { statement } = entry;
     const [z, x, y] = uri
         .replace(`mbtiles://${mbtilesFilepath}/`, '')
         .split('/');
