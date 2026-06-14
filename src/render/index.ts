@@ -1,10 +1,9 @@
 import sharp from 'sharp';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
-import { SphericalMercator } from '@mapbox/sphericalmercator';
-const mercator = new SphericalMercator();
 import { LRUCache } from 'lru-cache';
 
 import { renderTile, render } from './rasterize.js';
+import { mercX, mercY, invMercY } from './mercator.js';
 import type { Cache } from '../cache/index.js';
 import { getSource } from '../source/index.js';
 
@@ -131,25 +130,26 @@ const calcRenderingParams = (
 	height: number;
 	center: [number, number];
 } => {
-	// reference: https://github.com/maptiler/tileserver-gl/blob/cc4b8f7954069fd0e1db731ff07f5349f7b9c8cd/src/serve_rendered.js#L346
-	// very hacky and it might be wrong
-	let zoom = 25;
-	const minCorner = mercator.px([bbox[0], bbox[3]], zoom);
-	const maxCorner = mercator.px([bbox[2], bbox[1]], zoom);
-	const dx = maxCorner[0] - minCorner[0];
-	const dy = maxCorner[1] - minCorner[1];
+	// bbox width/height as fractions of the whole world ([0, 1] mercator)
+	const x1 = mercX(bbox[0]);
+	const x2 = mercX(bbox[2]);
+	const y1 = mercY(bbox[3]); // north -> smaller y
+	const y2 = mercY(bbox[1]);
+	const dx = x2 - x1;
+	const dy = y2 - y1;
 
-	zoom -= Math.max(Math.log(dx / size), Math.log(dy / size)) / Math.LN2;
-	zoom = Math.max(Math.log(size / 256) / Math.LN2, Math.min(25, zoom)) - 1;
+	// maplibre-native's world is 512px wide at zoom 0, so at zoom z it is
+	// 512 * 2^z px. The zoom that fits the longer side into `size` px solves
+	// 512 * 2^z * max(dx, dy) = size.
+	const zoom = Math.log2(size / (512 * Math.max(dx, dy)));
 
-	const width = dx > dy ? size : Math.ceil((dx / dy) * size);
-	const height = dx > dy ? Math.ceil((dy / dx) * size) : size;
+	const width = dx >= dy ? size : Math.ceil((dx / dy) * size);
+	const height = dx >= dy ? Math.ceil((dy / dx) * size) : size;
 
-	const mercCenter: [number, number] = [
-		(maxCorner[0] + minCorner[0]) / 2,
-		(maxCorner[1] + minCorner[1]) / 2,
+	const center: [number, number] = [
+		(bbox[0] + bbox[2]) / 2, // longitude is linear in mercator x
+		invMercY((y1 + y2) / 2), // latitude: invert the mercator-space midpoint
 	];
-	const center = mercator.ll(mercCenter, 25); // latlon
 
 	return { zoom, width, height, center };
 };
