@@ -83,6 +83,10 @@ async function getRenderedTile({
 				width: 512,
 				height: 512,
 				channels: 4,
+				// maplibre-native returns premultiplied alpha; tell sharp so it
+				// unpremultiplies to straight alpha, otherwise antialiased edges
+				// (e.g. white text-halo) come out gray on transparent backgrounds.
+				premultiplied: true,
 			},
 		}).resize(256, 256);
 	} else if (margin === 0) {
@@ -91,6 +95,7 @@ async function getRenderedTile({
 				width: tileSize,
 				height: tileSize,
 				channels: 4,
+				premultiplied: true,
 			},
 		});
 	} else {
@@ -99,6 +104,7 @@ async function getRenderedTile({
 				width: tileSize + margin,
 				height: tileSize + margin,
 				channels: 4,
+				premultiplied: true,
 			},
 		})
 			.extract({
@@ -192,6 +198,8 @@ async function getRenderedClip({
 			width,
 			height,
 			channels: 4,
+			// see getRenderedTile: maplibre-native returns premultiplied alpha
+			premultiplied: true,
 		},
 	});
 
@@ -241,6 +249,8 @@ async function getRenderedCamera(options: GetRenderedCameraOptions) {
 			width: options.width,
 			height: options.height,
 			channels: 4,
+			// see getRenderedTile: maplibre-native returns premultiplied alpha
+			premultiplied: true,
 		},
 	});
 
