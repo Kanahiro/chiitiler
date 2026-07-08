@@ -91,6 +91,39 @@ describe('intergration test', () => {
         expect(await res.text()).toBe('failed to render tile');
     });
 
+    test('POST /tiles with unfetchable raster source -> 200 transparent', async () => {
+        // regression: an empty/unfetchable raster tile must render as a
+        // transparent tile, not fail the whole render. The extension-less
+        // tile URL also covers the path the old transparent-image fallback
+        // could not resolve. 127.0.0.1:1 refuses connection -> source is null.
+        const res = await fetch('http://localhost:3000/tiles/0/0/0.png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                style: {
+                    version: 8,
+                    sources: {
+                        r: {
+                            type: 'raster',
+                            tiles: [
+                                'http://127.0.0.1:1/xyz/{z}/{x}/{y}?format=webp',
+                            ],
+                            tileSize: 256,
+                            maxzoom: 22,
+                        },
+                    },
+                    layers: [{ id: 'r', type: 'raster', source: 'r' }],
+                },
+            }),
+        });
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toBe('image/png');
+        const png = new Uint8Array(await res.arrayBuffer());
+        const pngsize = sizeof(png);
+        expect(pngsize.width).toBe(512);
+        expect(pngsize.height).toBe(512);
+    });
+
     test('POST /tiles invalid', async () => {
         const res = await fetch('http://localhost:3000/tiles/0/0/0.png', {
             method: 'POST',
