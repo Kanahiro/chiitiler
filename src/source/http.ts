@@ -18,7 +18,10 @@ async function getHttpSource(
             console.log(`failed to fetch ${uri}`);
             return null;
         }
+        // 204/空ボディはキャッシュ汚染を避けるため書き込まずnullを返す
+        if (res.status === 204) return null;
         const buf = Buffer.from(await res.arrayBuffer());
+        if (buf.length === 0) return null;
         cache.set(uri, buf);
         return buf;
     } catch (e) {
