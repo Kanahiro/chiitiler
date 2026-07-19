@@ -1,19 +1,31 @@
 FROM node:24-bookworm-slim AS builder
 
-WORKDIR /app/
-COPY . /app/
-RUN npm install
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY src ./src
+COPY tsconfig.json ./
 RUN npm run build
-# -> /app/build/main.cjs
+
+FROM node:24-bookworm-slim AS runtime-deps
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+# The bundle externalizes only these native modules. maplibre's remaining
+# JavaScript dependencies are install tooling, not runtime dependencies.
+RUN node -e "const fs = require('node:fs'); const names = ['@maplibre/maplibre-gl-native', 'sharp']; const p = require('./package.json'); const lock = require('./package-lock.json'); p.dependencies = Object.fromEntries(names.map((name) => [name, lock.packages['node_modules/' + name].version])); delete p.devDependencies; fs.writeFileSync('package.json', JSON.stringify(p)); fs.unlinkSync('package-lock.json');" \
+  && npm install --omit=dev --no-package-lock --no-audit --no-fund \
+  && mv node_modules/@maplibre/maplibre-gl-native /tmp/maplibre-gl-native \
+  && node -e "const fs = require('node:fs'); const p = require('./package.json'); delete p.dependencies['@maplibre/maplibre-gl-native']; fs.writeFileSync('package.json', JSON.stringify(p));" \
+  && npm prune --omit=dev --no-audit --no-fund \
+  && mkdir -p node_modules/@maplibre \
+  && mv /tmp/maplibre-gl-native node_modules/@maplibre/maplibre-gl-native
 
 FROM ubuntu:noble AS runtime
 
-# Runtime shared libraries required by @maplibre/maplibre-gl-native (mbgl.node).
-# This is the minimal set derived from `ldd .../mbgl.node` (runtime .so packages only,
-# no -dev headers or toolchain), plus xvfb for the headless GL context.
-# Why ubuntu:noble and not bookworm-slim: the prebuilt mbgl.node links GLIBC_2.38 /
-# GLIBCXX_3.4.32, which Debian bookworm (glibc 2.36) does not provide.
-ENV DEBIAN_FRONTEND=noninteractive
+# mbgl.node requires GLIBC_2.38 and GLIBCXX_3.4.32. These `ldd`-derived
+# libraries and Xvfb provide its headless GL runtime on Ubuntu Noble.
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
   xvfb \
   libopengl0 \
@@ -28,26 +40,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libpng16-16t64 \
   && rm -rf /var/lib/apt/lists/*
 
-# Lambda WebAdapter
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.0 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
-ENV READINESS_CHECK_PATH=/health
+ENV AWS_LWA_READINESS_CHECK_PATH=/health
 
-# Node.js runtime (taken from bookworm-slim; noble's newer glibc runs it fine).
-COPY --from=node:24-bookworm-slim /usr/local/bin /usr/local/bin
-COPY --from=node:24-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# npm and Corepack are unnecessary at runtime.
+COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 
-# Install production dependencies on the runtime image so native modules
-# (mbgl.node, sharp) get noble-appropriate prebuilds.
-WORKDIR /app/
-COPY --from=builder /app/build /app/build
-COPY --from=builder /app/package.json /app/package.json
-RUN npm install --omit=dev
+WORKDIR /app
+COPY --from=builder /app/build ./build
+COPY --from=runtime-deps /app/node_modules ./node_modules
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
-ENTRYPOINT [ "./docker-entrypoint.sh" ]
+COPY --chmod=755 docker-entrypoint.sh ./docker-entrypoint.sh
+ENTRYPOINT [ "/app/docker-entrypoint.sh" ]
 
-# start server
 CMD ["node", "/app/build/main.cjs", "tile-server"]
