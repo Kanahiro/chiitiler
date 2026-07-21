@@ -4,6 +4,7 @@ import { Command } from 'commander';
 
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
+import { setUserAgent } from './source/userAgent.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3' | 'gcs',
@@ -162,8 +163,15 @@ export function createProgram() {
             '',
         )
         .option('-p, --port <port>', 'port number')
+        .option(
+            '--user-agent <user-agent>',
+            'User-Agent header for outbound HTTP requests',
+        )
         .option('-D, --debug', 'debug mode')
         .action((options) => {
+            // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
+            if (options.userAgent !== undefined) setUserAgent(options.userAgent);
+
             const serverOptions: InitServerOptions = {
                 cache: parseCacheStrategy(options.cache, {
                     cacheTtl: Number(options.cacheTtl),

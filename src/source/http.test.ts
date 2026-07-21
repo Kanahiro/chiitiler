@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { getHttpSource } from './http.js';
+import { setUserAgent } from './userAgent.js';
 import { memoryCache } from '../cache/memory.js';
 
 function mockFetch(response: Response) {
@@ -46,6 +47,35 @@ describe('getHttpSource', () => {
         const data = await getHttpSource('https://example.com/missing.webp', cache);
 
         expect(data).toBeNull();
+    });
+
+    it('sends a default User-Agent header', async () => {
+        const fetchSpy = mockFetch(
+            new Response(new Uint8Array([1]), { status: 200 }),
+        );
+
+        await getHttpSource('https://example.com/tile.webp');
+
+        const [, init] = fetchSpy.mock.calls[0];
+        expect(new Headers(init?.headers).get('User-Agent')).toMatch(
+            /^chiitiler/,
+        );
+    });
+
+    it('sends a user-specified User-Agent header', async () => {
+        const fetchSpy = mockFetch(
+            new Response(new Uint8Array([1]), { status: 200 }),
+        );
+        setUserAgent('my-app/1.0');
+
+        try {
+            await getHttpSource('https://example.com/tile.webp');
+        } finally {
+            setUserAgent(undefined);
+        }
+
+        const [, init] = fetchSpy.mock.calls[0];
+        expect(new Headers(init?.headers).get('User-Agent')).toBe('my-app/1.0');
     });
 
     it('returns and caches a non-empty body', async () => {
