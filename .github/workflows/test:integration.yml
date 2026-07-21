@@ -7,6 +7,10 @@ on:
         paths:
             - "src/**"
             - "tests/**"
+            - "Dockerfile"
+            - "docker-compose.yml"
+            - "package.json"
+            - "package-lock.json"
             - ".github/workflows/test:integration.yml"
     workflow_dispatch:
 
@@ -23,7 +27,13 @@ jobs:
                   node-version: "24"
             - name: start server
               run: docker compose up -d
-            - name: run test
+            - name: install dependencies
+              run: npm install
+            # the app container installs dependencies at startup, so listening
+            # begins well after `docker compose up -d` returns
+            - name: wait for server
               run: |
-                  npm install
-                  npm run test:integration
+                  timeout 300 bash -c 'until curl -sf http://localhost:3000/health > /dev/null; do sleep 2; done' \
+                    || { docker compose logs app; exit 1; }
+            - name: run test
+              run: npm run test:integration

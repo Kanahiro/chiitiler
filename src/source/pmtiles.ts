@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 
-import { PMTiles, Source, RangeResponse } from 'pmtiles';
+import { PMTiles, FetchSource, Source, RangeResponse } from 'pmtiles';
 import {
 	GetObjectCommand,
 	GetObjectCommandOutput,
@@ -10,6 +10,7 @@ import { LRUCache } from 'lru-cache';
 
 import { getS3Client } from '../s3.js';
 import { type Cache, noneCache } from '../cache/index.js';
+import { getUserAgent } from './userAgent.js';
 
 const pmtilesCache = new LRUCache<string, PMTiles>({
 	max: 50,
@@ -112,7 +113,11 @@ async function getPmtilesSource(
 		if (val !== undefined) return val; // hit
 
 		if (pmtiles === undefined) {
-			pmtiles = new PMTiles(pmtilesUri);
+			const fetchSource = new FetchSource(
+				pmtilesUri,
+				new Headers({ 'User-Agent': getUserAgent() }),
+			);
+			pmtiles = new PMTiles(fetchSource);
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else if (pmtilesUri.startsWith('s3://')) {

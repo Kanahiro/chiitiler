@@ -1,6 +1,8 @@
 services:
     app:
-        build: ./
+        build:
+            context: ./
+            target: dev
         volumes:
             - ./src:/app/src
             - ./.cache:/app/.cache
@@ -11,7 +13,6 @@ services:
         command:
             - -c
             - |
-                npm install
                 /usr/bin/xvfb-run -a npm run dev
         environment:
             - CHIITILER_CACHE_METHOD=s3

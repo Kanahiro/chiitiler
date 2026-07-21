@@ -2,6 +2,7 @@
 // for using native fetch in TypeScript
 
 import { type Cache, noneCache } from '../cache/index.js';
+import { getUserAgent } from './userAgent.js';
 
 async function getHttpSource(
     uri: string,
@@ -13,7 +14,9 @@ async function getHttpSource(
 
     // miss
     try {
-        const res = await fetch(uri);
+        const res = await fetch(uri, {
+            headers: { 'User-Agent': getUserAgent() },
+        });
         if (!res.ok) {
             console.log(`failed to fetch ${uri}`);
             return null;
