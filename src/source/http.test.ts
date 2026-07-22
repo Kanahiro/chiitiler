@@ -49,7 +49,7 @@ describe('getHttpSource', () => {
         expect(data).toBeNull();
     });
 
-    it('sends a default User-Agent header', async () => {
+    it('does not send a User-Agent header by default', async () => {
         const fetchSpy = mockFetch(
             new Response(new Uint8Array([1]), { status: 200 }),
         );
@@ -57,9 +57,7 @@ describe('getHttpSource', () => {
         await getHttpSource('https://example.com/tile.webp');
 
         const [, init] = fetchSpy.mock.calls[0];
-        expect(new Headers(init?.headers).get('User-Agent')).toMatch(
-            /^chiitiler/,
-        );
+        expect(new Headers(init?.headers).get('User-Agent')).toBeNull();
     });
 
     it('sends a user-specified User-Agent header', async () => {

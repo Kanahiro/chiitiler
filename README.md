@@ -107,7 +107,7 @@ const png = await getRenderedTileBuffer({
 
 Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`, and their `*Stream` variants (`Sharp` instances for further piping).
 
-Outbound HTTP requests send a `User-Agent` identifying chiitiler by default; override it with `setUserAgent('my-app/1.0')` or the `CHIITILER_USER_AGENT` environment variable.
+chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default, so the runtime's default is used (Node sends `node`). Some tile providers (e.g. OpenStreetMap) require an identifying User-Agent — set one with `setUserAgent('my-app/1.0')` or the `CHIITILER_USER_AGENT` environment variable.
 
 ## Configuration
 
@@ -119,7 +119,7 @@ All options can be set via CLI flag or environment variable.
 | --- | --- | --- |
 | `--port <n>` | `CHIITILER_PORT` | `3000` |
 | `--debug` | `CHIITILER_DEBUG` | `false` |
-| `--user-agent <ua>` | `CHIITILER_USER_AGENT` | `chiitiler (+https://github.com/Kanahiro/chiitiler)` |
+| `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
 | — | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
 
 ### Cache
