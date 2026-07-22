@@ -14,8 +14,9 @@ async function getHttpSource(
 
     // miss
     try {
+        const userAgent = getUserAgent();
         const res = await fetch(uri, {
-            headers: { 'User-Agent': getUserAgent() },
+            headers: userAgent ? { 'User-Agent': userAgent } : undefined,
         });
         if (!res.ok) {
             console.log(`failed to fetch ${uri}`);

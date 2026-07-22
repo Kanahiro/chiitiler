@@ -113,10 +113,10 @@ async function getPmtilesSource(
 		if (val !== undefined) return val; // hit
 
 		if (pmtiles === undefined) {
-			const fetchSource = new FetchSource(
-				pmtilesUri,
-				new Headers({ 'User-Agent': getUserAgent() }),
-			);
+			const userAgent = getUserAgent();
+			const headers = new Headers();
+			if (userAgent) headers.set('User-Agent', userAgent);
+			const fetchSource = new FetchSource(pmtilesUri, headers);
 			pmtiles = new PMTiles(fetchSource);
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}

@@ -1,8 +1,7 @@
 // User-Agent for all outbound HTTP requests (http(s):// and pmtiles://http(s)://).
-// Some tile providers (e.g. OpenStreetMap) reject requests without an
-// identifying User-Agent, so we always send one.
-const DEFAULT_USER_AGENT = 'chiitiler (+https://github.com/Kanahiro/chiitiler)';
-
+// By default we don't override the User-Agent at all (the runtime's default is
+// used). Set one explicitly via --user-agent, CHIITILER_USER_AGENT, or
+// setUserAgent() — e.g. some tile providers (OpenStreetMap) require one.
 let overrideUserAgent: string | undefined;
 
 /**
@@ -13,12 +12,12 @@ function setUserAgent(userAgent: string | undefined) {
     overrideUserAgent = userAgent;
 }
 
-function getUserAgent(): string {
-    return (
-        overrideUserAgent ??
-        process.env.CHIITILER_USER_AGENT ??
-        DEFAULT_USER_AGENT
-    );
+/**
+ * Returns the configured User-Agent, or undefined when none is set (in which
+ * case no User-Agent header should be added).
+ */
+function getUserAgent(): string | undefined {
+    return overrideUserAgent ?? process.env.CHIITILER_USER_AGENT;
 }
 
 export { getUserAgent, setUserAgent };
