@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 
-import { PMTiles, FetchSource, Source, RangeResponse } from 'pmtiles';
+import {
+	PMTiles,
+	FetchSource,
+	ResolvedValueCache,
+	Source,
+	RangeResponse,
+} from 'pmtiles';
 import {
 	GetObjectCommand,
 	GetObjectCommandOutput,
@@ -117,7 +123,7 @@ async function getPmtilesSource(
 			const headers = new Headers();
 			if (userAgent) headers.set('User-Agent', userAgent);
 			const fetchSource = new FetchSource(pmtilesUri, headers);
-			pmtiles = new PMTiles(fetchSource);
+			pmtiles = new PMTiles(fetchSource, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else if (pmtilesUri.startsWith('s3://')) {
@@ -125,13 +131,13 @@ async function getPmtilesSource(
 			const bucket = pmtilesUri.replace('s3://', '').split('/')[0];
 			const key = pmtilesUri.replace(`s3://${bucket}/`, '');
 			const s3Source = new S3Source(bucket, key);
-			pmtiles = new PMTiles(s3Source);
+			pmtiles = new PMTiles(s3Source, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else {
 		if (pmtiles === undefined) {
 			const fileSource = new FilesystemSource(pmtilesUri);
-			pmtiles = new PMTiles(fileSource);
+			pmtiles = new PMTiles(fileSource, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	}

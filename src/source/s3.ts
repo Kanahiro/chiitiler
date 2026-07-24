@@ -20,8 +20,12 @@ async function getS3Source(uri: string) {
         const buf = Buffer.from(await obj.Body.transformToByteArray());
         return buf;
     } catch (e: any) {
-        if (e.name !== 'NoSuchKey') console.log(e);
-        return null;
+        // NoSuchKey: オブジェクトが存在しない。空タイルとして扱わせる
+        if (e.name === 'NoSuchKey') return null;
+        // それ以外(スロットリング・ネットワークエラー等)は有無が不明なので
+        // throwしてレンダリングを失敗させる
+        console.log(e);
+        throw e;
     }
 }
 

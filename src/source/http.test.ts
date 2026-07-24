@@ -49,6 +49,30 @@ describe('getHttpSource', () => {
         expect(data).toBeNull();
     });
 
+    it('throws for 5xx to fail rendering instead of drawing an empty tile', async () => {
+        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const setSpy = vi.spyOn(cache, 'set');
+        mockFetch(new Response('internal server error', { status: 500 }));
+
+        const uri = 'https://example.com/broken.webp';
+        await expect(getHttpSource(uri, cache)).rejects.toThrow(
+            'upstream error 500',
+        );
+        expect(setSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws when fetch fails (server unreachable)', async () => {
+        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+            new TypeError('fetch failed'),
+        );
+
+        const uri = 'https://example.com/unreachable.webp';
+        await expect(getHttpSource(uri, cache)).rejects.toThrow(
+            'failed to fetch',
+        );
+    });
+
     it('does not send a User-Agent header by default', async () => {
         const fetchSpy = mockFetch(
             new Response(new Uint8Array([1]), { status: 200 }),
