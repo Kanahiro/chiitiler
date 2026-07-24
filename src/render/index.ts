@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { LRUCache } from 'lru-cache';
 
@@ -57,7 +57,7 @@ async function getRenderedTile({
 	margin,
 	ext,
 	quality,
-}: GetRenderedTileOptions): Promise<sharp.Sharp> {
+}: GetRenderedTileOptions): Promise<Sharp> {
 	const style = await loadStyle(stylejson, cache);
 
 	let pixels: Uint8Array;
@@ -74,7 +74,7 @@ async function getRenderedTile({
 	const isBottomEnd = y === 2 ** z - 1;
 	const topMargin = isTopEnd ? 0 : isBottomEnd ? margin : margin / 2;
 
-	let _sharp: sharp.Sharp;
+	let _sharp: Sharp;
 	if (tileSize === 256 && z === 0) {
 		// hack: when tileSize=256, z=0
 		// pixlels will be 512x512 so we need to resize to 256x256
@@ -176,7 +176,7 @@ async function getRenderedClip({
 	cache,
 	ext,
 	quality,
-}: GetRenderedClipOptions): Promise<sharp.Sharp> {
+}: GetRenderedClipOptions): Promise<Sharp> {
 	const style = await loadStyle(stylejson, cache);
 
 	const { zoom, width, height, center } = calcRenderingParams(bbox, size);
