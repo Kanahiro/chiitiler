@@ -4,6 +4,12 @@ on:
     pull_request:
         branches:
             - main
+        paths:
+            - "src/**"
+            - "package.json"
+            - "package-lock.json"
+            - "tsconfig.json"
+            - ".github/workflows/test:build.yml"
     workflow_dispatch:
 
 jobs:
