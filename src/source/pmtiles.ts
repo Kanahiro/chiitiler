@@ -123,11 +123,6 @@ async function getPmtilesSource(
 			const headers = new Headers();
 			if (userAgent) headers.set('User-Agent', userAgent);
 			const fetchSource = new FetchSource(pmtilesUri, headers);
-			// ResolvedValueCache caches only resolved values; the default
-			// SharedPromiseCache caches the in-flight promise and so keeps a
-			// rejected header/directory read cached, poisoning this object until
-			// eviction. Using ResolvedValueCache lets a transient upstream 5xx
-			// recover on the next request without dropping the cached archive.
 			pmtiles = new PMTiles(fetchSource, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
