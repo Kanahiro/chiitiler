@@ -39,8 +39,15 @@ async function getRenderPool(
                                 callback(undefined, EMPTY_RESPONSE);
                             }
                         })
-                        .catch(() => {
-                            callback(undefined, EMPTY_RESPONSE);
+                        .catch((err) => {
+                            // 5xx/ネットワークエラー: 空タイルとして描画すると
+                            // 欠損タイルがCDN等にキャッシュされうるので、
+                            // エラーを渡してレンダリング自体を失敗させる
+                            callback(
+                                err instanceof Error
+                                    ? err
+                                    : new Error(String(err)),
+                            );
                         });
                 },
                 ratio: 1,

@@ -91,11 +91,11 @@ describe('intergration test', () => {
         expect(await res.text()).toBe('failed to render tile');
     });
 
-    test('POST /tiles with unfetchable raster source -> 200 transparent', async () => {
-        // regression: an empty/unfetchable raster tile must render as a
-        // transparent tile, not fail the whole render. The extension-less
-        // tile URL also covers the path the old transparent-image fallback
-        // could not resolve. 127.0.0.1:1 refuses connection -> source is null.
+    test('POST /tiles with unreachable raster source -> 500', async () => {
+        // 5xx/network errors mean the tile's existence is unknown: rendering
+        // a transparent tile would let CDNs cache a missing-data tile as if
+        // it were valid, so the whole render must fail.
+        // 127.0.0.1:1 refuses connection -> getSource throws.
         const res = await fetch('http://localhost:3000/tiles/0/0/0.png', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -107,6 +107,37 @@ describe('intergration test', () => {
                             type: 'raster',
                             tiles: [
                                 'http://127.0.0.1:1/xyz/{z}/{x}/{y}?format=webp',
+                            ],
+                            tileSize: 256,
+                            maxzoom: 22,
+                        },
+                    },
+                    layers: [{ id: 'r', type: 'raster', source: 'r' }],
+                },
+            }),
+        });
+        expect(res.status).toBe(500);
+        expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
+        expect(await res.text()).toBe('failed to render tile');
+    });
+
+    test('POST /tiles with 404 raster source -> 200 transparent', async () => {
+        // 404 means "no tile there" (normal for sparse tilesets) and must
+        // render as a transparent tile, not fail the whole render. The
+        // extension-less tile URL also covers the path the old
+        // transparent-image fallback could not resolve. The server itself
+        // returns 404 for unknown paths.
+        const res = await fetch('http://localhost:3000/tiles/0/0/0.png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                style: {
+                    version: 8,
+                    sources: {
+                        r: {
+                            type: 'raster',
+                            tiles: [
+                                'http://localhost:3000/notfound/{z}/{x}/{y}?format=webp',
                             ],
                             tileSize: 256,
                             maxzoom: 22,
