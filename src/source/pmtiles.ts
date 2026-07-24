@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 
-import { PMTiles, FetchSource, Source, RangeResponse } from 'pmtiles';
+import {
+	PMTiles,
+	FetchSource,
+	ResolvedValueCache,
+	Source,
+	RangeResponse,
+} from 'pmtiles';
 import {
 	GetObjectCommand,
 	GetObjectCommandOutput,
@@ -117,7 +123,12 @@ async function getPmtilesSource(
 			const headers = new Headers();
 			if (userAgent) headers.set('User-Agent', userAgent);
 			const fetchSource = new FetchSource(pmtilesUri, headers);
-			pmtiles = new PMTiles(fetchSource);
+			// ResolvedValueCache caches only resolved values; the default
+			// SharedPromiseCache caches the in-flight promise and so keeps a
+			// rejected header/directory read cached, poisoning this object until
+			// eviction. Using ResolvedValueCache lets a transient upstream 5xx
+			// recover on the next request without dropping the cached archive.
+			pmtiles = new PMTiles(fetchSource, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else if (pmtilesUri.startsWith('s3://')) {
@@ -125,31 +136,23 @@ async function getPmtilesSource(
 			const bucket = pmtilesUri.replace('s3://', '').split('/')[0];
 			const key = pmtilesUri.replace(`s3://${bucket}/`, '');
 			const s3Source = new S3Source(bucket, key);
-			pmtiles = new PMTiles(s3Source);
+			pmtiles = new PMTiles(s3Source, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else {
 		if (pmtiles === undefined) {
 			const fileSource = new FilesystemSource(pmtilesUri);
-			pmtiles = new PMTiles(fileSource);
+			pmtiles = new PMTiles(fileSource, new ResolvedValueCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	}
 
 	const [z, x, y] = uri.replace(`pmtiles://${pmtilesUri}/`, '').split('/');
-	let tile;
-	try {
-		tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
-	} catch (e) {
-		// pmtiles caches the archive header/directory read as a promise inside
-		// the PMTiles object. A transient failure there (5xx/network) caches a
-		// rejected promise, so this cached object would keep failing even after
-		// the upstream recovers. Drop it so the next request rebuilds it with a
-		// fresh internal cache, then rethrow so the render fails (not an empty
-		// tile that could be cached downstream).
-		pmtilesCache.delete(pmtilesUri);
-		throw e;
-	}
+	// An upstream 5xx/network error throws out of getZxy and propagates so the
+	// render fails (rather than producing a cacheable empty tile). The cached
+	// PMTiles object is safe to keep: ResolvedValueCache never caches the
+	// failure, so the next request retries cleanly.
+	const tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
 
 	if (!tile) return null;
 
