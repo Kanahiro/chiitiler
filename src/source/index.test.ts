@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, it, expect, vi } from 'vitest';
 
 import { getSource } from './index.js';
@@ -7,6 +11,22 @@ describe('getSource', () => {
         const uri = 'file://localdata/style.json';
         const data = await getSource(uri);
         expect(data).not.toBeNull();
+    });
+
+    it('file:// with percent-encoded path', async () => {
+        // maplibre-gl-native percent-encodes {fontstack} in glyphs URLs
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chiitiler-'));
+        const fontDir = path.join(dir, 'Noto Sans Regular');
+        fs.mkdirSync(fontDir);
+        fs.writeFileSync(path.join(fontDir, '0-255.pbf'), 'glyph');
+        try {
+            const uri = `file://${dir}/Noto%20Sans%20Regular/0-255.pbf`;
+            const data = await getSource(uri);
+            expect(data).not.toBeNull();
+            expect(data?.toString()).toBe('glyph');
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it('https://', async () => {
