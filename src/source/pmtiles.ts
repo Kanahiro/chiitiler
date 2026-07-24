@@ -143,10 +143,6 @@ async function getPmtilesSource(
 	}
 
 	const [z, x, y] = uri.replace(`pmtiles://${pmtilesUri}/`, '').split('/');
-	// An upstream 5xx/network error throws out of getZxy and propagates so the
-	// render fails (rather than producing a cacheable empty tile). The cached
-	// PMTiles object is safe to keep: ResolvedValueCache never caches the
-	// failure, so the next request retries cleanly.
 	const tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
 
 	if (!tile) return null;
