@@ -137,7 +137,19 @@ async function getPmtilesSource(
 	}
 
 	const [z, x, y] = uri.replace(`pmtiles://${pmtilesUri}/`, '').split('/');
-	const tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
+	let tile;
+	try {
+		tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
+	} catch (e) {
+		// pmtiles caches the archive header/directory read as a promise inside
+		// the PMTiles object. A transient failure there (5xx/network) caches a
+		// rejected promise, so this cached object would keep failing even after
+		// the upstream recovers. Drop it so the next request rebuilds it with a
+		// fresh internal cache, then rethrow so the render fails (not an empty
+		// tile that could be cached downstream).
+		pmtilesCache.delete(pmtilesUri);
+		throw e;
+	}
 
 	if (!tile) return null;
 
