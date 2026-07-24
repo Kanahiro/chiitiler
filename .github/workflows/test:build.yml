@@ -1,0 +1,28 @@
+name: test:build
+
+on:
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+
+jobs:
+    buildtest:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+                  cache: "npm"
+            - name: Install deps
+              run: npm install
+            # same build steps as the npm publish workflow (npm.yml),
+            # so publish-time build failures are caught at PR time
+            - name: Build with tsc
+              run: npx tsc
+            - name: Bundle with esbuild
+              run: npm run build
