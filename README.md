@@ -60,6 +60,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **[PLATEAU VIEW](https://plateauview.mlit.go.jp/)** — Cesium.js imagery via `/tiles`
 - **[qgis-amazonlocationservice-plugin](https://github.com/dayjournal/qgis-amazonlocationservice-plugin)** — QGIS integration
 - **[Allmaps Latest](https://bsky.app/profile/latest.allmaps.org)** — Bluesky bot
+- **[Kumoy](https://www.kumoy.io/)** - used for thumbnail image of designed maps
 
 ## HTTP API
 
