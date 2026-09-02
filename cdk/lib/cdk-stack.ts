@@ -37,6 +37,10 @@ export class ChiitilerStack extends cdk.Stack {
 					CHIITILER_CACHE_METHOD: 's3', // Use S3 cache
 					CHIITILER_S3CACHE_BUCKET: cacheBucket.bucketName,
 					CHIITILER_S3_REGION: 'ap-northeast-1',
+					// Warm up the renderer during the INIT phase (full CPU
+					// boost). Set CHIITILER_PREWARM_STYLE_URL instead to also
+					// warm a specific style's render pool and its resources.
+					CHIITILER_PREWARM: 'true',
 				},
 			},
 		);

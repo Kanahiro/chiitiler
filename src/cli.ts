@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
 import { setUserAgent } from './source/userAgent.js';
+import { prewarm } from './render/warmup.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3' | 'gcs',
@@ -97,6 +98,20 @@ function parsePort(port: string | undefined) {
     return 3000;
 }
 
+function parsePrewarm(
+    prewarmFlag: boolean | undefined,
+    prewarmStyleUrl: string | undefined,
+): { enabled: boolean; styleUrl?: string } {
+    // command-line option, then env
+    const styleUrl =
+        prewarmStyleUrl ?? process.env.CHIITILER_PREWARM_STYLE_URL;
+    const enabled =
+        prewarmFlag === true ||
+        process.env.CHIITILER_PREWARM === 'true' ||
+        styleUrl !== undefined;
+    return { enabled, styleUrl };
+}
+
 function parseDebug(debug: boolean | undefined) {
     // command-line option
     if (debug) return true;
@@ -167,8 +182,16 @@ export function createProgram() {
             '--user-agent <user-agent>',
             'User-Agent header for outbound HTTP requests',
         )
+        .option(
+            '--prewarm',
+            'render one tile at startup before listening, to warm up the renderer',
+        )
+        .option(
+            '--prewarm-style-url <url>',
+            'style.json url to prewarm with (implies --prewarm)',
+        )
         .option('-D, --debug', 'debug mode')
-        .action((options) => {
+        .action(async (options) => {
             // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
             if (options.userAgent !== undefined) setUserAgent(options.userAgent);
 
@@ -204,6 +227,24 @@ export function createProgram() {
                 console.log(
                     `editor page: http://localhost:${serverOptions.port}/editor`,
                 );
+            }
+
+            // warm up BEFORE listening: Lambda Web Adapter polls the
+            // readiness check until the port opens, so work done here
+            // stays inside the INIT phase (full CPU boost)
+            const prewarmOptions = parsePrewarm(
+                options.prewarm,
+                options.prewarmStyleUrl,
+            );
+            if (prewarmOptions.enabled) {
+                const startedAt = Date.now();
+                try {
+                    await prewarm(serverOptions.cache, prewarmOptions.styleUrl);
+                    console.log(`prewarm done in ${Date.now() - startedAt}ms`);
+                } catch (err) {
+                    // 温まらないだけでサーバとしては動けるので起動は続行する
+                    console.warn(`prewarm failed: ${err}`);
+                }
             }
 
             const { start } = initServer(serverOptions);

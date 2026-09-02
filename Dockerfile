@@ -56,6 +56,9 @@ FROM gl-base AS runtime
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.0 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
 ENV AWS_LWA_READINESS_CHECK_PATH=/health
+# If prewarm pushes INIT past Lambda's 10s limit, continue it during the
+# first invoke instead of letting Lambda restart the sandbox.
+ENV AWS_LWA_ASYNC_INIT=true
 
 # npm and Corepack are unnecessary at runtime.
 COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
