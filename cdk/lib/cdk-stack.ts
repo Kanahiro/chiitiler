@@ -33,8 +33,6 @@ export class ChiitilerStack extends cdk.Stack {
 				environment: {
 					// environment variables for chiitiler
 					CHIITILER_PORT: '3000',
-					// must match the Function URL's invokeMode (RESPONSE_STREAM)
-					AWS_LWA_INVOKE_MODE: 'response_stream',
 					CHIITILER_CACHE_METHOD: 's3', // Use S3 cache
 					CHIITILER_S3CACHE_BUCKET: cacheBucket.bucketName,
 					CHIITILER_S3_REGION: 'ap-northeast-1',
@@ -49,7 +47,7 @@ export class ChiitilerStack extends cdk.Stack {
 		// Create a Function URL for the Lambda function
 		const functionUrl = chiitilerFunction.addFunctionUrl({
 			authType: lambda.FunctionUrlAuthType.NONE, // Public access
-			invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+			// BUFFERED (default): LWA also runs in buffered mode by default
 		});
 
 		// Output the Function URL
