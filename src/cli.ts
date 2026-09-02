@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
 import { setUserAgent } from './source/userAgent.js';
+import { prewarm } from './render/warmup.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3' | 'gcs',
@@ -97,6 +98,11 @@ function parsePort(port: string | undefined) {
     return 3000;
 }
 
+function parsePrewarm(prewarmFlag: boolean | undefined) {
+    // command-line option, then env
+    return prewarmFlag === true || process.env.CHIITILER_PREWARM === 'true';
+}
+
 function parseDebug(debug: boolean | undefined) {
     // command-line option
     if (debug) return true;
@@ -167,8 +173,12 @@ export function createProgram() {
             '--user-agent <user-agent>',
             'User-Agent header for outbound HTTP requests',
         )
+        .option(
+            '--prewarm',
+            'render one tile at startup before listening, to warm up the renderer',
+        )
         .option('-D, --debug', 'debug mode')
-        .action((options) => {
+        .action(async (options) => {
             // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
             if (options.userAgent !== undefined) setUserAgent(options.userAgent);
 
@@ -204,6 +214,20 @@ export function createProgram() {
                 console.log(
                     `editor page: http://localhost:${serverOptions.port}/editor`,
                 );
+            }
+
+            // warm up BEFORE listening: Lambda Web Adapter polls the
+            // readiness check until the port opens, so work done here
+            // stays inside the INIT phase (full CPU boost)
+            if (parsePrewarm(options.prewarm)) {
+                const startedAt = Date.now();
+                try {
+                    await prewarm(serverOptions.cache);
+                    console.log(`prewarm done in ${Date.now() - startedAt}ms`);
+                } catch (err) {
+                    // 温まらないだけでサーバとしては動けるので起動は続行する
+                    console.warn(`prewarm failed: ${err}`);
+                }
             }
 
             const { start } = initServer(serverOptions);

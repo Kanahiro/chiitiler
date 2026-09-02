@@ -121,7 +121,10 @@ All options can be set via CLI flag or environment variable.
 | `--port <n>` | `CHIITILER_PORT` | `3000` |
 | `--debug` | `CHIITILER_DEBUG` | `false` |
 | `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
+| `--prewarm` | `CHIITILER_PREWARM` | `false` |
 | — | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
+
+With prewarm enabled, one tile is rendered at startup **before** the server starts listening, so renderer initialization (GL context, sharp/libvips, JIT) doesn't hit the first request. On AWS Lambda with Lambda Web Adapter, the readiness check keeps this inside the INIT phase, which runs with a full CPU boost.
 
 ### Cache
 
