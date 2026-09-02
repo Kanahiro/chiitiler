@@ -53,8 +53,8 @@ RUN npm ci --no-audit --no-fund
 
 FROM gl-base AS runtime
 
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.0 /lambda-adapter /opt/extensions/lambda-adapter
-ENV PORT=3000
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.1 /lambda-adapter /opt/extensions/lambda-adapter
+ENV AWS_LWA_PORT=3000
 ENV AWS_LWA_READINESS_CHECK_PATH=/health
 # If prewarm pushes INIT past Lambda's 10s limit, continue it during the
 # first invoke instead of letting Lambda restart the sandbox.

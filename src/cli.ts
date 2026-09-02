@@ -98,18 +98,9 @@ function parsePort(port: string | undefined) {
     return 3000;
 }
 
-function parsePrewarm(
-    prewarmFlag: boolean | undefined,
-    prewarmStyleUrl: string | undefined,
-): { enabled: boolean; styleUrl?: string } {
+function parsePrewarm(prewarmFlag: boolean | undefined) {
     // command-line option, then env
-    const styleUrl =
-        prewarmStyleUrl ?? process.env.CHIITILER_PREWARM_STYLE_URL;
-    const enabled =
-        prewarmFlag === true ||
-        process.env.CHIITILER_PREWARM === 'true' ||
-        styleUrl !== undefined;
-    return { enabled, styleUrl };
+    return prewarmFlag === true || process.env.CHIITILER_PREWARM === 'true';
 }
 
 function parseDebug(debug: boolean | undefined) {
@@ -186,10 +177,6 @@ export function createProgram() {
             '--prewarm',
             'render one tile at startup before listening, to warm up the renderer',
         )
-        .option(
-            '--prewarm-style-url <url>',
-            'style.json url to prewarm with (implies --prewarm)',
-        )
         .option('-D, --debug', 'debug mode')
         .action(async (options) => {
             // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
@@ -232,14 +219,10 @@ export function createProgram() {
             // warm up BEFORE listening: Lambda Web Adapter polls the
             // readiness check until the port opens, so work done here
             // stays inside the INIT phase (full CPU boost)
-            const prewarmOptions = parsePrewarm(
-                options.prewarm,
-                options.prewarmStyleUrl,
-            );
-            if (prewarmOptions.enabled) {
+            if (parsePrewarm(options.prewarm)) {
                 const startedAt = Date.now();
                 try {
-                    await prewarm(serverOptions.cache, prewarmOptions.styleUrl);
+                    await prewarm(serverOptions.cache);
                     console.log(`prewarm done in ${Date.now() - startedAt}ms`);
                 } catch (err) {
                     // 温まらないだけでサーバとしては動けるので起動は続行する

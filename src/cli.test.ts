@@ -104,11 +104,7 @@ describe('run chiitiler', () => {
         }));
 
         const program = createProgram();
-        await program.parseAsync(['node', 'cli.js', 'tile-server', '--prewarm-style-url', 'https://tile.example.com/style.json']); // prettier-ignore
-        expect(prewarm).toHaveBeenCalledWith(
-            expect.anything(),
-            'https://tile.example.com/style.json',
-        );
+        await program.parseAsync(['node', 'cli.js', 'tile-server', '--prewarm']); // prettier-ignore
         expect(callOrder).toEqual(['prewarm', 'start']);
     });
 
@@ -122,7 +118,7 @@ describe('run chiitiler', () => {
 
         const program = createProgram();
         await program.parseAsync(['node', 'cli.js', 'tile-server', '--prewarm']); // prettier-ignore
-        expect(prewarm).toHaveBeenCalledWith(expect.anything(), undefined);
+        expect(prewarm).toHaveBeenCalled();
         expect(start).toHaveBeenCalled();
     });
 });

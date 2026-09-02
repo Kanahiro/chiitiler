@@ -33,13 +33,12 @@ export class ChiitilerStack extends cdk.Stack {
 				environment: {
 					// environment variables for chiitiler
 					CHIITILER_PORT: '3000',
-					CHIITILER_STREAM_MODE: 'true', // Enable stream mode for Lambda
+					// must match the Function URL's invokeMode (RESPONSE_STREAM)
+					AWS_LWA_INVOKE_MODE: 'response_stream',
 					CHIITILER_CACHE_METHOD: 's3', // Use S3 cache
 					CHIITILER_S3CACHE_BUCKET: cacheBucket.bucketName,
 					CHIITILER_S3_REGION: 'ap-northeast-1',
-					// Warm up the renderer during the INIT phase (full CPU
-					// boost). Set CHIITILER_PREWARM_STYLE_URL instead to also
-					// warm a specific style's render pool and its resources.
+					// Warm up the renderer during the INIT phase (full CPU boost)
 					CHIITILER_PREWARM: 'true',
 				},
 			},
