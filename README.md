@@ -108,6 +108,24 @@ const png = await getRenderedTileBuffer({
 
 Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`, and their `*Stream` variants (`Sharp` instances for further piping).
 
+Types are re-exported as well, so you can annotate call sites without depending on
+`@maplibre/maplibre-gl-style-spec` resolution in your own tree:
+
+```ts
+import type {
+    StyleSpecification,
+    GetRenderedTileOptions,
+    GetRenderedClipOptions,
+    GetRenderedCameraOptions,
+    SupportedFormat,
+    Cache,
+} from 'chiitiler';
+```
+
+Prefer chiitiler's `StyleSpecification` over importing it from
+`@maplibre/maplibre-gl-style-spec` directly: if your tree resolves a different major of
+that package, the two structurally-different types are not assignable to each other.
+
 chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default, so the runtime's default is used (Node sends `node`). Some tile providers (e.g. OpenStreetMap) require an identifying User-Agent — set one with `setUserAgent('my-app/1.0')` or the `CHIITILER_USER_AGENT` environment variable.
 
 ## Configuration
