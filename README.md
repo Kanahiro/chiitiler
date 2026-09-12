@@ -158,10 +158,12 @@ All options can be set via CLI flag or environment variable.
 | `--port <n>` | `CHIITILER_PORT` | `3000` |
 | `--debug` | `CHIITILER_DEBUG` | `false` |
 | `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
-| — | `CHIITILER_PREWARM` | `true` |
-| — | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
+| `--prewarm [true\|false]` | `CHIITILER_PREWARM` | `true` |
+| `--processes <n>` | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
 
-Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. Either `--no-prewarm` or `CHIITILER_PREWARM=false` disables it. Style-specific tiles, glyphs, and sprites are not preloaded.
+Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. `--prewarm false` or `CHIITILER_PREWARM=false` disables it. `--prewarm` alone enables it. The CLI flag takes precedence over the environment variable. Style-specific tiles, glyphs, and sprites are not preloaded.
+
+`--processes` takes precedence over `CHIITILER_PROCESSES` and accepts non-negative integers; `0` uses all available CPUs.
 
 ### Cache
 
@@ -170,8 +172,8 @@ Prewarm is enabled by default: one tile is rendered at startup **before** the se
 | `--cache <none\|memory\|file\|s3\|gcs>` | `CHIITILER_CACHE_METHOD` | `none` |
 | `--cache-ttl <seconds>` | `CHIITILER_CACHE_TTL_SEC` | `3600` |
 | `--memory-cache-max-item-count <n>` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
-| — | `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
-| — | `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
+| `--front-cache-ttl-sec <seconds>` | `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
+| `--front-cache-max-bytes <bytes>` | `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
 | `--file-cache-dir <dir>` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
 | `--s3-cache-bucket <name>` | `CHIITILER_S3CACHE_BUCKET` | — |
 | `--s3-region <region>` | `CHIITILER_S3_REGION` | `us-east-1` |
@@ -192,9 +194,9 @@ hits into memory; writes populate memory immediately and also write to the backi
 cache. `none` and `memory` keep their existing behavior. This affects sources that
 already use the cache, not direct `s3://`, `gs://`, or local source reads.
 
-Set `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
-`CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
-these limits. Setting either variable to `0` disables the front cache and uses the
+Set `--front-cache-ttl-sec` / `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
+`--front-cache-max-bytes` / `CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
+these limits. CLI flags take precedence over environment variables. Setting either limit to `0` disables the front cache and uses the
 backing cache directly. Otherwise, invalid values stop startup when using `file`,
 `s3`, or `gcs`.
 These settings do not affect `none`, `memory`, or library callers.

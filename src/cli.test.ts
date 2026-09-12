@@ -1,18 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+
 import { createProgram } from './cli.js';
 import * as server from './server/index.js';
 import { prewarm } from './render/warmup.js';
 import * as caches from './cache/index.js';
 
 vi.mock('@maplibre/maplibre-gl-native', () => ({}));
+vi.mock('node:cluster', () => ({
+    default: { get isPrimary() { return true; }, fork: vi.fn() },
+}));
 vi.mock('./render/warmup.js', () => ({
     prewarm: vi.fn().mockResolvedValue(undefined),
 }));
 
 beforeEach(() => {
+    vi.mocked(cluster.fork).mockReset();
     vi.mocked(prewarm).mockReset().mockResolvedValue(undefined);
     vi.stubEnv('CHIITILER_PREWARM', undefined);
+    vi.stubEnv('CHIITILER_PROCESSES', undefined);
     vi.stubEnv('CHIITILER_FRONT_CACHE_TTL_SEC', undefined);
     vi.stubEnv('CHIITILER_FRONT_CACHE_MAX_BYTES', undefined);
 });
@@ -23,10 +31,10 @@ afterEach(() => {
 });
 
 describe('run chiitiler', () => {
-    it('applies front-cache TTL and byte limits from the environment', async () => {
+    it.each([false, true])('applies front-cache limits with CLI override=%s', async (useFlags) => {
         vi.stubEnv('CHIITILER_CACHE_METHOD', 'file');
-        vi.stubEnv('CHIITILER_FRONT_CACHE_TTL_SEC', '2');
-        vi.stubEnv('CHIITILER_FRONT_CACHE_MAX_BYTES', '6');
+        vi.stubEnv('CHIITILER_FRONT_CACHE_TTL_SEC', useFlags ? 'invalid' : '2');
+        vi.stubEnv('CHIITILER_FRONT_CACHE_MAX_BYTES', useFlags ? 'invalid' : '6');
         let now = 1;
         vi.spyOn(performance, 'now').mockImplementation(() => now);
         const backing = {
@@ -40,7 +48,9 @@ describe('run chiitiler', () => {
             options = opts;
             return { app: {} as any, start: vi.fn() };
         });
-        await createProgram().parseAsync(['node', 'cli.js', 'tile-server']);
+        await createProgram().parseAsync(['node', 'cli.js', 'tile-server',
+            ...(useFlags ? ['--front-cache-ttl-sec', '2', '--front-cache-max-bytes', '6'] : []),
+        ]);
         await options.cache.set('a', Buffer.from('aaa'));
         await options.cache.set('b', Buffer.from('bbbb'));
         expect(await options.cache.get('a')).toBeUndefined();
@@ -69,6 +79,32 @@ describe('run chiitiler', () => {
         expect(init).not.toHaveBeenCalled();
         expect(prewarm).not.toHaveBeenCalled();
     });
+
+    it.each([
+        ['--front-cache-ttl-sec', '-1', 'ttlSeconds'],
+        ['--front-cache-ttl-sec', 'invalid', 'ttlSeconds'],
+        ['--front-cache-max-bytes', '1.5', 'maxBytes'],
+        ['--front-cache-max-bytes', '', 'maxBytes'],
+    ])('rejects invalid %s=%s', async (flag, value, error) => {
+        vi.spyOn(caches, 'fileCache').mockReturnValue({ name: 'file', get: vi.fn(), set: vi.fn() });
+        const init = vi.spyOn(server, 'initServer');
+        await expect(createProgram().parseAsync([
+            'node', 'cli.js', 'tile-server', '-c', 'file', flag, value,
+        ])).rejects.toThrow(error);
+        expect(init).not.toHaveBeenCalled();
+    });
+
+    it.each(['--front-cache-ttl-sec', '--front-cache-max-bytes'])(
+        'disables the front cache with %s=0 despite the environment', async (flag) => {
+            vi.stubEnv('CHIITILER_FRONT_CACHE_TTL_SEC', '10');
+            vi.stubEnv('CHIITILER_FRONT_CACHE_MAX_BYTES', '1024');
+            const backing = { name: 'file', get: vi.fn(), set: vi.fn() };
+            vi.spyOn(caches, 'fileCache').mockReturnValue(backing);
+            const init = vi.spyOn(server, 'initServer').mockReturnValue({ app: {} as any, start: vi.fn() });
+            await createProgram().parseAsync(['node', 'cli.js', 'tile-server', '-c', 'file', flag, '0']);
+            expect(init.mock.calls[0]![0].cache).toBe(backing);
+        },
+    );
 
     it.each(['CHIITILER_FRONT_CACHE_TTL_SEC', 'CHIITILER_FRONT_CACHE_MAX_BYTES'])(
         'disables the front cache when %s is zero', async (env) => {
@@ -109,6 +145,47 @@ describe('run chiitiler', () => {
             );
         },
     );
+
+    it.each([
+        { env: undefined, flags: [], count: 1 },
+        { env: '2', flags: [], count: 2 },
+        { env: '0', flags: [], count: availableParallelism() },
+        { env: '2', flags: ['--processes', '1'], count: 1 },
+        { env: 'invalid', flags: ['--processes', '3'], count: 3 },
+        { env: '2', flags: ['--processes', '0'], count: availableParallelism() },
+    ])('processes env=$env flags=$flags', async ({ env, flags, count }) => {
+        vi.stubEnv('CHIITILER_PROCESSES', env);
+        vi.spyOn(cluster, 'isPrimary', 'get').mockReturnValue(true);
+        const fork = vi.spyOn(cluster, 'fork').mockReturnValue({} as any);
+        const init = vi.spyOn(server, 'initServer').mockReturnValue({ app: {} as any, start: vi.fn() });
+        await createProgram().parseAsync(['node', 'cli.js', 'tile-server', ...flags]);
+        expect(fork).toHaveBeenCalledTimes(count === 1 ? 0 : count);
+        expect(init).toHaveBeenCalledTimes(count === 1 ? 1 : 0);
+        expect(prewarm).toHaveBeenCalledTimes(count === 1 ? 1 : 0);
+    });
+
+    it('starts a cluster worker without forking again', async () => {
+        vi.spyOn(cluster, 'isPrimary', 'get').mockReturnValue(false);
+        const fork = vi.spyOn(cluster, 'fork').mockReturnValue({} as any);
+        const init = vi.spyOn(server, 'initServer').mockReturnValue({ app: {} as any, start: vi.fn() });
+        await createProgram().parseAsync(['node', 'cli.js', 'tile-server', '--processes', '2']);
+        expect(fork).not.toHaveBeenCalled();
+        expect(init).toHaveBeenCalledOnce();
+    });
+
+    it.each(['-1', '1.5', '', 'invalid', 'Infinity'])('rejects invalid process count %s', async (value) => {
+        const fork = vi.spyOn(cluster, 'fork');
+        const program = createProgram().commands[0]!.exitOverride().configureOutput({ writeErr: () => {} });
+        await expect(program.parseAsync(['node', 'cli.js', '--processes', value]))
+            .rejects.toThrow('processes must be a non-negative safe integer');
+        expect(fork).not.toHaveBeenCalled();
+    });
+
+    it('rejects the removed --no-prewarm flag', async () => {
+        const program = createProgram().commands[0]!.exitOverride().configureOutput({ writeErr: () => {} });
+        await expect(program.parseAsync(['node', 'cli.js', '--no-prewarm']))
+            .rejects.toThrow("unknown option '--no-prewarm'");
+    });
 
     it('parse options1', async () => {
         let options: server.InitServerOptions | undefined;
@@ -175,12 +252,14 @@ describe('run chiitiler', () => {
     });
 
     it.each([
+        { env: 'false', flags: ['--prewarm'], enabled: true },
+        { env: 'false', flags: ['--prewarm', 'true'], enabled: true },
         { env: undefined, flags: [], enabled: true },
         { env: 'true', flags: [], enabled: true },
         { env: 'false', flags: [], enabled: false },
-        { env: undefined, flags: ['--no-prewarm'], enabled: false },
-        { env: 'true', flags: ['--no-prewarm'], enabled: false },
-        { env: 'false', flags: ['--no-prewarm'], enabled: false },
+        { env: undefined, flags: ['--prewarm', 'false'], enabled: false },
+        { env: 'true', flags: ['--prewarm', 'false'], enabled: false },
+        { env: 'false', flags: ['--prewarm', 'false'], enabled: false },
     ])('prewarm env=$env flags=$flags enabled=$enabled', async ({ env, flags, enabled }) => {
         vi.stubEnv('CHIITILER_PREWARM', env);
         const start = vi.fn();
