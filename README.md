@@ -62,6 +62,10 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **[Allmaps Latest](https://bsky.app/profile/latest.allmaps.org)** — Bluesky bot
 - **[Kumoy](https://www.kumoy.io/)** - used for thumbnail image of designed maps
 
+## Presentations
+
+- [FOSS4G Hiroshima 2026 — Presentation slides](https://drive.google.com/file/d/122JW5gJbrxnUVCVsSlcQMb22StPTnZQV/view?usp=sharing)
+
 ## HTTP API
 
 | Method | Endpoint | Description |
