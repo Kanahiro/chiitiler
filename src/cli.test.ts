@@ -51,12 +51,10 @@ describe('run chiitiler', () => {
     });
 
     it.each([
-        ['CHIITILER_FRONT_CACHE_TTL_SEC', '0', 'ttlSeconds'],
         ['CHIITILER_FRONT_CACHE_TTL_SEC', '-1', 'ttlSeconds'],
         ['CHIITILER_FRONT_CACHE_TTL_SEC', 'invalid', 'ttlSeconds'],
         ['CHIITILER_FRONT_CACHE_TTL_SEC', 'Infinity', 'ttlSeconds'],
         ['CHIITILER_FRONT_CACHE_MAX_BYTES', '', 'maxBytes'],
-        ['CHIITILER_FRONT_CACHE_MAX_BYTES', '0', 'maxBytes'],
         ['CHIITILER_FRONT_CACHE_MAX_BYTES', '1.5', 'maxBytes'],
         ['CHIITILER_FRONT_CACHE_MAX_BYTES', 'invalid', 'maxBytes'],
     ])('rejects invalid %s=%s before startup', async (env, value, error) => {
@@ -71,6 +69,21 @@ describe('run chiitiler', () => {
         expect(init).not.toHaveBeenCalled();
         expect(prewarm).not.toHaveBeenCalled();
     });
+
+    it.each(['CHIITILER_FRONT_CACHE_TTL_SEC', 'CHIITILER_FRONT_CACHE_MAX_BYTES'])(
+        'disables the front cache when %s is zero', async (env) => {
+            vi.stubEnv(env, '0');
+            const backing = { name: 'file', get: vi.fn(), set: vi.fn() };
+            vi.spyOn(caches, 'fileCache').mockReturnValue(backing);
+            let options!: server.InitServerOptions;
+            vi.spyOn(server, 'initServer').mockImplementation((opts) => {
+                options = opts;
+                return { app: {} as any, start: vi.fn() };
+            });
+            await createProgram().parseAsync(['node', 'cli.js', 'tile-server', '-c', 'file']);
+            expect(options.cache).toBe(backing);
+        },
+    );
 
     it.each(['file', 's3', 'gcs', 'none', 'memory'] as const)(
         'adds the memory front cache only for I/O-backed caches: %s',

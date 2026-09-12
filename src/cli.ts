@@ -204,8 +204,8 @@ export function createProgram() {
                 const ttl = process.env.CHIITILER_FRONT_CACHE_TTL_SEC;
                 const size = process.env.CHIITILER_FRONT_CACHE_MAX_BYTES;
                 serverOptions.cache = caches.withMemoryCache(serverOptions.cache, {
-                    ttlSeconds: ttl === undefined ? undefined : Number(ttl),
-                    maxBytes: size === undefined ? undefined : Number(size),
+                    ttlSeconds: ttl === undefined ? undefined : Number(ttl.trim() || NaN),
+                    maxBytes: size === undefined ? undefined : Number(size.trim() || NaN),
                 });
             }
 

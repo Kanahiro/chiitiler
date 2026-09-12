@@ -103,8 +103,15 @@ describe('withMemoryCache', () => {
     });
 
     it.each([
-        { ttlSeconds: 0 }, { ttlSeconds: -1 }, { ttlSeconds: Infinity },
-        { maxBytes: 0 }, { maxBytes: -1 }, { maxBytes: 1.5 },
+        { ttlSeconds: 0 }, { maxBytes: 0 }, { ttlSeconds: 0, maxBytes: 0 },
+    ])('returns the backing cache unchanged when disabled: %j', (options) => {
+        const backing = backingCache();
+        expect(withMemoryCache(backing, options)).toBe(backing);
+    });
+
+    it.each([
+        { ttlSeconds: -1 }, { ttlSeconds: Infinity },
+        { maxBytes: -1 }, { maxBytes: 1.5 },
     ])('rejects invalid limits %j', (options) => {
         expect(() => withMemoryCache(backingCache(), options)).toThrow();
     });

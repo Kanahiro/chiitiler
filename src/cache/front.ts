@@ -5,11 +5,14 @@ import type { Cache, Value } from './index.js';
  * Keep recent source buffers in this process to avoid backing-cache I/O.
  * TTL starts on insertion, so promotion can extend the backing cache's lifetime
  * by up to ttlSeconds. maxBytes bounds buffer payloads, not total process memory.
+ * Either limit set to zero disables the front cache and returns backing unchanged.
  */
 export function withMemoryCache(
     backing: Cache,
     { ttlSeconds = 10, maxBytes = 64 * 1024 * 1024 } = {},
 ): Cache {
+    if (ttlSeconds === 0 || maxBytes === 0) return backing;
+
     if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
         throw new Error('ttlSeconds must be positive and finite');
     }
