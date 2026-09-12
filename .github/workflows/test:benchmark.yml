@@ -9,8 +9,14 @@ on:
             - "tests/**"
             - "localdata/**"
             - "package.json"
+            - "package-lock.json"
             - ".github/workflows/test:benchmark.yml"
     workflow_dispatch:
+        inputs:
+            aa:
+                description: "Compare the selected commit with itself to measure noise"
+                type: boolean
+                default: true
 
 permissions:
     contents: read
@@ -18,12 +24,12 @@ permissions:
 
 jobs:
     benchmark:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
+        timeout-minutes: 30
 
         steps:
             - uses: actions/checkout@v6
               with:
-                  # Need main's history to check out its src for the baseline run.
                   fetch-depth: 0
 
             - name: Setup Node.js
@@ -42,48 +48,45 @@ jobs:
                       libjpeg-turbo8-dev \
                       libpng-dev \
                       libwebp-dev
-            - name: Install deps
-              run: npm install
+            - name: Install harness dependencies
+              run: npm ci
 
-            - name: Run benchmark (PR)
-              run: xvfb-run -a npm run test:benchmark
+            - name: Prepare fixed comparison checkouts
               env:
-                  CHIITILER_BENCH_OUTPUT: benchmark-pr.json
-
-            - name: Swap in main's source for baseline run
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  CURRENT_SHA: ${{ github.sha }}
+                  AA: ${{ inputs.aa }}
               run: |
-                  git fetch origin main --depth=1
-                  git checkout origin/main -- src localdata
-            - name: Run benchmark (main baseline)
-              run: xvfb-run -a npm run test:benchmark
-              env:
-                  CHIITILER_BENCH_OUTPUT: benchmark-main.json
-              continue-on-error: true
-            - name: Restore PR source
-              if: always()
-              run: git checkout HEAD -- src localdata
+                  base="${BASE_SHA:-$(git rev-parse origin/main)}"
+                  if [ "$AA" = "true" ]; then base="$CURRENT_SHA"; fi
+                  baseline="$RUNNER_TEMP/benchmark-baseline"
+                  current="$RUNNER_TEMP/benchmark-current"
+                  mkdir -p "$baseline" "$current"
+                  git archive "$base" | tar -x -C "$baseline"
+                  git archive "$CURRENT_SHA" | tar -x -C "$current"
+                  npm ci --prefix "$baseline"
+                  npm ci --prefix "$current"
+                  echo "CHIITILER_BENCH_BASELINE=$baseline" >> "$GITHUB_ENV"
+                  echo "CHIITILER_BENCH_CURRENT=$current" >> "$GITHUB_ENV"
+                  echo "CHIITILER_BENCH_BASE_SHA=$base" >> "$GITHUB_ENV"
+                  echo "CHIITILER_BENCH_CURRENT_SHA=$CURRENT_SHA" >> "$GITHUB_ENV"
 
-            - name: Compare results
-              run: |
-                  npx tsx tests/compare-benchmarks.ts \
-                      benchmark-main.json \
-                      benchmark-pr.json \
-                      benchmark.md
-                  cat benchmark.md
+            - name: Test comparison validation
+              run: node --import tsx --test tests/compare-benchmarks.test.ts
+
+            - name: Run paired benchmarks
+              run: xvfb-run -a node --import tsx tests/run-benchmark-comparison.ts
 
             - name: Post results to PR
-              if: github.event_name == 'pull_request'
+              if: always() && github.event_name == 'pull_request' && hashFiles('benchmark-results/benchmark.md') != ''
               uses: marocchino/sticky-pull-request-comment@v2
               with:
                   header: benchmark
-                  path: benchmark.md
+                  path: benchmark-results/benchmark.md
             - name: Upload benchmark results
               if: always()
               uses: actions/upload-artifact@v4
               with:
                   name: benchmark-results
-                  path: |
-                      benchmark-pr.json
-                      benchmark-main.json
-                      benchmark.md
+                  path: benchmark-results/
                   if-no-files-found: ignore
