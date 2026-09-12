@@ -21,7 +21,8 @@ async function getRenderPool(
     cache: Cache,
     mode: 'tile' | 'static',
 ) {
-    const cacheKey = JSON.stringify(style);
+    // A Map's mode is fixed at creation; tile and static requests cannot share it.
+    const cacheKey = `${mode}:${JSON.stringify(style)}`;
 
     const pool = mapPoolCache.get(cacheKey);
     if (pool !== undefined) return pool;

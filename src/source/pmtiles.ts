@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import {
 	PMTiles,
 	FetchSource,
-	ResolvedValueCache,
+	SharedPromiseCache,
 	Source,
 	RangeResponse,
 } from 'pmtiles';
@@ -117,13 +117,15 @@ async function getPmtilesSource(
 	if (isHttpSource) {
 		const val = await cache.get(uri);
 		if (val !== undefined) return val; // hit
+		// Another request may have created the archive while cache.get awaited.
+		pmtiles = pmtilesCache.get(pmtilesUri);
 
 		if (pmtiles === undefined) {
 			const userAgent = getUserAgent();
 			const headers = new Headers();
 			if (userAgent) headers.set('User-Agent', userAgent);
 			const fetchSource = new FetchSource(pmtilesUri, headers);
-			pmtiles = new PMTiles(fetchSource, new ResolvedValueCache());
+			pmtiles = new PMTiles(fetchSource, new SharedPromiseCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else if (pmtilesUri.startsWith('s3://')) {
@@ -131,19 +133,24 @@ async function getPmtilesSource(
 			const bucket = pmtilesUri.replace('s3://', '').split('/')[0];
 			const key = pmtilesUri.replace(`s3://${bucket}/`, '');
 			const s3Source = new S3Source(bucket, key);
-			pmtiles = new PMTiles(s3Source, new ResolvedValueCache());
+			pmtiles = new PMTiles(s3Source, new SharedPromiseCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	} else {
 		if (pmtiles === undefined) {
 			const fileSource = new FilesystemSource(pmtilesUri);
-			pmtiles = new PMTiles(fileSource, new ResolvedValueCache());
+			pmtiles = new PMTiles(fileSource, new SharedPromiseCache());
 			pmtilesCache.set(pmtilesUri, pmtiles);
 		}
 	}
 
 	const [z, x, y] = uri.replace(`pmtiles://${pmtilesUri}/`, '').split('/');
-	const tile = await pmtiles.getZxy(Number(z), Number(x), Number(y));
+	const tile = await pmtiles.getZxy(Number(z), Number(x), Number(y)).catch((err) => {
+		// SharedPromiseCache retains rejected metadata promises. Rebuild after a
+		// failure, without evicting a replacement created by a newer request.
+		if (pmtilesCache.get(pmtilesUri) === pmtiles) pmtilesCache.delete(pmtilesUri);
+		throw err;
+	});
 
 	if (!tile) return null;
 
