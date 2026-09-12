@@ -200,6 +200,15 @@ export function createProgram() {
                 debug: parseDebug(options.debug),
             };
 
+            if (['file', 's3', 'gcs'].includes(serverOptions.cache.name)) {
+                const ttl = process.env.CHIITILER_FRONT_CACHE_TTL_SEC;
+                const size = process.env.CHIITILER_FRONT_CACHE_MAX_BYTES;
+                serverOptions.cache = caches.withMemoryCache(serverOptions.cache, {
+                    ttlSeconds: ttl === undefined ? undefined : Number(ttl),
+                    maxBytes: size === undefined ? undefined : Number(size),
+                });
+            }
+
             if (serverOptions.debug) {
                 console.log(
                     `running server: http://localhost:${serverOptions.port}`,
