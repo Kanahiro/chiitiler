@@ -6,7 +6,7 @@ against each scenario and reports throughput + latency percentiles.
 
 ## Setup
 
-- Style: [`tests/fixtures/bench-style.json`](./tests/fixtures/bench-style.json)
+- Style: [`tests/fixtures/bench-style.json`](../tests/fixtures/bench-style.json)
   — single `file://` vector source, no external network dependencies,
   so numbers reflect render + encode cost only.
 - Target tile: `/tiles/5/28/12.png`.
@@ -45,11 +45,37 @@ On macOS you can run it directly. On headless Linux (including the CI
 runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
 needs a display.
 
+## First-request prewarm comparison
+
+Run manually from the repository root (not included in npm scripts or CI):
+
+```sh
+CHIITILER_BENCH_RUNS=20 \
+CHIITILER_BENCH_OUTPUT=bench/prewarm-results.json \
+CHIITILER_BENCH_MARKDOWN=bench/prewarm-results.md \
+node --import tsx bench/benchmark-prewarm.ts
+```
+
+Recorded results: [summary](./prewarm-results.md) and [raw samples](./prewarm-results.json).
+
+This separate benchmark starts a fresh Node process for every sample and
+alternates the order of prewarm off/on within each pair. It polls only
+`/health` before measuring the first tile response, including its entire
+body. It also records a second request, startup time, and time from process
+launch through the first response, so work moved into startup is visible.
+The fixture, single-process setting, and disabled cache match the throughput
+benchmark. Every response must be a valid 512×512 PNG with identical bytes
+across both modes; failed prewarming aborts the run.
+
+`CHIITILER_BENCH_RUNS` defaults to 20 samples per mode. These are process-cold
+measurements: OS caches remain shared. macOS results do not establish the
+effect of Linux GL initialization or AWS Lambda INIT CPU allocation.
+
 ## Baseline comparison in CI
 
 Each PR run also executes the benchmark against `main`'s source on the
 same runner, then diffs the two via
-[`tests/compare-benchmarks.ts`](./tests/compare-benchmarks.ts). The
+[`tests/compare-benchmarks.ts`](../tests/compare-benchmarks.ts). The
 resulting table is posted as a sticky comment on the PR so regressions
 are visible at a glance. Running on the same runner back-to-back keeps
 machine-level noise from dominating the comparison.
