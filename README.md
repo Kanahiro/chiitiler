@@ -181,7 +181,7 @@ npm install
 npm run dev              # tsx watch mode
 npm run test:unit        # vitest
 npm run test:integration # end-to-end
-npm run test:benchmark   # see BENCHMARK.md
+npm run test:benchmark   # see bench/BENCHMARK.md
 npm run build            # bundle to build/main.cjs
 ```
 

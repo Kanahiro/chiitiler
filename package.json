@@ -15,8 +15,7 @@
     "test:unit": "vitest src",
     "test:coverage": "vitest src --coverage --coverage.provider=v8",
     "test:integration": "vitest tests/integration.test.ts",
-    "test:benchmark": "tsx tests/benchmark.ts",
-    "test:benchmark:prewarm": "tsx tests/benchmark-prewarm.ts"
+    "test:benchmark": "tsx tests/benchmark.ts"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
