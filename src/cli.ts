@@ -1,6 +1,8 @@
 import process from 'node:process';
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
 
-import { Command } from 'commander';
+import { Command, Option, InvalidArgumentError } from 'commander';
 
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
@@ -98,9 +100,12 @@ function parsePort(port: string | undefined) {
     return 3000;
 }
 
-function parsePrewarm(prewarmFlag: boolean | undefined) {
-    // Commander defaults a negated option to true; either opt-out disables warmup.
-    return prewarmFlag !== false && process.env.CHIITILER_PREWARM !== 'false';
+function parseProcesses(value: string) {
+    const count = Number(value.trim() || NaN);
+    if (!Number.isSafeInteger(count) || count < 0) {
+        throw new InvalidArgumentError('processes must be a non-negative safe integer');
+    }
+    return count;
 }
 
 function parseDebug(debug: boolean | undefined) {
@@ -173,9 +178,23 @@ export function createProgram() {
             '--user-agent <user-agent>',
             'User-Agent header for outbound HTTP requests',
         )
-        .option('--no-prewarm', 'disable startup renderer warmup (enabled by default)')
+        .addOption(new Option('--prewarm [boolean]', 'startup renderer warmup')
+            .choices(['true', 'false']).preset('true').env('CHIITILER_PREWARM').default('true'))
+        .addOption(new Option('--processes <n>', 'worker processes (0 for all CPUs)')
+            .env('CHIITILER_PROCESSES').argParser(parseProcesses).default(1))
+        .addOption(new Option('--front-cache-ttl-sec <seconds>', 'memory front cache TTL (0 to disable)')
+            .env('CHIITILER_FRONT_CACHE_TTL_SEC'))
+        .addOption(new Option('--front-cache-max-bytes <bytes>', 'memory front cache byte limit (0 to disable)')
+            .env('CHIITILER_FRONT_CACHE_MAX_BYTES'))
         .option('-D, --debug', 'debug mode')
         .action(async (options) => {
+            const numProcesses = options.processes === 0 ? availableParallelism() : options.processes;
+            if (cluster.isPrimary && numProcesses !== 1) {
+                // Workers inherit argv and env, and initialize their own renderer and cache.
+                for (let i = 0; i < numProcesses; i++) cluster.fork();
+                return;
+            }
+
             // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
             if (options.userAgent !== undefined) setUserAgent(options.userAgent);
 
@@ -201,8 +220,8 @@ export function createProgram() {
             };
 
             if (['file', 's3', 'gcs'].includes(serverOptions.cache.name)) {
-                const ttl = process.env.CHIITILER_FRONT_CACHE_TTL_SEC;
-                const size = process.env.CHIITILER_FRONT_CACHE_MAX_BYTES;
+                const ttl = options.frontCacheTtlSec;
+                const size = options.frontCacheMaxBytes;
                 serverOptions.cache = caches.withMemoryCache(serverOptions.cache, {
                     ttlSeconds: ttl === undefined ? undefined : Number(ttl.trim() || NaN),
                     maxBytes: size === undefined ? undefined : Number(size.trim() || NaN),
@@ -225,7 +244,7 @@ export function createProgram() {
             // warm up BEFORE listening: Lambda Web Adapter polls the
             // readiness check until the port opens, so work done here
             // stays inside the INIT phase (full CPU boost)
-            if (parsePrewarm(options.prewarm)) {
+            if (options.prewarm === 'true') {
                 const startedAt = Date.now();
                 try {
                     await prewarm(serverOptions.cache);
