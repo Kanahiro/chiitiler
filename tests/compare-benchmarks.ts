@@ -56,6 +56,7 @@ export function compare(report: Report): { valid: boolean; markdown: string } {
             `Baseline \`${m.baseline}\` → current \`${m.current}\`. ${m.rounds} pairs, alternating execution order.`,
             `${m.duration}s measurement + ${m.warmup}s warmup per scenario. Node ${m.node}; ${m.platform}/${m.arch}; ${m.cpu ?? 'unknown CPU'} (${m.cpus} logical CPUs).`, '',
             'Values are medians across runs. Δ is the median of paired percentage changes; range is the observed min…max, not a confidence interval. p99 is diagnostic only and omitted if any run has fewer than 100 responses. Minimum responses is the smallest per-run count on each side. No automatic performance gate.', '',
+            ...(m.rounds < 5 ? ['Short run: few measurement pairs. Use the longer manual workflow to investigate small differences.', ''] : []),
             '| Scenario | Req/s base → current | Paired Req/s Δ (range) | Faster pairs | Min responses base → current | p50 ms base → current | p99 ms base → current |',
             '|---|---:|---:|---:|---:|---:|---:|'];
         for (const scenario of pairs[0]!.baseline) {

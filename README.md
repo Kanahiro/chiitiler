@@ -170,6 +170,8 @@ Prewarm is enabled by default: one tile is rendered at startup **before** the se
 | `--cache <none\|memory\|file\|s3\|gcs>` | `CHIITILER_CACHE_METHOD` | `none` |
 | `--cache-ttl <seconds>` | `CHIITILER_CACHE_TTL_SEC` | `3600` |
 | `--memory-cache-max-item-count <n>` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
+| — | `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
+| — | `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
 | `--file-cache-dir <dir>` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
 | `--s3-cache-bucket <name>` | `CHIITILER_S3CACHE_BUCKET` | — |
 | `--s3-region <region>` | `CHIITILER_S3_REGION` | `us-east-1` |
@@ -182,6 +184,33 @@ Prewarm is enabled by default: one tile is rendered at startup **before** the se
 | `--gcs-api-endpoint <url>` | `CHIITILER_GCS_API_ENDPOINT` | — |
 
 Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final rasters — so cached data is reused across requests. Standard AWS / GCP credentials (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.) are respected.
+
+The tile server adds a per-process memory front cache to `file`, `s3`, and `gcs`:
+by default, buffers are retained for 10 seconds from insertion, with an LRU limit of 64 MiB
+of buffer payloads (JavaScript overhead is additional). Reads promote backing-cache
+hits into memory; writes populate memory immediately and also write to the backing
+cache. `none` and `memory` keep their existing behavior. This affects sources that
+already use the cache, not direct `s3://`, `gs://`, or local source reads.
+
+Set `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
+`CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
+these limits. Setting either variable to `0` disables the front cache and uses the
+backing cache directly. Otherwise, invalid values stop startup when using `file`,
+`s3`, or `gcs`.
+These settings do not affect `none`, `memory`, or library callers.
+
+The front-cache TTL does not guarantee source freshness: promotion can retain a
+value for up to the configured TTL beyond its backing-cache expiry, and the S3/GCS cache
+implementations do not check expiry on reads. Each worker has its own memory limit.
+Library callers can opt in and customize the limits (either limit set to `0`
+returns the backing cache unchanged):
+
+```ts
+const cache = ChiitilerCache.withMemoryCache(
+    ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 }),
+    { ttlSeconds: 10, maxBytes: 64 * 1024 * 1024 },
+);
+```
 
 ## Deployment
 

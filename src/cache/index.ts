@@ -3,6 +3,8 @@ import { s3Cache } from './s3.js';
 import { gcsCache } from './gcs.js';
 import { fileCache } from './file.js';
 
+export { withMemoryCache } from './front.js';
+
 type Value = Buffer;
 type Cache = {
     name: string;
