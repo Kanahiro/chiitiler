@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { createProgram } from './cli.js';
 import * as server from './server/index.js';
@@ -10,7 +10,13 @@ vi.mock('./render/warmup.js', () => ({
 }));
 
 beforeEach(() => {
-    vi.mocked(prewarm).mockClear();
+    vi.mocked(prewarm).mockReset().mockResolvedValue(undefined);
+    vi.stubEnv('CHIITILER_PREWARM', undefined);
+});
+
+afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
 });
 
 describe('run chiitiler', () => {
@@ -30,7 +36,7 @@ describe('run chiitiler', () => {
         );
 
         const program = createProgram();
-        program.parse(['node', 'cli.js', 'tile-server']);
+        await program.parseAsync(['node', 'cli.js', 'tile-server']);
         expect(options!.cache.name).toBe('none');
         expect(options!.port).toBe(3000);
         expect(options!.debug).toBe(false);
@@ -52,7 +58,7 @@ describe('run chiitiler', () => {
         );
 
         const program = createProgram();
-        program.parse(['node', 'cli.js', 'tile-server', '-D', '-c', 'memory', '-p', '8989']); // prettier-ignore
+        await program.parseAsync(['node', 'cli.js', 'tile-server', '-D', '-c', 'memory', '-p', '8989']); // prettier-ignore
         expect(options!.cache.name).toBe('memory');
         expect(options!.port).toBe(8989);
         expect(options!.debug).toBe(true);
@@ -74,11 +80,19 @@ describe('run chiitiler', () => {
         );
 
         const program = createProgram();
-        program.parse(['node', 'cli.js', 'tile-server', '-c', 's3']);
+        await program.parseAsync(['node', 'cli.js', 'tile-server', '-c', 's3']);
         expect(options!.cache.name).toBe('s3');
     });
 
-    it('no prewarm by default', async () => {
+    it.each([
+        { env: undefined, flags: [], enabled: true },
+        { env: 'true', flags: [], enabled: true },
+        { env: 'false', flags: [], enabled: false },
+        { env: undefined, flags: ['--no-prewarm'], enabled: false },
+        { env: 'true', flags: ['--no-prewarm'], enabled: false },
+        { env: 'false', flags: ['--prewarm'], enabled: true },
+    ])('prewarm env=$env flags=$flags enabled=$enabled', async ({ env, flags, enabled }) => {
+        vi.stubEnv('CHIITILER_PREWARM', env);
         const start = vi.fn();
         vi.spyOn(server, 'initServer').mockImplementation(() => ({
             app: {} as any,
@@ -86,8 +100,8 @@ describe('run chiitiler', () => {
         }));
 
         const program = createProgram();
-        await program.parseAsync(['node', 'cli.js', 'tile-server']);
-        expect(prewarm).not.toHaveBeenCalled();
+        await program.parseAsync(['node', 'cli.js', 'tile-server', ...flags]);
+        expect(prewarm).toHaveBeenCalledTimes(enabled ? 1 : 0);
         expect(start).toHaveBeenCalled();
     });
 
@@ -104,7 +118,7 @@ describe('run chiitiler', () => {
         }));
 
         const program = createProgram();
-        await program.parseAsync(['node', 'cli.js', 'tile-server', '--prewarm']); // prettier-ignore
+        await program.parseAsync(['node', 'cli.js', 'tile-server']);
         expect(callOrder).toEqual(['prewarm', 'start']);
     });
 

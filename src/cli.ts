@@ -99,8 +99,9 @@ function parsePort(port: string | undefined) {
 }
 
 function parsePrewarm(prewarmFlag: boolean | undefined) {
-    // command-line option, then env
-    return prewarmFlag === true || process.env.CHIITILER_PREWARM === 'true';
+    // Explicit CLI flags take precedence over the environment.
+    if (prewarmFlag !== undefined) return prewarmFlag;
+    return process.env.CHIITILER_PREWARM !== 'false';
 }
 
 function parseDebug(debug: boolean | undefined) {
@@ -177,6 +178,7 @@ export function createProgram() {
             '--prewarm',
             'render one tile at startup before listening, to warm up the renderer',
         )
+        .option('--no-prewarm', 'disable startup renderer warmup (enabled by default)')
         .option('-D, --debug', 'debug mode')
         .action(async (options) => {
             // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts

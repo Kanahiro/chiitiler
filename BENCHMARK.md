@@ -45,6 +45,28 @@ On macOS you can run it directly. On headless Linux (including the CI
 runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
 needs a display.
 
+## First-request prewarm comparison
+
+```sh
+CHIITILER_BENCH_RUNS=20 \
+CHIITILER_BENCH_OUTPUT=tests/prewarm-results.json \
+CHIITILER_BENCH_MARKDOWN=tests/prewarm-results.md \
+npm run test:benchmark:prewarm
+```
+
+This separate benchmark starts a fresh Node process for every sample and
+alternates the order of prewarm off/on within each pair. It polls only
+`/health` before measuring the first tile response, including its entire
+body. It also records a second request, startup time, and time from process
+launch through the first response, so work moved into startup is visible.
+The fixture, single-process setting, and disabled cache match the throughput
+benchmark. Every response must be a valid 512×512 PNG with identical bytes
+across both modes; failed prewarming aborts the run.
+
+`CHIITILER_BENCH_RUNS` defaults to 20 samples per mode. These are process-cold
+measurements: OS caches remain shared. macOS results do not establish the
+effect of Linux GL initialization or AWS Lambda INIT CPU allocation.
+
 ## Baseline comparison in CI
 
 Each PR run also executes the benchmark against `main`'s source on the
