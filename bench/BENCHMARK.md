@@ -1,14 +1,13 @@
 # Benchmark
 
-`npm run test:benchmark` spawns `tile-server`, primes it with a warmup
-request, then runs [autocannon](https://github.com/mcollina/autocannon)
+`npm run test:benchmark` spawns `tile-server`, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
 against each scenario and reports throughput + latency percentiles.
 
 ## Setup
 
 - Style: [`tests/fixtures/bench-style.json`](../tests/fixtures/bench-style.json)
   — single `file://` vector source, no external network dependencies,
-  so numbers reflect render + encode cost only.
+  so results measure warm HTTP serving, local source access, rendering and encoding without remote I/O.
 - Target tile: `/tiles/5/28/12.png`.
 - Server: single process (`CHIITILER_PROCESSES=1`, `CHIITILER_CACHE_METHOD=none`).
 - Each scenario runs for `CHIITILER_BENCH_DURATION` seconds (default
@@ -33,6 +32,8 @@ npm run test:benchmark
 Knobs via env:
 
 - `CHIITILER_BENCH_DURATION` — seconds per scenario (default `10`).
+- `CHIITILER_BENCH_WARMUP` — warmup seconds per scenario (default `3`).
+- `CHIITILER_BENCH_TARGET` — checkout containing server code and its installed dependencies (default current directory). Fixtures always come from the harness working directory.
 - `CHIITILER_BENCH_PORT` — port to spawn the server on (default `3030`).
 - `CHIITILER_BENCH_OUTPUT` — if set, writes the JSON result array to
   the given path.
@@ -73,20 +74,55 @@ effect of Linux GL initialization or AWS Lambda INIT CPU allocation.
 
 ## Baseline comparison in CI
 
-Each PR run also executes the benchmark against `main`'s source on the
-same runner, then diffs the two via
-[`tests/compare-benchmarks.ts`](../tests/compare-benchmarks.ts). The
-resulting table is posted as a sticky comment on the PR so regressions
-are visible at a glance. Running on the same runner back-to-back keeps
-machine-level noise from dominating the comparison.
+CI compares the PR event's fixed base SHA with the fixed PR merge SHA (`github.sha`).
+Both commits are extracted into separate directories and installed with `npm ci`.
+The current checkout supplies the shared measurement harness and fixtures; target
+server code and dependencies come from each extracted commit. Thus dependency
+changes are included, while fixture changes are applied equally to both sides.
+Each server runs with the harness working directory so relative fixture paths match.
 
-Manual comparison:
+Five pairs run sequentially on one runner, alternating base/current and
+current/base order. Each measurement starts a fresh server and runs the five
+scenarios in a fixed order, with 3 seconds of warmup and 10 seconds of measurement
+per scenario. Renderer and style caches remain warm within a run even with
+source cache disabled. Nominal load time is about 11 minutes, plus setup/startup.
+
+The PR comment shows median throughput/latencies, the median **paired** throughput
+percentage change, its observed min/max and the count of faster pairs. The range
+is not a confidence interval. The report includes the minimum response count per
+run on each side. p99 is diagnostic, not a regression gate, and is omitted if any
+run in the scenario has fewer than 100 responses. Low counts do not invalidate
+otherwise successful throughput measurements. Raw samples,
+commit SHAs, CPU and Node information are uploaded in `benchmark-results/`.
+
+Any failed run, HTTP/transport error, timeout, zero responses per
+scenario, invalid metric, duplicate or mismatched scenario, or incomplete pair
+makes the comparison unavailable and fails the job. Before load, each scenario
+must return an image with the expected format and dimensions. This is not a
+pixel-level correctness test; rendering correctness belongs in integration tests.
+
+Use **Run workflow → aa=true** (default) to compare the selected commit with itself.
+Repeat A/A runs to establish the noise floor before interpreting small PR deltas.
+With `aa=false`, manual runs compare the selected commit with the main SHA resolved
+at setup. Shared OS caches and runner load remain sources of noise; these results
+are not startup, remote I/O or representative navigation benchmarks.
+
+Local paired comparison (install both checkouts' dependencies first):
 
 ```sh
-CHIITILER_BENCH_OUTPUT=a.json npm run test:benchmark
-# ...make changes...
-CHIITILER_BENCH_OUTPUT=b.json npm run test:benchmark
-npx tsx tests/compare-benchmarks.ts a.json b.json
+CHIITILER_BENCH_BASELINE=/absolute/path/to/base \
+CHIITILER_BENCH_CURRENT=/absolute/path/to/current \
+node --import tsx tests/run-benchmark-comparison.ts
+```
+
+Use the same checkout path on both sides for A/A. On Linux, prefix with
+`xvfb-run -a`. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
+`CHIITILER_BENCH_DURATION` and `CHIITILER_BENCH_WARMUP` apply to every run.
+Optional `CHIITILER_BENCH_BASE_SHA` and `CHIITILER_BENCH_CURRENT_SHA` label local
+results (otherwise `local`). Regenerate a report with:
+
+```sh
+node --import tsx tests/compare-benchmarks.ts benchmark-results/results.json benchmark-results/benchmark.md
 ```
 
 ## Sample output
