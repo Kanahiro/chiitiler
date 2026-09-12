@@ -167,6 +167,11 @@ Prewarm is enabled by default: one tile is rendered at startup **before** the se
 
 ### Cache
 
+Renderer Maps are reused per style and rendering mode without an idle timeout.
+They are released when their pool is evicted from the 10-entry LRU or explicitly
+closed. This avoids repeated initialization after quiet periods, at the cost of
+retaining native renderer memory between requests.
+
 | Flag | Env | Default |
 | --- | --- | --- |
 | `--cache <none\|memory\|file\|s3\|gcs>` | `CHIITILER_CACHE_METHOD` | `none` |
