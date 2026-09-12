@@ -22,6 +22,10 @@ permissions:
     contents: read
     pull-requests: write
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
 jobs:
     benchmark:
         runs-on: ubuntu-24.04
@@ -73,9 +77,14 @@ jobs:
 
             - name: Run paired benchmarks
               run: xvfb-run -a node --import tsx tests/run-benchmark-comparison.ts
+              env:
+                  # Balance both execution orders for quick PR feedback; manual runs retain more samples.
+                  CHIITILER_BENCH_ROUNDS: ${{ github.event_name == 'pull_request' && '2' || '5' }}
+                  CHIITILER_BENCH_DURATION: ${{ github.event_name == 'pull_request' && '5' || '10' }}
+                  CHIITILER_BENCH_WARMUP: '3'
 
             - name: Post results to PR
-              if: always() && github.event_name == 'pull_request' && hashFiles('benchmark-results/benchmark.md') != ''
+              if: ${{ !cancelled() && github.event_name == 'pull_request' && hashFiles('benchmark-results/benchmark.md') != '' }}
               uses: marocchino/sticky-pull-request-comment@v2
               with:
                   header: benchmark

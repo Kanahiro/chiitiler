@@ -81,11 +81,17 @@ server code and dependencies come from each extracted commit. Thus dependency
 changes are included, while fixture changes are applied equally to both sides.
 Each server runs with the harness working directory so relative fixture paths match.
 
-Five pairs run sequentially on one runner, alternating base/current and
-current/base order. Each measurement starts a fresh server and runs the five
-scenarios in a fixed order, with 3 seconds of warmup and 10 seconds of measurement
-per scenario. Renderer and style caches remain warm within a run even with
-source cache disabled. Nominal load time is about 11 minutes, plus setup/startup.
+PR runs use two pairs on one runner, alternating base/current and current/base
+order. Each measurement starts a fresh server and runs all five scenarios in a
+fixed order, with 3 seconds of warmup and 5 seconds of measurement per scenario.
+Nominal load time is 160 seconds, plus setup/startup (roughly 3–4 minutes total,
+depending on the runner). A new push cancels the previous benchmark for that PR.
+
+Manual workflow runs retain five pairs and 10 seconds of measurement with the
+same 3-second warmup: 650 seconds of load, plus setup/startup. Use these longer
+runs to investigate small differences; the short PR run is a coarse performance
+check with fewer samples. Renderer and style caches remain warm within a run
+even with source cache disabled.
 
 The PR comment shows median throughput/latencies, the median **paired** throughput
 percentage change, its observed min/max and the count of faster pairs. The range
