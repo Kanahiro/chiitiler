@@ -108,6 +108,21 @@ const png = await getRenderedTileBuffer({
 
 Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`, and their `*Stream` variants (`Sharp` instances for further piping).
 
+For library use, explicitly call `prewarm(cache)` once per rendering process
+during application startup, before accepting requests:
+
+```ts
+import { prewarm, ChiitilerCache } from 'chiitiler';
+
+const cache = ChiitilerCache.noneCache();
+await prewarm(cache);
+```
+
+The promise resolves after a minimal tile has been rendered and PNG-encoded.
+It rejects if warmup fails; the application decides whether to continue startup.
+Library imports do not automatically run prewarm, and `CHIITILER_PREWARM` only
+controls the CLI server. Style-specific tiles, glyphs, and sprites are not preloaded.
+
 Types are re-exported as well, so you can annotate call sites without depending on
 `@maplibre/maplibre-gl-style-spec` resolution in your own tree:
 
