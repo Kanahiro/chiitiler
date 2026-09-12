@@ -16,9 +16,13 @@ const archive = fs.readFileSync(
 let mode: 'ok' | '500' | '404' = 'ok';
 let server: http.Server;
 let port = 0;
+const headerRequests: string[] = [];
 
 beforeAll(async () => {
     server = http.createServer((req, res) => {
+        if (req.headers.range?.startsWith('bytes=0-')) {
+            headerRequests.push(req.url!);
+        }
         if (mode === '500') {
             res.statusCode = 500;
             res.end('upstream error');
@@ -64,6 +68,23 @@ const uri = (tag: string, zxy: string) =>
     `pmtiles://http://127.0.0.1:${port}/school.pmtiles?t=${tag}/${zxy}`;
 
 describe('getPmtilesSource (http)', () => {
+    it('shares a cold archive header across concurrent requests for different tiles', async () => {
+        mode = 'ok';
+        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const tiles = ['0/0/0', '6/57/23'];
+        const results = await Promise.all(
+            tiles.map((tile) => getPmtilesSource(uri('concurrent', tile), cache)),
+        );
+        expect(headerRequests.filter((url) => url.includes('t=concurrent'))).toHaveLength(1);
+        for (const [index, tile] of tiles.entries()) {
+            expect(results[index]).not.toBeNull();
+            expect(results[index]!.length).toBeGreaterThan(0);
+            expect(results[index]).toEqual(
+                await getPmtilesSource(uri('sequential', tile)),
+            );
+        }
+    });
+
     it('returns a tile that exists in the archive', async () => {
         mode = 'ok';
         const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
