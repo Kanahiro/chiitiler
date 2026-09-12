@@ -34,6 +34,7 @@ export { getRenderedTile as getRenderedTileStream };
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';
+export { prewarm } from './render/warmup.js';
 
 export type {
 	GetRenderedClipOptions,

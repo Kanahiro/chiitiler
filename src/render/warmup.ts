@@ -18,10 +18,10 @@ const MINIMAL_STYLE: StyleSpecification = {
 };
 
 /**
- * Render one z0 tile ahead of the first request so that renderer
- * initialization happens at startup — on AWS Lambda (with Lambda Web
- * Adapter's readiness check) this moves the work into the INIT phase,
- * which runs with a full CPU boost.
+ * Render and PNG-encode a minimal tile to warm shared renderer initialization.
+ * Await once per rendering process during application startup, before accepting
+ * requests. This does not preload style-specific tiles, glyphs, or sprites.
+ * Resolves after encoding finishes; rejects if rendering or encoding fails.
  */
 async function prewarm(cache: Cache): Promise<void> {
     const sharp = await getRenderedTile({

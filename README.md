@@ -62,6 +62,10 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **[Allmaps Latest](https://bsky.app/profile/latest.allmaps.org)** — Bluesky bot
 - **[Kumoy](https://www.kumoy.io/)** - used for thumbnail image of designed maps
 
+## Presentations
+
+- [FOSS4G Hiroshima 2026 — Presentation slides](https://drive.google.com/file/d/122JW5gJbrxnUVCVsSlcQMb22StPTnZQV/view?usp=sharing)
+
 ## HTTP API
 
 | Method | Endpoint | Description |
@@ -108,6 +112,21 @@ const png = await getRenderedTileBuffer({
 
 Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`, and their `*Stream` variants (`Sharp` instances for further piping).
 
+For library use, explicitly call `prewarm(cache)` once per rendering process
+during application startup, before accepting requests:
+
+```ts
+import { prewarm, ChiitilerCache } from 'chiitiler';
+
+const cache = ChiitilerCache.noneCache();
+await prewarm(cache);
+```
+
+The promise resolves after a minimal tile has been rendered and PNG-encoded.
+It rejects if warmup fails; the application decides whether to continue startup.
+Library imports do not automatically run prewarm, and `CHIITILER_PREWARM` only
+controls the CLI server. Style-specific tiles, glyphs, and sprites are not preloaded.
+
 Types are re-exported as well, so you can annotate call sites without depending on
 `@maplibre/maplibre-gl-style-spec` resolution in your own tree:
 
@@ -139,7 +158,7 @@ All options can be set via CLI flag or environment variable.
 | `--port <n>` | `CHIITILER_PORT` | `3000` |
 | `--debug` | `CHIITILER_DEBUG` | `false` |
 | `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
-| `--no-prewarm` | `CHIITILER_PREWARM` | `true` |
+| — | `CHIITILER_PREWARM` | `true` |
 | — | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
 
 Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. Either `--no-prewarm` or `CHIITILER_PREWARM=false` disables it. Style-specific tiles, glyphs, and sprites are not preloaded.
