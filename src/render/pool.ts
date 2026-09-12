@@ -61,6 +61,10 @@ async function getRenderPool(
         destroy: (map: mbgl.Map) => {
             map.release();
         },
+    }, {
+        // Keep initialized Maps until their pool is evicted or closed. Disable
+        // idle housekeeping rather than running a timer in warm Lambda environments.
+        houseKeepInterval: 0,
     });
     mapPoolCache.set(cacheKey, newPool);
     return newPool;
