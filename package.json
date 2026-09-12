@@ -24,31 +24,31 @@
     "url": "https://github.com/Kanahiro/chiitiler"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
+    "@tsconfig/node24": "^24.0.5",
     "@types/autocannon": "^7.12.7",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.9.6",
     "@vitest/coverage-v8": "^4.1.4",
     "autocannon": "^8.0.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.2",
     "image-size": "^2.0.2",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1032.0",
-    "@google-cloud/storage": "^7.19.0",
-    "@hono/node-server": "^2.0.0",
+    "@aws-sdk/client-s3": "^3.1131.0",
+    "@google-cloud/storage": "^7.22.0",
+    "@hono/node-server": "^2.1.1",
     "@mapbox/tilebelt": "^2.0.3",
     "@maplibre/maplibre-gl-native": "^6.4.1",
     "@maplibre/maplibre-gl-style-spec": "^26.4.2",
     "commander": "^14.0.3",
     "file-system-cache": "^2.4.7",
     "higuruma": "^0.1.6",
-    "hono": "^4.12.14",
-    "lightning-pool": "^4.12.0",
-    "lru-cache": "^11.3.5",
-    "pmtiles": "^4.4.1",
-    "sharp": "^0.35.3"
+    "hono": "^4.13.7",
+    "lightning-pool": "^4.14.0",
+    "lru-cache": "^11.5.2",
+    "pmtiles": "^4.5.0",
+    "sharp": "^0.35.4"
   }
 }
