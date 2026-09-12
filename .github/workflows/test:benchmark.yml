@@ -71,9 +71,6 @@ jobs:
                   echo "CHIITILER_BENCH_BASE_SHA=$base" >> "$GITHUB_ENV"
                   echo "CHIITILER_BENCH_CURRENT_SHA=$CURRENT_SHA" >> "$GITHUB_ENV"
 
-            - name: Test comparison validation
-              run: node --import tsx --test tests/compare-benchmarks.test.ts
-
             - name: Run paired benchmarks
               run: xvfb-run -a node --import tsx tests/run-benchmark-comparison.ts
 

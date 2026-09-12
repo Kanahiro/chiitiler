@@ -120,7 +120,6 @@ results (otherwise `local`). Regenerate a report with:
 
 ```sh
 node --import tsx tests/compare-benchmarks.ts benchmark-results/results.json benchmark-results/benchmark.md
-node --import tsx --test tests/compare-benchmarks.test.ts
 ```
 
 ## Sample output
