@@ -132,12 +132,12 @@ async function stopServer(server: ChildProcess): Promise<void> {
 
 function toMarkdown(rows: Row[]): string {
     const header = [
-        '| Scenario | Conns | Req/s (mean) | p50 (ms) | p90 (ms) | p99 (ms) | Errors | non-2xx |',
-        '|---|---:|---:|---:|---:|---:|---:|---:|',
+        '| Scenario | Conns | Responses | Req/s (mean) | p50 (ms) | p90 (ms) | p99 (ms) | Errors | non-2xx |',
+        '|---|---:|---:|---:|---:|---:|---:|---:|---:|',
     ];
     const body = rows.map(
         (r) =>
-            `| ${r.scenario} | ${r.connections} | ${r.reqPerSec.toFixed(1)} | ${r.latencyP50.toFixed(1)} | ${r.latencyP90.toFixed(1)} | ${r.latencyP99.toFixed(1)} | ${r.errors} | ${r.non2xx} |`,
+            `| ${r.scenario} | ${r.connections} | ${r.requests} | ${r.reqPerSec.toFixed(1)} | ${r.latencyP50.toFixed(1)} | ${r.latencyP90.toFixed(1)} | ${r.requests < 100 ? 'n/a' : r.latencyP99.toFixed(1)} | ${r.errors} | ${r.non2xx} |`,
     );
     return [...header, ...body].join('\n');
 }
@@ -214,10 +214,10 @@ async function main() {
         );
     }
 
-    const hadErrors = rows.some((r) => r.errors > 0 || r.non2xx > 0 || r.timeouts > 0 || r.requests < 100);
+    const hadErrors = rows.some((r) => r.errors > 0 || r.non2xx > 0 || r.timeouts > 0 || r.requests === 0);
     if (hadErrors) {
         process.stderr.write(
-            '\nERROR: benchmark produced errors, non-2xx responses, timeouts, or fewer than 100 responses\n',
+            '\nERROR: benchmark produced errors, non-2xx responses, timeouts, or zero responses\n',
         );
         process.exit(1);
     }

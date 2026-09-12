@@ -89,10 +89,13 @@ source cache disabled. Nominal load time is about 11 minutes, plus setup/startup
 
 The PR comment shows median throughput/latencies, the median **paired** throughput
 percentage change, its observed min/max and the count of faster pairs. The range
-is not a confidence interval. p99 is diagnostic, not a regression gate. Raw samples,
+is not a confidence interval. The report includes the minimum response count per
+run on each side. p99 is diagnostic, not a regression gate, and is omitted if any
+run in the scenario has fewer than 100 responses. Low counts do not invalidate
+otherwise successful throughput measurements. Raw samples,
 commit SHAs, CPU and Node information are uploaded in `benchmark-results/`.
 
-Any failed run, HTTP/transport error, timeout, fewer than 100 responses per
+Any failed run, HTTP/transport error, timeout, zero responses per
 scenario, invalid metric, duplicate or mismatched scenario, or incomplete pair
 makes the comparison unavailable and fails the job. Before load, each scenario
 must return an image with the expected format and dimensions. This is not a

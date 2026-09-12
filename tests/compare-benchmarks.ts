@@ -24,8 +24,8 @@ function validateRows(rows: unknown): asserts rows is Row[] {
         if (!r || typeof r.scenario !== 'string' || !r.scenario ||
             !Number.isInteger(r.connections) || r.connections < 1 ||
             !['reqPerSec', 'latencyP50', 'latencyP90', 'latencyP99', 'requests', 'errors', 'non2xx', 'timeouts'].every((k) => typeof r[k] === 'number' && Number.isFinite(r[k]) && r[k] >= 0) ||
-            r.errors !== 0 || r.non2xx !== 0 || r.timeouts !== 0 || r.requests < 100 || r.reqPerSec <= 0) {
-            throw new Error('Errors, invalid metrics, or fewer than 100 responses in a scenario');
+            r.errors !== 0 || r.non2xx !== 0 || r.timeouts !== 0 || r.requests === 0 || r.reqPerSec <= 0) {
+            throw new Error('Errors, invalid metrics, or zero responses in a scenario');
         }
         if (keys.has(key(r))) throw new Error('Duplicate scenario');
         keys.add(key(r));
@@ -55,15 +55,18 @@ export function compare(report: Report): { valid: boolean; markdown: string } {
         const lines = ['## Benchmark', '',
             `Baseline \`${m.baseline}\` → current \`${m.current}\`. ${m.rounds} pairs, alternating execution order.`,
             `${m.duration}s measurement + ${m.warmup}s warmup per scenario. Node ${m.node}; ${m.platform}/${m.arch}; ${m.cpu ?? 'unknown CPU'} (${m.cpus} logical CPUs).`, '',
-            'Values are medians across runs. Δ is the median of paired percentage changes; range is the observed min…max, not a confidence interval. p99 is diagnostic only; no automatic performance gate.', '',
-            '| Scenario | Req/s base → current | Paired Req/s Δ (range) | Faster pairs | p50 ms base → current | p99 ms base → current |',
-            '|---|---:|---:|---:|---:|---:|'];
+            'Values are medians across runs. Δ is the median of paired percentage changes; range is the observed min…max, not a confidence interval. p99 is diagnostic only and omitted if any run has fewer than 100 responses. Minimum responses is the smallest per-run count on each side. No automatic performance gate.', '',
+            '| Scenario | Req/s base → current | Paired Req/s Δ (range) | Faster pairs | Min responses base → current | p50 ms base → current | p99 ms base → current |',
+            '|---|---:|---:|---:|---:|---:|---:|'];
         for (const scenario of pairs[0]!.baseline) {
             const base = pairs.map((p) => p.baseline.find((r) => key(r) === key(scenario))!);
             const current = pairs.map((p) => p.current.find((r) => key(r) === key(scenario))!);
             const deltas = base.map((b, i) => 100 * (current[i]!.reqPerSec / b.reqPerSec - 1));
             const values = (k: 'reqPerSec' | 'latencyP50' | 'latencyP99') => `${median(base.map((r) => r[k])).toFixed(1)} → ${median(current.map((r) => r[k])).toFixed(1)}`;
-            lines.push(`| ${scenario.scenario.replaceAll('|', '\\|')} | ${values('reqPerSec')} | ${median(deltas).toFixed(1)}% (${Math.min(...deltas).toFixed(1)}…${Math.max(...deltas).toFixed(1)}%) | ${deltas.filter((d) => d > 0).length}/${m.rounds} | ${values('latencyP50')} | ${values('latencyP99')} |`);
+            const baseCount = Math.min(...base.map((r) => r.requests));
+            const currentCount = Math.min(...current.map((r) => r.requests));
+            const p99 = Math.min(baseCount, currentCount) < 100 ? 'n/a (<100 responses)' : values('latencyP99');
+            lines.push(`| ${scenario.scenario.replaceAll('|', '\\|')} | ${values('reqPerSec')} | ${median(deltas).toFixed(1)}% (${Math.min(...deltas).toFixed(1)}…${Math.max(...deltas).toFixed(1)}%) | ${deltas.filter((d) => d > 0).length}/${m.rounds} | ${baseCount} → ${currentCount} | ${values('latencyP50')} | ${p99} |`);
         }
         lines.push('', 'Shared local fixture, one server process, source cache=none. Measures warm repeated-tile rendering and encoding; excludes startup, remote I/O and representative map navigation. A/A runs measure noise; small differences within that noise should not be treated as regressions.', '');
         return { valid: true, markdown: lines.join('\n') };
