@@ -139,10 +139,10 @@ All options can be set via CLI flag or environment variable.
 | `--port <n>` | `CHIITILER_PORT` | `3000` |
 | `--debug` | `CHIITILER_DEBUG` | `false` |
 | `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
-| `--prewarm` / `--no-prewarm` | `CHIITILER_PREWARM` | `true` |
+| `--no-prewarm` | `CHIITILER_PREWARM` | `true` |
 | — | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
 
-Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. Disable it with `--no-prewarm` or `CHIITILER_PREWARM=false`. Explicit CLI flags take precedence over the environment. Style-specific tiles, glyphs, and sprites are not preloaded.
+Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. Either `--no-prewarm` or `CHIITILER_PREWARM=false` disables it. Style-specific tiles, glyphs, and sprites are not preloaded.
 
 ### Cache
 

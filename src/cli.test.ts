@@ -90,7 +90,7 @@ describe('run chiitiler', () => {
         { env: 'false', flags: [], enabled: false },
         { env: undefined, flags: ['--no-prewarm'], enabled: false },
         { env: 'true', flags: ['--no-prewarm'], enabled: false },
-        { env: 'false', flags: ['--prewarm'], enabled: true },
+        { env: 'false', flags: ['--no-prewarm'], enabled: false },
     ])('prewarm env=$env flags=$flags enabled=$enabled', async ({ env, flags, enabled }) => {
         vi.stubEnv('CHIITILER_PREWARM', env);
         const start = vi.fn();
@@ -131,7 +131,7 @@ describe('run chiitiler', () => {
         }));
 
         const program = createProgram();
-        await program.parseAsync(['node', 'cli.js', 'tile-server', '--prewarm']); // prettier-ignore
+        await program.parseAsync(['node', 'cli.js', 'tile-server']);
         expect(prewarm).toHaveBeenCalled();
         expect(start).toHaveBeenCalled();
     });
