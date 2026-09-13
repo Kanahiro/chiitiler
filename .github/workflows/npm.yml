@@ -3,8 +3,16 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Publication channel (latest is for stable versions only)'
+        type: choice
+        options: [next, latest]
+        default: next
+        required: true
 
 permissions:
+  contents: read
   id-token: write
 
 jobs:
@@ -16,6 +24,11 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-      - run: npm install
+      - id: config
+        run: node scripts/release-config.mjs
+      - run: npm ci
       - run: npx tsc
-      - run: npm publish
+      - name: Publish to the selected channel
+        env:
+          NPM_TAG: ${{ steps.config.outputs.npm_tag }}
+        run: npm publish --tag "$NPM_TAG"

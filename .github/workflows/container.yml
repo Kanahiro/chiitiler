@@ -1,8 +1,15 @@
 name: Build and Deploy
 on:
   release:
-    types: [created]
+    types: [published]
   workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Publication channel (latest is for stable versions only)'
+        type: choice
+        options: [next, latest]
+        default: next
+        required: true
 
 permissions:
   contents: read
@@ -12,7 +19,21 @@ env:
   IMAGE: ghcr.io/kanahiro/chiitiler
 
 jobs:
+  release-config:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.config.outputs.image_tag }}
+      publish_latest: ${{ steps.config.outputs.publish_latest }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - id: config
+        run: node scripts/release-config.mjs
+
   build:
+    needs: release-config
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +49,7 @@ jobs:
       - name: Prepare
         run: |
           platform=${{ matrix.platform }}
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
 
       - name: Login GitHub Packages
         uses: docker/login-action@v3
@@ -64,7 +85,7 @@ jobs:
 
   merge:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, release-config]
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -84,12 +105,17 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Create manifest list and push
         working-directory: /tmp/digests
+        env:
+          IMAGE_TAG: ${{ needs.release-config.outputs.image_tag }}
+          PUBLISH_LATEST: ${{ needs.release-config.outputs.publish_latest }}
         run: |
-          tags="-t ${{ env.IMAGE }}:latest"
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            tags="$tags -t ${{ env.IMAGE }}:${{ github.event.release.tag_name }}"
+          tags=(-t "$IMAGE:$IMAGE_TAG")
+          if [ "$PUBLISH_LATEST" = true ]; then
+            tags+=(-t "$IMAGE:latest")
           fi
-          docker buildx imagetools create $tags \
-            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
-      - name: Inspect image
-        run: docker buildx imagetools inspect ${{ env.IMAGE }}:latest
+          digests=()
+          for digest in *; do
+            digests+=("$IMAGE@sha256:$digest")
+          done
+          docker buildx imagetools create "${tags[@]}" "${digests[@]}"
+          docker buildx imagetools inspect "$IMAGE:$IMAGE_TAG"

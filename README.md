@@ -246,6 +246,23 @@ docker run --rm --network none \
   chiitiler:egl node /app/docker-egl.mjs
 ```
 
+### Pre-releases from a branch
+
+A release tag can point to a PR branch commit; merging into `main` is not
+required. Set `package.json` and the lockfile to the release version, tag that
+commit (for example `v2.0.0-pre.0`), and publish a GitHub pre-release. Both
+publication workflows run on `release.published` and check that the release tag
+matches `package.json`.
+
+Pre-releases publish the versioned GHCR image and the npm `next` tag without
+updating `latest`. Stable releases also update GHCR `latest` and use npm
+`latest`. A prerelease suffix in the package version always selects `next`,
+even if the GitHub pre-release checkbox is omitted.
+
+For manual workflow runs, select the branch/tag and the `channel` input
+(default `next`). Choosing `latest` for a prerelease version fails before
+publication. Production container tags use `v<package version>` for manual runs.
+
 ## Develop
 
 Requires Node.js 24.12+ and `sharp` system deps (see [Dockerfile](./Dockerfile)).
