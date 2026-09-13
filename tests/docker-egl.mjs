@@ -8,7 +8,10 @@ import { setTimeout as delay } from 'node:timers/promises';
 import sharp from 'sharp';
 
 assert.equal(process.env.DISPLAY, undefined);
-await assert.rejects(access('/usr/bin/Xvfb'), { code: 'ENOENT' });
+for (const path of ['/usr/bin/Xvfb', '/bin/sh', '/usr/bin/apt']) {
+    await assert.rejects(access(path), { code: 'ENOENT' });
+}
+await access('/etc/ssl/certs/ca-certificates.crt');
 const style = {
     version: 8,
     sources: { point: { type: 'geojson', data: { type: 'Point', coordinates: [0, 0] } } },

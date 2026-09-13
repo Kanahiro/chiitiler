@@ -75,21 +75,27 @@ COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY --from=native-builder /native/source/platform/node/lib/ ./node_modules/@maplibre/maplibre-gl-native/lib/
 
-FROM gl-base AS runtime
-
+# Assemble the filesystem in Ubuntu, then copy only runtime dependencies.
+FROM gl-base AS runtime-files
+RUN apt-get update && apt-get install -y --no-install-recommends binutils ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.1 /lambda-adapter /opt/extensions/lambda-adapter
-ENV AWS_LWA_PORT=3000
-ENV AWS_LWA_READINESS_CHECK_PATH=/health
-# If prewarm pushes INIT past Lambda's 10s limit, continue it during the
-# first invoke instead of letting Lambda restart the sandbox.
-ENV AWS_LWA_ASYNC_INIT=true
-
-# npm and Corepack are unnecessary at runtime.
 COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
-
 WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=runtime-deps /app/node_modules ./node_modules
 COPY --from=native-builder /native/source/platform/node/lib/ ./node_modules/@maplibre/maplibre-gl-native/lib/
+COPY docker/assemble-runtime.sh /tmp/assemble-runtime.sh
+RUN bash /tmp/assemble-runtime.sh
 
+FROM scratch AS runtime
+COPY --from=runtime-files /rootfs/ /
+ENV PATH=/usr/local/bin
+ENV EGL_PLATFORM=surfaceless
+ENV LIBGL_ALWAYS_SOFTWARE=true
+ENV AWS_LWA_PORT=3000
+ENV AWS_LWA_READINESS_CHECK_PATH=/health
+# Continue prewarm during the first invoke if INIT exceeds Lambda's 10s limit.
+ENV AWS_LWA_ASYNC_INIT=true
+WORKDIR /app
 CMD ["node", "/app/build/main.cjs", "tile-server"]

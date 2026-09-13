@@ -232,6 +232,11 @@ are unchanged. The first image build compiles MapLibre Native and takes longer;
 subsequent application-only builds reuse that layer. Native compilation uses two
 jobs by default (`--build-arg NATIVE_BUILD_JOBS=4` to increase it).
 
+The production runtime uses `scratch` with a stripped Node executable, the
+application, Lambda Adapter, CA certificates, and the shared libraries and Mesa
+drivers needed to run them. It has no shell or package manager; use the `dev`
+target for an interactive development environment.
+
 To build and check rendering without a display server or network:
 
 ```sh
