@@ -225,6 +225,22 @@ const cache = ChiitilerCache.withMemoryCache(
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 - **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
+Images built from this Dockerfile compile the MapLibre Native version pinned in `package-lock.json`
+with EGL and use Mesa's surfaceless software renderer. Xvfb and `DISPLAY` are
+not required. This affects chiitiler's Docker images only; upstream npm binaries
+are unchanged. The first image build compiles MapLibre Native and takes longer;
+subsequent application-only builds reuse that layer. Native compilation uses two
+jobs by default (`--build-arg NATIVE_BUILD_JOBS=4` to increase it).
+
+To build and check rendering without a display server or network:
+
+```sh
+docker build -t chiitiler:egl .
+docker run --rm --network none \
+  -v "$PWD/tests/docker-egl.mjs:/app/docker-egl.mjs:ro" \
+  chiitiler:egl node /app/docker-egl.mjs
+```
+
 ## Develop
 
 Requires Node.js 24.12+ and `sharp` system deps (see [Dockerfile](./Dockerfile)).
