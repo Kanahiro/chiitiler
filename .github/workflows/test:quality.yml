@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "src/**"
+      - "scripts/release-config.mjs"
+      - ".github/workflows/container.yml"
+      - ".github/workflows/npm.yml"
       - "tests/**"
       - "package.json"
       - "package-lock.json"
@@ -21,7 +24,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
@@ -29,3 +32,5 @@ jobs:
         run: npm install
       - name: Run quality checks
         run: npm run check
+      - name: Check release channels
+        run: node --test tests/release-config.test.mjs

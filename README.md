@@ -225,6 +225,44 @@ const cache = ChiitilerCache.withMemoryCache(
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 - **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
+Images built from this Dockerfile compile the MapLibre Native version pinned in `package-lock.json`
+with EGL and use Mesa's surfaceless software renderer. Xvfb and `DISPLAY` are
+not required. This affects chiitiler's Docker images only; upstream npm binaries
+are unchanged. The first image build compiles MapLibre Native and takes longer;
+subsequent application-only builds reuse that layer. Native compilation uses two
+jobs by default (`--build-arg NATIVE_BUILD_JOBS=4` to increase it).
+
+The production runtime uses `scratch` with a stripped Node executable, the
+application, Lambda Adapter, CA certificates, and the shared libraries and Mesa
+drivers needed to run them. It has no shell or package manager; use the `dev`
+target for an interactive development environment.
+
+To build and check rendering without a display server or network:
+
+```sh
+docker build -t chiitiler:egl .
+docker run --rm --network none \
+  -v "$PWD/tests/docker-egl.mjs:/app/docker-egl.mjs:ro" \
+  chiitiler:egl node /app/docker-egl.mjs
+```
+
+### Pre-releases from a branch
+
+A release tag can point to a PR branch commit; merging into `main` is not
+required. Set `package.json` and the lockfile to the release version, tag that
+commit (for example `v2.0.0-pre.0`), and publish a GitHub pre-release. Both
+publication workflows run on `release.published` and check that the release tag
+matches `package.json`.
+
+Pre-releases publish the versioned GHCR image and the npm `next` tag without
+updating `latest`. Stable releases also update GHCR `latest` and use npm
+`latest`. A prerelease suffix in the package version always selects `next`,
+even if the GitHub pre-release checkbox is omitted.
+
+For manual workflow runs, select the branch/tag and the `channel` input
+(default `next`). Choosing `latest` for a prerelease version fails before
+publication. Production container tags use `v<package version>` for manual runs.
+
 ## Develop
 
 Requires Node.js 24.12+ and `sharp` system deps (see [Dockerfile](./Dockerfile)).
