@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS builder
+FROM node:24.22.1-bookworm-slim AS builder
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -7,7 +7,7 @@ COPY src ./src
 COPY tsconfig.json ./
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runtime-deps
+FROM node:24.22.1-bookworm-slim AS runtime-deps
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -44,8 +44,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # src is provided by a bind mount.
 FROM gl-base AS dev
 
-COPY --from=node:24-bookworm-slim /usr/local/bin /usr/local/bin
-COPY --from=node:24-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node:24.22.1-bookworm-slim /usr/local/bin /usr/local/bin
+COPY --from=node:24.22.1-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.json ./
@@ -61,7 +61,7 @@ ENV AWS_LWA_READINESS_CHECK_PATH=/health
 ENV AWS_LWA_ASYNC_INIT=true
 
 # npm and Corepack are unnecessary at runtime.
-COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24.22.1-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
 COPY --from=builder /app/build ./build
