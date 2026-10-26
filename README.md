@@ -192,8 +192,8 @@ retaining native renderer memory between requests.
 
 Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final rasters — so cached data is reused across requests. Standard AWS / GCP credentials (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.) are respected.
 
-The tile server adds a per-process memory front cache to every cache method, including
-`none` and `memory`: by default, buffers are retained for 10 seconds from insertion, with an
+For the `file`, `s3` and `gcs` cache methods, the tile server adds a per-process memory front
+cache (not for `none`, which declines caching, or `memory`, which is already in-process): by default, buffers are retained for 10 seconds from insertion, with an
 LRU limit of 64 MiB of buffer payloads (JavaScript overhead is additional). It applies to
 every source (`http(s)://`, `s3://`, `gs://`, `file://`, `mbtiles://`, `pmtiles://`, `cog://`).
 Only `http(s)://` sources (including `pmtiles://http(s)://` tiles) are also stored in the
