@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { send } = vi.hoisted(() => ({ send: vi.fn() }));
 
@@ -12,7 +12,7 @@ vi.mock('../s3.js', () => ({
 
 import { getS3Source } from './s3.js';
 import { getSource } from './index.js';
-import { memoryCache } from '../cache/memory.js';
+import { type Cache, withMemoryCache } from '../cache/index.js';
 
 describe('getS3Source', () => {
     beforeEach(() => {
@@ -48,9 +48,23 @@ describe('getS3Source', () => {
     });
 });
 
-describe('s3 sources read through the cache', () => {
+describe('s3 sources use only the memory front cache', () => {
+    const backing = {
+        name: 'spy',
+        get: vi.fn(async () => undefined),
+        set: vi.fn(async () => undefined),
+    } satisfies Cache;
+
     beforeEach(() => {
         send.mockReset();
+        backing.get.mockClear();
+        backing.set.mockClear();
+    });
+
+    afterEach(() => {
+        // object storage is never copied into the backing cache
+        expect(backing.get).not.toHaveBeenCalled();
+        expect(backing.set).not.toHaveBeenCalled();
     });
 
     it('s3:// hits the cache on the second request', async () => {
@@ -60,7 +74,7 @@ describe('s3 sources read through the cache', () => {
                     Uint8Array.from(Buffer.from('sprite')),
             },
         });
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withMemoryCache(backing);
 
         const a = await getSource('s3://assets/sprite.png', cache);
         const b = await getSource('s3://assets/sprite.png', cache);
@@ -86,7 +100,7 @@ describe('s3 sources read through the cache', () => {
                 },
             };
         });
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withMemoryCache(backing);
         const uri = 'pmtiles://s3://tiles/school.pmtiles/0/0/0';
 
         const a = await getSource(uri, cache);

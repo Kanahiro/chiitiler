@@ -7,10 +7,14 @@ import { getGCSSource } from './gcs.js';
 import { getCogSource } from './cog.js';
 import { Cache, noneCache } from '../cache/index.js';
 
-/** Read through the cache. Empty results are not cached. */
+/**
+ * Read through the in-process memory layer only. Object storage is already
+ * durable, so persisting it to the backing cache would just duplicate it.
+ * Empty results are not cached.
+ */
 async function cached(
     uri: string,
-    cache: Cache,
+    { memory: cache = noneCache() }: Cache,
     load: () => Promise<Buffer | null>,
 ): Promise<Buffer | null> {
     const val = await cache.get(uri);
@@ -44,7 +48,7 @@ const inFlight = new Map<string, Promise<Buffer | null>>();
  * Concurrent requests for the same uri share a single in-flight fetch
  * (single-flight) to avoid duplicate downloads.
  * @param uri
- * @param cache {Cache} - Cache Strategy. Affect only remote (http(s), s3, gs) sources.
+ * @param cache {Cache} - Cache Strategy. Affect only http(s) sources; s3/gs use only its memory layer.
  * @returns
  */
 async function getSource(

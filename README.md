@@ -196,9 +196,10 @@ The tile server adds a per-process memory front cache to `file`, `s3`, and `gcs`
 by default, buffers are retained for 10 seconds from insertion, with an LRU limit of 64 MiB
 of buffer payloads (JavaScript overhead is additional). Reads promote backing-cache
 hits into memory; writes populate memory immediately and also write to the backing
-cache. `none` and `memory` keep their existing behavior. Remote sources
-(`http(s)://`, `s3://`, `gs://`, and `pmtiles://` over http(s) or s3) use the cache;
-local reads (`file://`, `mbtiles://`, local `pmtiles://`) and `cog://` do not.
+cache. `none` and `memory` keep their existing behavior. `http(s)://` sources use
+the cache. `s3://`, `gs://`, and `pmtiles://s3://` use only the memory front cache
+(object storage is not copied into the backing cache). Local reads (`file://`,
+`mbtiles://`, local `pmtiles://`) and `cog://` are not cached.
 
 Set `--front-cache-ttl-sec` / `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
 `--front-cache-max-bytes` / `CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override

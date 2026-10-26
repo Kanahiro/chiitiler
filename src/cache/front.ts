@@ -29,6 +29,13 @@ export function withMemoryCache(
 
     return {
         name: backing.name,
+        memory: {
+            name: 'memory',
+            get: async (key) => memory.get(key),
+            set: async (key, value) => {
+                memory.set(key, value);
+            },
+        },
         get: async (key) => {
             const hit = memory.get(key);
             if (hit !== undefined) return hit;
