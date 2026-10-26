@@ -48,7 +48,7 @@ describe('getS3Source', () => {
     });
 });
 
-describe('s3 sources use only the memory front cache', () => {
+describe('s3 sources use only the memory front cache, not the backing cache', () => {
     const backing = {
         name: 'spy',
         get: vi.fn(async () => undefined),

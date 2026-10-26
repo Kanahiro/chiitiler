@@ -114,20 +114,12 @@ async function getPmtilesSource(
 
 	const isHttpSource =
 		pmtilesUri.startsWith('http://') || pmtilesUri.startsWith('https://');
-	// s3 is already durable: use only the in-process memory layer (see source/index.ts)
-	const tileCache = isHttpSource
-		? cache
-		: pmtilesUri.startsWith('s3://')
-			? (cache.memory ?? noneCache())
-			: undefined;
-	if (tileCache) {
-		const val = await tileCache.get(uri);
+	if (isHttpSource) {
+		const val = await cache.get(uri);
 		if (val !== undefined) return val; // hit
 		// Another request may have created the archive while cache.get awaited.
 		pmtiles = pmtilesCache.get(pmtilesUri);
-	}
 
-	if (isHttpSource) {
 		if (pmtiles === undefined) {
 			const userAgent = getUserAgent();
 			const headers = new Headers();
@@ -163,7 +155,7 @@ async function getPmtilesSource(
 	if (!tile) return null;
 
 	const buf = Buffer.from(tile.data);
-	if (tileCache) tileCache.set(uri, buf);
+	if (isHttpSource) cache.set(uri, buf);
 	return buf;
 }
 

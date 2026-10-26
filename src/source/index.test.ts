@@ -5,12 +5,28 @@ import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 
 import { getSource } from './index.js';
+import { noneCache, withMemoryCache } from '../cache/index.js';
 
 describe('getSource', () => {
     it('file://', async () => {
         const uri = 'file://localdata/style.json';
         const data = await getSource(uri);
         expect(data).not.toBeNull();
+    });
+
+    it('file:// is served from the memory front cache, even over none', async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chiitiler-'));
+        const file = path.join(dir, 'a.json');
+        fs.writeFileSync(file, 'old');
+        try {
+            const cache = withMemoryCache(noneCache());
+            expect((await getSource(`file://${file}`, cache))?.toString()).toBe('old');
+            fs.writeFileSync(file, 'new');
+            expect((await getSource(`file://${file}`, cache))?.toString()).toBe('old');
+            expect((await getSource(`file://${file}`))?.toString()).toBe('new');
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it('file:// with percent-encoded path', async () => {
