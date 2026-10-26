@@ -7,6 +7,23 @@ import { getGCSSource } from './gcs.js';
 import { getCogSource } from './cog.js';
 import { Cache, noneCache } from '../cache/index.js';
 
+/**
+ * Every source reads through the short-lived in-process memory layer.
+ * Only http(s) sources also persist to the backing cache (in fetchSource).
+ * Empty results are not cached.
+ */
+async function cached(
+    uri: string,
+    { memory: cache = noneCache() }: Cache,
+    load: () => Promise<Buffer | null>,
+): Promise<Buffer | null> {
+    const val = await cache.get(uri);
+    if (val !== undefined) return val;
+    const buf = await load();
+    if (buf !== null && buf.length > 0) cache.set(uri, buf);
+    return buf;
+}
+
 async function fetchSource(
     uri: string,
     cache: Cache,
@@ -29,7 +46,7 @@ const inFlight = new Map<string, Promise<Buffer | null>>();
  * Concurrent requests for the same uri share a single in-flight fetch
  * (single-flight) to avoid duplicate downloads.
  * @param uri
- * @param cache {Cache} - Cache Strategy. Affect only for http(s) sources.
+ * @param cache {Cache} - Cache Strategy. Its memory layer applies to every source; the backing cache only to http(s).
  * @returns
  */
 async function getSource(
@@ -39,7 +56,7 @@ async function getSource(
     const existing = inFlight.get(uri);
     if (existing !== undefined) return existing;
 
-    const promise = fetchSource(uri, cache).finally(() => {
+    const promise = cached(uri, cache, () => fetchSource(uri, cache)).finally(() => {
         inFlight.delete(uri);
     });
     inFlight.set(uri, promise);

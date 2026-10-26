@@ -10,6 +10,8 @@ type Cache = {
     name: string;
     get: (key: string) => Promise<Value | undefined>;
     set: (key: string, value: Value) => Promise<void>;
+    /** Short-lived in-process layer (set by withMemoryCache), applied to every source. */
+    memory?: Cache;
 };
 
 const noneCache: () => Cache = () => ({

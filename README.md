@@ -192,19 +192,19 @@ retaining native renderer memory between requests.
 
 Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final rasters — so cached data is reused across requests. Standard AWS / GCP credentials (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.) are respected.
 
-The tile server adds a per-process memory front cache to `file`, `s3`, and `gcs`:
-by default, buffers are retained for 10 seconds from insertion, with an LRU limit of 64 MiB
-of buffer payloads (JavaScript overhead is additional). Reads promote backing-cache
-hits into memory; writes populate memory immediately and also write to the backing
-cache. `none` and `memory` keep their existing behavior. This affects sources that
-already use the cache, not direct `s3://`, `gs://`, or local source reads.
+The tile server adds a per-process memory front cache to every cache method, including
+`none` and `memory`: by default, buffers are retained for 10 seconds from insertion, with an
+LRU limit of 64 MiB of buffer payloads (JavaScript overhead is additional). It applies to
+every source (`http(s)://`, `s3://`, `gs://`, `file://`, `mbtiles://`, `pmtiles://`, `cog://`).
+Only `http(s)://` sources (including `pmtiles://http(s)://` tiles) are also stored in the
+backing cache; reads promote backing-cache hits into memory, and writes populate memory
+immediately and also write to the backing cache.
 
 Set `--front-cache-ttl-sec` / `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
 `--front-cache-max-bytes` / `CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
-these limits. CLI flags take precedence over environment variables. Setting either limit to `0` disables the front cache and uses the
-backing cache directly. Otherwise, invalid values stop startup when using `file`,
-`s3`, or `gcs`.
-These settings do not affect `none`, `memory`, or library callers.
+these limits. CLI flags take precedence over environment variables. Set either limit to `0`
+(e.g. `CHIITILER_FRONT_CACHE_TTL_SEC=0`) to disable the front cache entirely. Otherwise,
+invalid values stop startup. These settings do not affect library callers.
 
 The front-cache TTL does not guarantee source freshness: promotion can retain a
 value for up to the configured TTL beyond its backing-cache expiry, and the S3/GCS cache

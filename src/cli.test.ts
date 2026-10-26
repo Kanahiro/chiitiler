@@ -122,7 +122,7 @@ describe('run chiitiler', () => {
     );
 
     it.each(['file', 's3', 'gcs', 'none', 'memory'] as const)(
-        'adds the memory front cache only for I/O-backed caches: %s',
+        'adds the memory front cache for every cache method: %s',
         async (method) => {
             const factory = method === 'none' ? 'noneCache' : `${method}Cache` as const;
             const backing = {
@@ -140,9 +140,7 @@ describe('run chiitiler', () => {
             await createProgram().parseAsync(['node', 'cli.js', 'tile-server', '-c', method]);
             await options.cache.get('key');
             await options.cache.get('key');
-            expect(backing.get).toHaveBeenCalledTimes(
-                ['file', 's3', 'gcs'].includes(method) ? 1 : 2,
-            );
+            expect(backing.get).toHaveBeenCalledTimes(1);
         },
     );
 

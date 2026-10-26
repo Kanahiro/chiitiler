@@ -219,14 +219,12 @@ export function createProgram() {
                 debug: parseDebug(options.debug),
             };
 
-            if (['file', 's3', 'gcs'].includes(serverOptions.cache.name)) {
-                const ttl = options.frontCacheTtlSec;
-                const size = options.frontCacheMaxBytes;
-                serverOptions.cache = caches.withMemoryCache(serverOptions.cache, {
-                    ttlSeconds: ttl === undefined ? undefined : Number(ttl.trim() || NaN),
-                    maxBytes: size === undefined ? undefined : Number(size.trim() || NaN),
-                });
-            }
+            const ttl = options.frontCacheTtlSec;
+            const size = options.frontCacheMaxBytes;
+            serverOptions.cache = caches.withMemoryCache(serverOptions.cache, {
+                ttlSeconds: ttl === undefined ? undefined : Number(ttl.trim() || NaN),
+                maxBytes: size === undefined ? undefined : Number(size.trim() || NaN),
+            });
 
             if (serverOptions.debug) {
                 console.log(
