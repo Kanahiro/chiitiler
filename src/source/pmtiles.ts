@@ -114,12 +114,15 @@ async function getPmtilesSource(
 
 	const isHttpSource =
 		pmtilesUri.startsWith('http://') || pmtilesUri.startsWith('https://');
-	if (isHttpSource) {
+	const isRemoteSource = isHttpSource || pmtilesUri.startsWith('s3://');
+	if (isRemoteSource) {
 		const val = await cache.get(uri);
 		if (val !== undefined) return val; // hit
 		// Another request may have created the archive while cache.get awaited.
 		pmtiles = pmtilesCache.get(pmtilesUri);
+	}
 
+	if (isHttpSource) {
 		if (pmtiles === undefined) {
 			const userAgent = getUserAgent();
 			const headers = new Headers();
@@ -155,7 +158,7 @@ async function getPmtilesSource(
 	if (!tile) return null;
 
 	const buf = Buffer.from(tile.data);
-	if (isHttpSource) cache.set(uri, buf);
+	if (isRemoteSource) cache.set(uri, buf);
 	return buf;
 }
 

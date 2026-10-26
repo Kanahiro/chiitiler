@@ -8,7 +8,6 @@ async function getHttpSource(
     uri: string,
     cache: Cache = noneCache(),
 ): Promise<Buffer | null> {
-    // use cache only for http(s) sources
     const val = await cache.get(uri);
     if (val !== undefined) return val; // hit
 

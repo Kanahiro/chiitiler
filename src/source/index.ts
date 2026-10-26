@@ -7,6 +7,19 @@ import { getGCSSource } from './gcs.js';
 import { getCogSource } from './cog.js';
 import { Cache, noneCache } from '../cache/index.js';
 
+/** Read through the cache. Empty results are not cached. */
+async function cached(
+    uri: string,
+    cache: Cache,
+    load: () => Promise<Buffer | null>,
+): Promise<Buffer | null> {
+    const val = await cache.get(uri);
+    if (val !== undefined) return val;
+    const buf = await load();
+    if (buf !== null && buf.length > 0) cache.set(uri, buf);
+    return buf;
+}
+
 async function fetchSource(
     uri: string,
     cache: Cache,
@@ -14,8 +27,10 @@ async function fetchSource(
     if (uri.startsWith('http://') || uri.startsWith('https://'))
         return getHttpSource(uri, cache);
     if (uri.startsWith('file://')) return getFilesystemSource(uri);
-    if (uri.startsWith('s3://')) return getS3Source(uri);
-    if (uri.startsWith('gs://')) return getGCSSource(uri);
+    if (uri.startsWith('s3://'))
+        return cached(uri, cache, () => getS3Source(uri));
+    if (uri.startsWith('gs://'))
+        return cached(uri, cache, () => getGCSSource(uri));
     if (uri.startsWith('mbtiles://')) return getMbtilesSource(uri);
     if (uri.startsWith('pmtiles://')) return getPmtilesSource(uri, cache);
     if (uri.startsWith('cog://')) return getCogSource(uri);
@@ -29,7 +44,7 @@ const inFlight = new Map<string, Promise<Buffer | null>>();
  * Concurrent requests for the same uri share a single in-flight fetch
  * (single-flight) to avoid duplicate downloads.
  * @param uri
- * @param cache {Cache} - Cache Strategy. Affect only for http(s) sources.
+ * @param cache {Cache} - Cache Strategy. Affect only remote (http(s), s3, gs) sources.
  * @returns
  */
 async function getSource(
