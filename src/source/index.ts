@@ -5,7 +5,7 @@ import { getMbtilesSource } from './mbtiles.js';
 import { getS3Source } from './s3.js';
 import { getGCSSource } from './gcs.js';
 import { getCogSource } from './cog.js';
-import { Cache, noneCache } from '../cache/index.js';
+import { type Cache, noneCache } from '../cache/index.js';
 
 /**
  * Every source reads through the short-lived in-process memory layer.
@@ -24,10 +24,7 @@ async function cached(
     return buf;
 }
 
-async function fetchSource(
-    uri: string,
-    cache: Cache,
-): Promise<Buffer | null> {
+async function fetchSource(uri: string, cache: Cache): Promise<Buffer | null> {
     if (uri.startsWith('http://') || uri.startsWith('https://'))
         return getHttpSource(uri, cache);
     if (uri.startsWith('file://')) return getFilesystemSource(uri);
@@ -56,9 +53,11 @@ async function getSource(
     const existing = inFlight.get(uri);
     if (existing !== undefined) return existing;
 
-    const promise = cached(uri, cache, () => fetchSource(uri, cache)).finally(() => {
-        inFlight.delete(uri);
-    });
+    const promise = cached(uri, cache, () => fetchSource(uri, cache)).finally(
+        () => {
+            inFlight.delete(uri);
+        },
+    );
     inFlight.set(uri, promise);
     return promise;
 }

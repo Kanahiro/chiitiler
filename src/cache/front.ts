@@ -42,13 +42,17 @@ export function withMemoryCache(
             const pending = reads.get(key);
             if (pending !== undefined) return pending;
 
-            const read = backing.get(key).then((value) => {
-                // A newer write must not be overwritten by an older read.
-                if (value !== undefined && reads.get(key) === read) memory.set(key, value);
-                return value;
-            }).finally(() => {
-                if (reads.get(key) === read) reads.delete(key);
-            });
+            const read = backing
+                .get(key)
+                .then((value) => {
+                    // A newer write must not be overwritten by an older read.
+                    if (value !== undefined && reads.get(key) === read)
+                        memory.set(key, value);
+                    return value;
+                })
+                .finally(() => {
+                    if (reads.get(key) === read) reads.delete(key);
+                });
             reads.set(key, read);
             return read;
         },

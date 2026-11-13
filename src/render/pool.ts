@@ -27,45 +27,48 @@ async function getRenderPool(
     const pool = mapPoolCache.get(cacheKey);
     if (pool !== undefined) return pool;
 
-    const newPool = new Pool({
-        create: () => {
-            const map = new mbgl.Map({
-                request: function (req, callback) {
-                    getSource(req.url, cache)
-                        .then((buf) => {
-                            if (buf !== null && buf.length > 0) {
-                                callback(undefined, { data: buf });
-                            } else {
-                                // 204/空ボディ/404: 空タイルとして扱わせる
-                                callback(undefined, EMPTY_RESPONSE);
-                            }
-                        })
-                        .catch((err) => {
-                            // 5xx/ネットワークエラー: 空タイルとして描画すると
-                            // 欠損タイルがCDN等にキャッシュされうるので、
-                            // エラーを渡してレンダリング自体を失敗させる
-                            callback(
-                                err instanceof Error
-                                    ? err
-                                    : new Error(String(err)),
-                            );
-                        });
-                },
-                ratio: 1,
-                // @ts-ignore
-                mode,
-            });
-            map.load(style);
-            return map;
+    const newPool = new Pool(
+        {
+            create: () => {
+                const map = new mbgl.Map({
+                    request: (req, callback) => {
+                        getSource(req.url, cache)
+                            .then((buf) => {
+                                if (buf !== null && buf.length > 0) {
+                                    callback(undefined, { data: buf });
+                                } else {
+                                    // 204/空ボディ/404: 空タイルとして扱わせる
+                                    callback(undefined, EMPTY_RESPONSE);
+                                }
+                            })
+                            .catch((err) => {
+                                // 5xx/ネットワークエラー: 空タイルとして描画すると
+                                // 欠損タイルがCDN等にキャッシュされうるので、
+                                // エラーを渡してレンダリング自体を失敗させる
+                                callback(
+                                    err instanceof Error
+                                        ? err
+                                        : new Error(String(err)),
+                                );
+                            });
+                    },
+                    ratio: 1,
+                    // @ts-expect-error
+                    mode,
+                });
+                map.load(style);
+                return map;
+            },
+            destroy: (map: mbgl.Map) => {
+                map.release();
+            },
         },
-        destroy: (map: mbgl.Map) => {
-            map.release();
+        {
+            // Keep initialized Maps until their pool is evicted or closed. Disable
+            // idle housekeeping rather than running a timer in warm Lambda environments.
+            houseKeepInterval: 0,
         },
-    }, {
-        // Keep initialized Maps until their pool is evicted or closed. Disable
-        // idle housekeeping rather than running a timer in warm Lambda environments.
-        houseKeepInterval: 0,
-    });
+    );
     mapPoolCache.set(cacheKey, newPool);
     return newPool;
 }

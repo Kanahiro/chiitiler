@@ -1,4 +1,4 @@
-import { DatabaseSync, StatementSync } from 'node:sqlite';
+import { DatabaseSync, type StatementSync } from 'node:sqlite';
 import { unzip } from 'zlib';
 import { LRUCache } from 'lru-cache';
 
@@ -33,7 +33,7 @@ async function getMbtilesSource(uri: string): Promise<Buffer | null> {
     const [z, x, y] = uri
         .replace(`mbtiles://${mbtilesFilepath}/`, '')
         .split('/');
-    const ty = Math.pow(2, Number(z)) - 1 - Number(y);
+    const ty = 2 ** Number(z) - 1 - Number(y);
 
     const row = statement.get(z, x, ty);
 

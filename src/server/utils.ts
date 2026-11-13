@@ -1,16 +1,16 @@
 import {
-	type StyleSpecification,
-	validateStyleMin,
+    type StyleSpecification,
+    validateStyleMin,
 } from '@maplibre/maplibre-gl-style-spec';
 import type { SupportedFormat } from '../render/index.js';
 
 function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
-	if (stylejson === null || typeof stylejson !== 'object') return false;
-	return validateStyleMin(stylejson).length === 0;
+    if (stylejson === null || typeof stylejson !== 'object') return false;
+    return validateStyleMin(stylejson).length === 0;
 }
 
 function isSupportedFormat(ext: string | undefined): ext is SupportedFormat {
-	return Boolean(ext && ['png', 'jpeg', 'jpg', 'webp'].includes(ext));
+    return Boolean(ext && ['png', 'jpeg', 'jpg', 'webp'].includes(ext));
 }
 
 export { isValidStylejson, isSupportedFormat };

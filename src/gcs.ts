@@ -1,21 +1,21 @@
 import { Storage, type StorageOptions } from '@google-cloud/storage';
 
 let storageClient: Storage; // singleton
-const getStorageClient = function ({
+const getStorageClient = ({
     projectId,
     keyFilename,
-    apiEndpoint
+    apiEndpoint,
 }: {
     projectId?: string;
     keyFilename?: string;
     apiEndpoint?: string;
-}) {
+}) => {
     if (storageClient !== undefined) return storageClient;
 
     const storageOptions: StorageOptions = {
         projectId,
         keyFilename,
-        apiEndpoint
+        apiEndpoint,
     };
 
     storageClient = new Storage(storageOptions);

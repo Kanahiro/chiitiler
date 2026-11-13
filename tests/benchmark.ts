@@ -16,7 +16,9 @@ if (![DURATION, WARMUP].every((n) => Number.isFinite(n) && n > 0)) {
     throw new Error('Duration and warmup must be positive finite seconds');
 }
 const TARGET = path.resolve(process.env.CHIITILER_BENCH_TARGET ?? '.');
-const STYLE_URL = pathToFileURL(path.resolve('tests/fixtures/bench-style.json')).href;
+const STYLE_URL = pathToFileURL(
+    path.resolve('tests/fixtures/bench-style.json'),
+).href;
 const STYLE_QS = `url=${encodeURIComponent(STYLE_URL)}`;
 
 function isPortFree(port: number): Promise<boolean> {
@@ -84,12 +86,18 @@ const scenarios: Scenario[] = [
     },
 ];
 
-async function waitForReady(server: ChildProcess, timeoutMs = 60_000): Promise<void> {
+async function waitForReady(
+    server: ChildProcess,
+    timeoutMs = 60_000,
+): Promise<void> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
-        if (server.exitCode !== null || server.signalCode !== null) throw new Error('server exited before readiness');
+        if (server.exitCode !== null || server.signalCode !== null)
+            throw new Error('server exited before readiness');
         try {
-            const res = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(2_000) });
+            const res = await fetch(`${BASE}/health`, {
+                signal: AbortSignal.timeout(2_000),
+            });
             if (res.ok) return;
         } catch {
             // server not up yet
@@ -103,15 +111,24 @@ function startServer(): ChildProcess {
     // Keep the harness cwd for identical fixtures, but resolve code and dependencies
     // from the target checkout. Invoke Node directly for reliable termination.
     const require = createRequire(path.join(TARGET, 'package.json'));
-    return spawn(process.execPath, ['--import', pathToFileURL(require.resolve('tsx')).href, path.join(TARGET, 'src/main.ts'), 'tile-server'], {
-        env: {
-            ...process.env,
-            CHIITILER_PORT: String(PORT),
-            CHIITILER_CACHE_METHOD: 'none',
-            CHIITILER_PROCESSES: '1',
+    return spawn(
+        process.execPath,
+        [
+            '--import',
+            pathToFileURL(require.resolve('tsx')).href,
+            path.join(TARGET, 'src/main.ts'),
+            'tile-server',
+        ],
+        {
+            env: {
+                ...process.env,
+                CHIITILER_PORT: String(PORT),
+                CHIITILER_CACHE_METHOD: 'none',
+                CHIITILER_PROCESSES: '1',
+            },
+            stdio: ['ignore', 'inherit', 'inherit'],
         },
-        stdio: ['ignore', 'inherit', 'inherit'],
-    });
+    );
 }
 
 async function stopServer(server: ChildProcess): Promise<void> {
@@ -153,16 +170,42 @@ async function main() {
         await waitForReady(server);
         for (const scenario of scenarios) {
             process.stderr.write(`  warming: ${scenario.name} (${WARMUP}s)\n`);
-            const response = await fetch(BASE + scenario.url, { signal: AbortSignal.timeout(30_000) });
-            if (!response.ok) throw new Error(`preflight failed: HTTP ${response.status}`);
-            const dimensions = imageSize(new Uint8Array(await response.arrayBuffer()));
-            const expectedSize = scenario.url.includes('tileSize=1024') ? 1024 : 512;
-            const expectedType = scenario.url.includes('.webp?') ? 'webp' : scenario.url.includes('.jpeg?') ? 'jpg' : 'png';
-            if (dimensions.width !== expectedSize || dimensions.height !== expectedSize || dimensions.type !== expectedType) {
+            const response = await fetch(BASE + scenario.url, {
+                signal: AbortSignal.timeout(30_000),
+            });
+            if (!response.ok)
+                throw new Error(`preflight failed: HTTP ${response.status}`);
+            const dimensions = imageSize(
+                new Uint8Array(await response.arrayBuffer()),
+            );
+            const expectedSize = scenario.url.includes('tileSize=1024')
+                ? 1024
+                : 512;
+            const expectedType = scenario.url.includes('.webp?')
+                ? 'webp'
+                : scenario.url.includes('.jpeg?')
+                  ? 'jpg'
+                  : 'png';
+            if (
+                dimensions.width !== expectedSize ||
+                dimensions.height !== expectedSize ||
+                dimensions.type !== expectedType
+            ) {
                 throw new Error(`invalid image for ${scenario.name}`);
             }
-            const warm = await autocannon({ url: BASE + scenario.url, connections: scenario.connections, duration: WARMUP, timeout: 30 });
-            if (warm.errors || warm.non2xx || warm.timeouts || warm.requests.total === 0) throw new Error(`warmup failed: ${scenario.name}`);
+            const warm = await autocannon({
+                url: BASE + scenario.url,
+                connections: scenario.connections,
+                duration: WARMUP,
+                timeout: 30,
+            });
+            if (
+                warm.errors ||
+                warm.non2xx ||
+                warm.timeouts ||
+                warm.requests.total === 0
+            )
+                throw new Error(`warmup failed: ${scenario.name}`);
             process.stderr.write(`  running: ${scenario.name}\n`);
             const result = await autocannon({
                 url: BASE + scenario.url,
@@ -214,7 +257,10 @@ async function main() {
         );
     }
 
-    const hadErrors = rows.some((r) => r.errors > 0 || r.non2xx > 0 || r.timeouts > 0 || r.requests === 0);
+    const hadErrors = rows.some(
+        (r) =>
+            r.errors > 0 || r.non2xx > 0 || r.timeouts > 0 || r.requests === 0,
+    );
     if (hadErrors) {
         process.stderr.write(
             '\nERROR: benchmark produced errors, non-2xx responses, timeouts, or zero responses\n',

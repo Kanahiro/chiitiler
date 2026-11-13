@@ -18,7 +18,10 @@ describe('getRenderPool', () => {
     it('reuses a Map after a long idle period and releases it on close', async () => {
         vi.useFakeTimers();
         const style: StyleSpecification = {
-            version: 8, name: 'long-idle', sources: {}, layers: [],
+            version: 8,
+            name: 'long-idle',
+            sources: {},
+            layers: [],
         };
         const pool = await getRenderPool(style, noneCache(), 'tile');
         try {
@@ -45,7 +48,10 @@ describe('getRenderPool', () => {
     it('still releases Maps when their style/mode pool is evicted from the LRU', async () => {
         const cache = noneCache();
         const style: StyleSpecification = {
-            version: 8, name: 'eviction-victim', sources: {}, layers: [],
+            version: 8,
+            name: 'eviction-victim',
+            sources: {},
+            layers: [],
         };
         const victim = await getRenderPool(style, cache, 'tile');
         const pools = [victim];
@@ -54,7 +60,13 @@ describe('getRenderPool', () => {
             const release = vi.spyOn(map, 'release');
             victim.release(map);
             for (let i = 0; i < 10; i++) {
-                pools.push(await getRenderPool({ ...style, name: `eviction-${i}` }, cache, 'tile'));
+                pools.push(
+                    await getRenderPool(
+                        { ...style, name: `eviction-${i}` },
+                        cache,
+                        'tile',
+                    ),
+                );
             }
             await vi.waitFor(() => expect(release).toHaveBeenCalledTimes(1));
         } finally {
@@ -77,10 +89,21 @@ describe('getRenderPool', () => {
             const second = await getRenderPool(style, cache, secondMode);
             try {
                 expect(second).not.toBe(first);
-                expect(await getRenderPool(structuredClone(style), cache, firstMode)).toBe(first);
-                expect(await getRenderPool(style, cache, secondMode)).toBe(second);
+                expect(
+                    await getRenderPool(
+                        structuredClone(style),
+                        cache,
+                        firstMode,
+                    ),
+                ).toBe(first);
+                expect(await getRenderPool(style, cache, secondMode)).toBe(
+                    second,
+                );
 
-                for (const [pool, mode] of [[first, firstMode], [second, secondMode]] as const) {
+                for (const [pool, mode] of [
+                    [first, firstMode],
+                    [second, secondMode],
+                ] as const) {
                     const map = await pool.acquire();
                     try {
                         expect(map).toHaveProperty('options.mode', mode);

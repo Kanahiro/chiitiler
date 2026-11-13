@@ -44,7 +44,10 @@ describe('getHttpSource', () => {
         const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
         mockFetch(new Response('not found', { status: 404 }));
 
-        const data = await getHttpSource('https://example.com/missing.webp', cache);
+        const data = await getHttpSource(
+            'https://example.com/missing.webp',
+            cache,
+        );
 
         expect(data).toBeNull();
     });

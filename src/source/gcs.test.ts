@@ -31,9 +31,7 @@ describe('getGCSSource', () => {
 
         expect(result?.toString()).toBe('glyph');
         expect(file).toHaveBeenCalledOnce();
-        expect(file).toHaveBeenCalledWith(
-            'Noto Sans Regular,Arial/0-255.pbf',
-        );
+        expect(file).toHaveBeenCalledWith('Noto Sans Regular,Arial/0-255.pbf');
     });
 
     it('does not hide errors other than a missing object', async () => {

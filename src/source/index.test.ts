@@ -20,9 +20,13 @@ describe('getSource', () => {
         fs.writeFileSync(file, 'old');
         try {
             const cache = withMemoryCache(noneCache());
-            expect((await getSource(`file://${file}`, cache))?.toString()).toBe('old');
+            expect((await getSource(`file://${file}`, cache))?.toString()).toBe(
+                'old',
+            );
             fs.writeFileSync(file, 'new');
-            expect((await getSource(`file://${file}`, cache))?.toString()).toBe('old');
+            expect((await getSource(`file://${file}`, cache))?.toString()).toBe(
+                'old',
+            );
             expect((await getSource(`file://${file}`))?.toString()).toBe('new');
         } finally {
             fs.rmSync(dir, { recursive: true, force: true });
