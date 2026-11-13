@@ -5,7 +5,8 @@
 
 ```sh
 cd cdk
-npx cdk deploy
+pnpm install
+pnpm cdk deploy
 # check your cpu architecture, default to arm64
 ```
 

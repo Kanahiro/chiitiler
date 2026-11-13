@@ -1,6 +1,6 @@
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 
-import { type Cache, type Value } from './index.js';
+import type { Cache, Value } from './index.js';
 import { getS3Client } from '../s3.js';
 
 type S3CacheOptions = {
@@ -17,7 +17,7 @@ function s3Cache(options: S3CacheOptions): Cache {
     });
     return {
         name: 's3',
-        set: async function (key: string, value: Value) {
+        set: async (key: string, value: Value) => {
             try {
                 const cmd = new PutObjectCommand({
                     Bucket: options.bucket,
@@ -29,7 +29,7 @@ function s3Cache(options: S3CacheOptions): Cache {
                 console.log(`[error]: ${e}`);
             }
         },
-        get: async function (key: string): Promise<Value | undefined> {
+        get: async (key: string): Promise<Value | undefined> => {
             const cmd = new GetObjectCommand({
                 Bucket: options.bucket,
                 Key: escapeFileName(key),

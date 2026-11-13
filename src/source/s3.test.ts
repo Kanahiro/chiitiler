@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import type { GetObjectCommand } from '@aws-sdk/client-s3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { send } = vi.hoisted(() => ({ send: vi.fn() }));

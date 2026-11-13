@@ -13,7 +13,7 @@ services:
         command:
             - -c
             - |
-                /usr/bin/xvfb-run -a npm run dev
+                /usr/bin/xvfb-run -a pnpm dev
         environment:
             - CHIITILER_CACHE_METHOD=s3
             - CHIITILER_S3CACHE_BUCKET=chiitiler

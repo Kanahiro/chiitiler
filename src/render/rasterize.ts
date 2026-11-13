@@ -24,7 +24,7 @@ async function render(
     const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
         worker.render(
             renderOptions,
-            function (err: any, buffer: Uint8Array | undefined) {
+            (err: any, buffer: Uint8Array | undefined) => {
                 pool.release(worker);
                 if (err) {
                     reject(err);

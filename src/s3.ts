@@ -1,7 +1,7 @@
-import { S3Client, S3ClientConfig } from '@aws-sdk/client-s3';
+import { S3Client, type S3ClientConfig } from '@aws-sdk/client-s3';
 
 let s3Client: S3Client; // singleton
-const getS3Client = function ({
+const getS3Client = ({
     region,
     endpoint,
     forcePathStyle,
@@ -9,7 +9,7 @@ const getS3Client = function ({
     region: string;
     endpoint?: string;
     forcePathStyle?: boolean;
-}) {
+}) => {
     if (s3Client !== undefined) return s3Client;
 
     const s3ClientConfig: S3ClientConfig = {

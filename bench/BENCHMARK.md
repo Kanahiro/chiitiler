@@ -1,6 +1,6 @@
 # Benchmark
 
-`npm run test:benchmark` spawns `tile-server`, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
+`pnpm test:benchmark` spawns `tile-server`, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
 against each scenario and reports throughput + latency percentiles.
 
 ## Setup
@@ -26,7 +26,7 @@ against each scenario and reports throughput + latency percentiles.
 ## Running
 
 ```sh
-npm run test:benchmark
+pnpm test:benchmark
 ```
 
 Knobs via env:
@@ -48,7 +48,7 @@ needs a display.
 
 ## First-request prewarm comparison
 
-Run manually from the repository root (not included in npm scripts or CI):
+Run manually from the repository root (not included in package scripts or CI):
 
 ```sh
 CHIITILER_BENCH_RUNS=20 \
@@ -75,7 +75,7 @@ effect of Linux GL initialization or AWS Lambda INIT CPU allocation.
 ## Baseline comparison in CI
 
 CI compares the PR event's fixed base SHA with the fixed PR merge SHA (`github.sha`).
-Both commits are extracted into separate directories and installed with `npm ci`.
+Both commits are extracted into separate directories and installed with `pnpm install --frozen-lockfile`.
 The current checkout supplies the shared measurement harness and fixtures; target
 server code and dependencies come from each extracted commit. Thus dependency
 changes are included, while fixture changes are applied equally to both sides.

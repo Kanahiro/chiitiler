@@ -33,7 +33,9 @@ describe('withMemoryCache', () => {
     it('shares concurrent reads and does not retain misses or errors', async () => {
         const backing = backingCache();
         const cache = withMemoryCache(backing);
-        expect(await Promise.all([cache.get('key'), cache.get('key')])).toEqual([undefined, undefined]);
+        expect(await Promise.all([cache.get('key'), cache.get('key')])).toEqual(
+            [undefined, undefined],
+        );
         expect(backing.get).toHaveBeenCalledTimes(1);
         backing.get.mockRejectedValueOnce(new Error('temporary'));
         await expect(cache.get('key')).rejects.toThrow('temporary');
@@ -45,7 +47,12 @@ describe('withMemoryCache', () => {
     it('serves writes immediately while backing persistence is pending', async () => {
         const backing = backingCache();
         let finish!: () => void;
-        backing.set.mockImplementation(() => new Promise<void>((resolve) => { finish = resolve; }));
+        backing.set.mockImplementation(
+            () =>
+                new Promise<void>((resolve) => {
+                    finish = resolve;
+                }),
+        );
         const cache = withMemoryCache(backing);
         const value = Buffer.from('value');
         const writing = cache.set('key', value);
@@ -59,7 +66,12 @@ describe('withMemoryCache', () => {
     it('does not let an older backing read overwrite a newer write', async () => {
         const backing = backingCache();
         let finish!: (value: Value) => void;
-        backing.get.mockImplementation(() => new Promise<Value>((resolve) => { finish = resolve; }));
+        backing.get.mockImplementation(
+            () =>
+                new Promise<Value>((resolve) => {
+                    finish = resolve;
+                }),
+        );
         const cache = withMemoryCache(backing);
         const reading = cache.get('key');
         await cache.set('key', Buffer.from('new'));
@@ -98,20 +110,26 @@ describe('withMemoryCache', () => {
         const backing = backingCache();
         backing.set.mockRejectedValue(new Error('write failed'));
         const cache = withMemoryCache(backing);
-        await expect(cache.set('key', Buffer.from('value'))).rejects.toThrow('write failed');
+        await expect(cache.set('key', Buffer.from('value'))).rejects.toThrow(
+            'write failed',
+        );
         expect(await cache.get('key')).toEqual(Buffer.from('value'));
     });
 
     it.each([
-        { ttlSeconds: 0 }, { maxBytes: 0 }, { ttlSeconds: 0, maxBytes: 0 },
+        { ttlSeconds: 0 },
+        { maxBytes: 0 },
+        { ttlSeconds: 0, maxBytes: 0 },
     ])('returns the backing cache unchanged when disabled: %j', (options) => {
         const backing = backingCache();
         expect(withMemoryCache(backing, options)).toBe(backing);
     });
 
     it.each([
-        { ttlSeconds: -1 }, { ttlSeconds: Infinity },
-        { maxBytes: -1 }, { maxBytes: 1.5 },
+        { ttlSeconds: -1 },
+        { ttlSeconds: Infinity },
+        { maxBytes: -1 },
+        { maxBytes: 1.5 },
     ])('rejects invalid limits %j', (options) => {
         expect(() => withMemoryCache(backingCache(), options)).toThrow();
     });

@@ -1,6 +1,6 @@
-import { type Cache, type Value } from './index.js';
+import type { Cache, Value } from './index.js';
 import { getStorageClient } from '../gcs.js';
-import { File } from '@google-cloud/storage';
+import type { File } from '@google-cloud/storage';
 
 type GCSCacheOptions = {
     bucket: string;
@@ -24,13 +24,15 @@ function gcsCache(options: GCSCacheOptions): Cache {
 
     function bucketFile(key: string): File {
         const name = escapeFileName(key);
-        const nameWithPrefix = options.prefix ? `${options.prefix}/${name}` : name;
+        const nameWithPrefix = options.prefix
+            ? `${options.prefix}/${name}`
+            : name;
         return bucket.file(nameWithPrefix);
     }
 
     return {
         name: 'gcs',
-        set: async function (key: string, value: Value) {
+        set: async (key: string, value: Value) => {
             const file = bucketFile(key);
 
             try {
@@ -41,7 +43,7 @@ function gcsCache(options: GCSCacheOptions): Cache {
                 console.log(`[error]: ${e}`);
             }
         },
-        get: async function (key: string): Promise<Value | undefined> {
+        get: async (key: string): Promise<Value | undefined> => {
             const file = bucketFile(key);
 
             try {

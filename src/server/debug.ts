@@ -1,4 +1,4 @@
-import { Context } from 'hono';
+import type { Context } from 'hono';
 
 function getDebugPage(c: Context) {
     //demo tile

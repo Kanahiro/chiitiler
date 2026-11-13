@@ -14,7 +14,7 @@ Point it at any `style.json` and get back PNG / WebP / JPEG tiles, static images
 [![codecov](https://codecov.io/gh/Kanahiro/chiitiler/graph/badge.svg?token=9RVLAJG126)](https://codecov.io/gh/Kanahiro/chiitiler)
 [![License](https://img.shields.io/github/license/Kanahiro/chiitiler?color=blue)](./LICENSE)
 
-[Quickstart](#quickstart) · [HTTP API](#http-api) · [Library](#library-usage) · [Deployment](#deployment)
+[Live Demo](https://spatialty-io.github.io/chiitiler-demo/) · [Quickstart](#quickstart) · [HTTP API](#http-api) · [Library](#library-usage) · [Deployment](#deployment)
 
 </div>
 
@@ -36,10 +36,10 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** `npx tsx` works too:
+> **No Docker?** Run it from source with [pnpm](https://pnpm.io):
 > ```bash
-> git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && npm i
-> npx tsx src/main.ts tile-server --debug
+> git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
+> pnpm tsx src/main.ts tile-server --debug
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
 
@@ -230,17 +230,18 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Develop
 
-Requires Node.js 24.12+ and `sharp` system deps (see [Dockerfile](./Dockerfile)).
+Requires Node.js 24.22.1+, pnpm (`corepack enable`) and `sharp` system deps (see [Dockerfile](./Dockerfile)).
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
 cd chiitiler
-npm install
-npm run dev              # tsx watch mode
-npm run test:unit        # vitest
-npm run test:integration # end-to-end
-npm run test:benchmark   # see bench/BENCHMARK.md
-npm run build            # bundle to build/main.cjs
+pnpm install
+pnpm dev              # tsx watch mode
+pnpm lint             # biome lint + format check
+pnpm test:unit        # vitest
+pnpm test:integration # end-to-end
+pnpm test:benchmark   # see bench/BENCHMARK.md
+pnpm build            # bundle to build/main.cjs
 ```
 
 ## Architecture

@@ -40,7 +40,10 @@ beforeAll(async () => {
             const end = Number(m[2]);
             const chunk = archive.subarray(start, end + 1);
             res.statusCode = 206;
-            res.setHeader('Content-Range', `bytes ${start}-${end}/${archive.length}`);
+            res.setHeader(
+                'Content-Range',
+                `bytes ${start}-${end}/${archive.length}`,
+            );
             res.setHeader('Content-Length', String(chunk.length));
             res.setHeader('Accept-Ranges', 'bytes');
             res.end(chunk);
@@ -73,9 +76,13 @@ describe('getPmtilesSource (http)', () => {
         const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
         const tiles = ['0/0/0', '6/57/23'];
         const results = await Promise.all(
-            tiles.map((tile) => getPmtilesSource(uri('concurrent', tile), cache)),
+            tiles.map((tile) =>
+                getPmtilesSource(uri('concurrent', tile), cache),
+            ),
         );
-        expect(headerRequests.filter((url) => url.includes('t=concurrent'))).toHaveLength(1);
+        expect(
+            headerRequests.filter((url) => url.includes('t=concurrent')),
+        ).toHaveLength(1);
         for (const [index, tile] of tiles.entries()) {
             expect(results[index]).not.toBeNull();
             expect(results[index]!.length).toBeGreaterThan(0);

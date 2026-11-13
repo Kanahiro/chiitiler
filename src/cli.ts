@@ -103,7 +103,9 @@ function parsePort(port: string | undefined) {
 function parseProcesses(value: string) {
     const count = Number(value.trim() || NaN);
     if (!Number.isSafeInteger(count) || count < 0) {
-        throw new InvalidArgumentError('processes must be a non-negative safe integer');
+        throw new InvalidArgumentError(
+            'processes must be a non-negative safe integer',
+        );
     }
     return count;
 }
@@ -131,64 +133,56 @@ export function createProgram() {
             'memory cache max item count',
             '1000',
         )
-        .option(
-            '--file-cache-dir <dir>',
-            'file cache directory',
-            './.cache',
-        )
+        .option('--file-cache-dir <dir>', 'file cache directory', './.cache')
         .option(
             '--s3-region <region-name>',
             's3 bucket region for get/put',
             'us-east-1',
         )
-        .option(
-            '--s3-cache-bucket <bucket-name>',
-            's3 cache bucket name',
-            '',
-        )
+        .option('--s3-cache-bucket <bucket-name>', 's3 cache bucket name', '')
         .option('--s3-endpoint <url>', 's3 endpoint url', '')
         .option('--s3-force-path-style', 's3 force path style', '')
-        .option(
-            '--gcs-cache-bucket <bucket-name>',
-            'gcs cache bucket name',
-            '',
-        )
-        .option(
-            '--gcs-project-id <project-id>',
-            'gcs project id',
-            '',
-        )
-        .option(
-            '--gcs-key-filename <key-filename>',
-            'gcs key filename',
-            '',
-        )
-        .option(
-            '--gcs-cache-prefix <prefix>',
-            'gcs cache prefix',
-            '',
-        )
-        .option(
-            '--gcs-api-endpoint <api-endpoint>',
-            'gcs api endpoint',
-            '',
-        )
+        .option('--gcs-cache-bucket <bucket-name>', 'gcs cache bucket name', '')
+        .option('--gcs-project-id <project-id>', 'gcs project id', '')
+        .option('--gcs-key-filename <key-filename>', 'gcs key filename', '')
+        .option('--gcs-cache-prefix <prefix>', 'gcs cache prefix', '')
+        .option('--gcs-api-endpoint <api-endpoint>', 'gcs api endpoint', '')
         .option('-p, --port <port>', 'port number')
         .option(
             '--user-agent <user-agent>',
             'User-Agent header for outbound HTTP requests',
         )
-        .addOption(new Option('--prewarm [boolean]', 'startup renderer warmup')
-            .choices(['true', 'false']).preset('true').env('CHIITILER_PREWARM').default('true'))
-        .addOption(new Option('--processes <n>', 'worker processes (0 for all CPUs)')
-            .env('CHIITILER_PROCESSES').argParser(parseProcesses).default(1))
-        .addOption(new Option('--front-cache-ttl-sec <seconds>', 'memory front cache TTL (0 to disable)')
-            .env('CHIITILER_FRONT_CACHE_TTL_SEC'))
-        .addOption(new Option('--front-cache-max-bytes <bytes>', 'memory front cache byte limit (0 to disable)')
-            .env('CHIITILER_FRONT_CACHE_MAX_BYTES'))
+        .addOption(
+            new Option('--prewarm [boolean]', 'startup renderer warmup')
+                .choices(['true', 'false'])
+                .preset('true')
+                .env('CHIITILER_PREWARM')
+                .default('true'),
+        )
+        .addOption(
+            new Option('--processes <n>', 'worker processes (0 for all CPUs)')
+                .env('CHIITILER_PROCESSES')
+                .argParser(parseProcesses)
+                .default(1),
+        )
+        .addOption(
+            new Option(
+                '--front-cache-ttl-sec <seconds>',
+                'memory front cache TTL (0 to disable)',
+            ).env('CHIITILER_FRONT_CACHE_TTL_SEC'),
+        )
+        .addOption(
+            new Option(
+                '--front-cache-max-bytes <bytes>',
+                'memory front cache byte limit (0 to disable)',
+            ).env('CHIITILER_FRONT_CACHE_MAX_BYTES'),
+        )
         .option('-D, --debug', 'debug mode')
         .action(async (options) => {
-            const numProcesses = options.processes === 0 ? availableParallelism() : options.processes;
+            const numProcesses =
+                options.processes === 0
+                    ? availableParallelism()
+                    : options.processes;
             if (cluster.isPrimary && numProcesses !== 1) {
                 // Workers inherit argv and env, and initialize their own renderer and cache.
                 for (let i = 0; i < numProcesses; i++) cluster.fork();
@@ -196,7 +190,8 @@ export function createProgram() {
             }
 
             // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
-            if (options.userAgent !== undefined) setUserAgent(options.userAgent);
+            if (options.userAgent !== undefined)
+                setUserAgent(options.userAgent);
 
             const serverOptions: InitServerOptions = {
                 cache: parseCacheStrategy(options.cache, {
@@ -223,10 +218,19 @@ export function createProgram() {
             if (['file', 's3', 'gcs'].includes(serverOptions.cache.name)) {
                 const ttl = options.frontCacheTtlSec;
                 const size = options.frontCacheMaxBytes;
-                serverOptions.cache = caches.withMemoryCache(serverOptions.cache, {
-                    ttlSeconds: ttl === undefined ? undefined : Number(ttl.trim() || NaN),
-                    maxBytes: size === undefined ? undefined : Number(size.trim() || NaN),
-                });
+                serverOptions.cache = caches.withMemoryCache(
+                    serverOptions.cache,
+                    {
+                        ttlSeconds:
+                            ttl === undefined
+                                ? undefined
+                                : Number(ttl.trim() || NaN),
+                        maxBytes:
+                            size === undefined
+                                ? undefined
+                                : Number(size.trim() || NaN),
+                    },
+                );
             }
 
             if (serverOptions.debug) {
