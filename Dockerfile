@@ -1,23 +1,26 @@
 FROM node:24.22.3-bookworm-slim AS builder
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY src ./src
 COPY tsconfig.json ./
-RUN npm run build
+RUN pnpm build
 
 FROM node:24.22.3-bookworm-slim AS runtime-deps
 
 WORKDIR /app
-COPY package.json package-lock.json ./
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # The bundle externalizes only these native modules. maplibre's remaining
 # JavaScript dependencies are install tooling, not runtime dependencies.
-RUN node -e "const fs = require('node:fs'); const names = ['@maplibre/maplibre-gl-native', 'sharp']; const p = require('./package.json'); const lock = require('./package-lock.json'); p.dependencies = Object.fromEntries(names.map((name) => [name, lock.packages['node_modules/' + name].version])); delete p.devDependencies; fs.writeFileSync('package.json', JSON.stringify(p)); fs.unlinkSync('package-lock.json');" \
-  && npm install --omit=dev --no-package-lock --no-audit --no-fund \
+# Versions stay pinned by pnpm-lock.yaml; the hoisted linker gives a flat node_modules.
+RUN node -e "const fs = require('node:fs'); const p = require('./package.json'); p.dependencies = { '@maplibre/maplibre-gl-native': p.dependencies['@maplibre/maplibre-gl-native'], sharp: p.dependencies.sharp }; delete p.devDependencies; fs.writeFileSync('package.json', JSON.stringify(p));" \
+  && pnpm install --prod --config.node-linker=hoisted \
   && mv node_modules/@maplibre/maplibre-gl-native /tmp/maplibre-gl-native \
   && node -e "const fs = require('node:fs'); const p = require('./package.json'); delete p.dependencies['@maplibre/maplibre-gl-native']; fs.writeFileSync('package.json', JSON.stringify(p));" \
-  && npm prune --omit=dev --no-audit --no-fund \
+  && pnpm install --prod --config.node-linker=hoisted \
   && mkdir -p node_modules/@maplibre \
   && mv /tmp/maplibre-gl-native node_modules/@maplibre/maplibre-gl-native
 
@@ -39,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libpng16-16t64 \
   && rm -rf /var/lib/apt/lists/*
 
-# Dev image for docker-compose: full Node toolchain (npm included) with all
+# Dev image for docker-compose: full Node toolchain (corepack included) with all
 # dependencies installed at build time, so the container is ready at startup.
 # src is provided by a bind mount.
 FROM gl-base AS dev
@@ -48,8 +51,9 @@ COPY --from=node:24.22.3-bookworm-slim /usr/local/bin /usr/local/bin
 COPY --from=node:24.22.3-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 
 WORKDIR /app
-COPY package.json package-lock.json tsconfig.json ./
-RUN npm ci --no-audit --no-fund
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+RUN pnpm install --frozen-lockfile
 
 FROM gl-base AS runtime
 
@@ -60,7 +64,7 @@ ENV AWS_LWA_READINESS_CHECK_PATH=/health
 # first invoke instead of letting Lambda restart the sandbox.
 ENV AWS_LWA_ASYNC_INIT=true
 
-# npm and Corepack are unnecessary at runtime.
+# pnpm, npm and Corepack are unnecessary at runtime.
 COPY --from=node:24.22.3-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
