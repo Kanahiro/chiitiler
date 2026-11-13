@@ -5,18 +5,23 @@
   "description": "Tiny map rendering server for MapLibre Style Spec",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
+    "build": "esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
     "check": "tsc --noEmit",
     "dev": "tsx watch src/main.ts tile-server -D",
     "test:unit": "vitest src",
     "test:coverage": "vitest src --coverage --coverage.provider=v8",
     "test:integration": "vitest tests/integration.test.ts",
     "test:benchmark": "tsx tests/benchmark.ts",
-    "docs": "typedoc src/index.ts --out docs"
+    "docs": "typedoc src/index.ts --out docs",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
@@ -25,6 +30,7 @@
     "url": "https://github.com/Kanahiro/chiitiler"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
     "@tsconfig/node24": "^24.0.5",
     "@types/autocannon": "^7.12.7",
     "@types/node": "^25.9.6",
@@ -52,5 +58,6 @@
     "lru-cache": "^11.5.2",
     "pmtiles": "^4.5.0",
     "sharp": "^0.35.4"
-  }
+  },
+  "packageManager": "pnpm@12.18.0"
 }
