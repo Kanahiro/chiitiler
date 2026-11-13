@@ -17,7 +17,7 @@ services:
         environment:
             - CHIITILER_CACHE_METHOD=s3
             - CHIITILER_S3CACHE_BUCKET=chiitiler
-            - CHIITILER_S3_REGION=ap-northeast-1
+            - CHIITILER_S3_REGION=us-east-1
             - CHIITILER_S3_ENDPOINT=http://rustfs:9000
             - CHIITILER_S3_FORCE_PATH_STYLE=true
             - CHIITILER_PROCESSES=0
@@ -48,7 +48,7 @@ services:
         environment:
             - AWS_ACCESS_KEY_ID=rustfsadmin
             - AWS_SECRET_ACCESS_KEY=rustfsadmin
-            - AWS_DEFAULT_REGION=ap-northeast-1
+            - AWS_DEFAULT_REGION=us-east-1
         volumes:
             - ./localdata:/initdata
     fake-gcs-server:
