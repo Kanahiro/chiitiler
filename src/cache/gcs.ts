@@ -79,4 +79,4 @@ function escapeFileName(url: string) {
         .replace(/\\/g, '-'); // replace backslashes with dashes
 }
 
-export { gcsCache };
+export { gcsCache, type GCSCacheOptions };

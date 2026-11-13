@@ -71,4 +71,4 @@ function escapeFileName(url: string) {
         .replace(/\\/g, '-'); // replace backslashes with dashes
 }
 
-export { s3Cache };
+export { s3Cache, type S3CacheOptions };

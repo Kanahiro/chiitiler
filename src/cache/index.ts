@@ -4,6 +4,10 @@ import { gcsCache } from './gcs.js';
 import { fileCache } from './file.js';
 
 export { withMemoryCache } from './front.js';
+export type { MemoryCacheOptions } from './memory.js';
+export type { S3CacheOptions } from './s3.js';
+export type { GCSCacheOptions } from './gcs.js';
+export type { fileCacheOptions } from './file.js';
 
 type Value = Buffer;
 type Cache = {
