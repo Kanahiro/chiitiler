@@ -68,8 +68,14 @@ jobs:
                   mkdir -p "$baseline" "$current"
                   git archive "$base" | tar -x -C "$baseline"
                   git archive "$CURRENT_SHA" | tar -x -C "$current"
-                  pnpm install --frozen-lockfile --dir "$baseline"
-                  pnpm install --frozen-lockfile --dir "$current"
+                  for dir in "$baseline" "$current"; do
+                      # Commits from before the pnpm migration only have package-lock.json.
+                      if [ -f "$dir/pnpm-lock.yaml" ]; then
+                          pnpm install --frozen-lockfile --dir "$dir"
+                      else
+                          npm ci --prefix "$dir"
+                      fi
+                  done
                   echo "CHIITILER_BENCH_BASELINE=$baseline" >> "$GITHUB_ENV"
                   echo "CHIITILER_BENCH_CURRENT=$current" >> "$GITHUB_ENV"
                   echo "CHIITILER_BENCH_BASE_SHA=$base" >> "$GITHUB_ENV"
