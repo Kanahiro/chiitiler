@@ -7,7 +7,7 @@ on:
         paths:
             - "src/**"
             - "package.json"
-            - "package-lock.json"
+            - "pnpm-lock.yaml"
             - "tsconfig.json"
             - ".github/workflows/test:build.yml"
     workflow_dispatch:
@@ -17,18 +17,18 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v6
-
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: "24"
-                  cache: "npm"
+                  node-version-file: .node-version
+                  cache: pnpm
             - name: Install deps
-              run: npm install
+              run: pnpm install --frozen-lockfile
             # same build steps as the npm publish workflow (npm.yml),
             # so publish-time build failures are caught at PR time
             - name: Build with tsc
-              run: npx tsc
+              run: pnpm exec tsc
             - name: Bundle with esbuild
-              run: npm run build
+              run: pnpm build

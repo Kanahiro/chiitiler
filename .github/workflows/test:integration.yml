@@ -10,7 +10,7 @@ on:
             - "Dockerfile"
             - "docker-compose.yml"
             - "package.json"
-            - "package-lock.json"
+            - "pnpm-lock.yaml"
             - ".github/workflows/test:integration.yml"
     workflow_dispatch:
 
@@ -19,16 +19,16 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v6
-
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
             - name: Setup Node.js
-              uses: actions/setup-node@v3
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: "24"
+                  node-version-file: .node-version
             - name: start server
               run: docker compose up -d
             - name: install dependencies
-              run: npm install
+              run: pnpm install --frozen-lockfile
             # the app container installs dependencies at startup, so listening
             # begins well after `docker compose up -d` returns
             - name: wait for server
@@ -36,7 +36,7 @@ jobs:
                   timeout 300 bash -c 'until curl -sf http://localhost:3000/health > /dev/null; do sleep 2; done' \
                     || { docker compose logs app; exit 1; }
             - name: run test
-              run: npm run test:integration
+              run: pnpm test:integration
             - name: dump server logs
               if: failure()
               run: docker compose logs
