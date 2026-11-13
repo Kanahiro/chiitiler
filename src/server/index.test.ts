@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { initServer } from './index.js';
 import * as cache from '../cache/index.js';
 
-vi.mock('@maplibre/maplibre-gl-native', () => ({}));
+vi.mock('@maplibre/native-ffi', () => ({}));
 
 describe('initServer', () => {
     it('init', async () => {

@@ -42,9 +42,10 @@ Knobs via env:
 - `GITHUB_STEP_SUMMARY` — when set (as in CI), the markdown table is
   also appended to the step summary.
 
-On macOS you can run it directly. On headless Linux (including the CI
-runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
-needs a display.
+It runs directly on macOS and headless Linux: `@maplibre/native-ffi`
+renders through EGL's surfaceless platform (on Linux, install Mesa's
+`libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri`). Checkouts that still use
+`@maplibre/maplibre-gl-native` need `xvfb-run -a` on headless Linux.
 
 ## First-request prewarm comparison
 
@@ -122,7 +123,7 @@ node --import tsx tests/run-benchmark-comparison.ts
 ```
 
 Use the same checkout path on both sides for A/A. On Linux, prefix with
-`xvfb-run -a`. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
+`xvfb-run -a` when either checkout still uses `@maplibre/maplibre-gl-native`. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
 `CHIITILER_BENCH_DURATION` and `CHIITILER_BENCH_WARMUP` apply to every run.
 Optional `CHIITILER_BENCH_BASE_SHA` and `CHIITILER_BENCH_CURRENT_SHA` label local
 results (otherwise `local`). Regenerate a report with:

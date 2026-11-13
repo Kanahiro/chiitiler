@@ -11,32 +11,19 @@ FROM node:24.22.1-bookworm-slim AS runtime-deps
 
 WORKDIR /app
 COPY package.json package-lock.json ./
-# The bundle externalizes only these native modules. maplibre's remaining
-# JavaScript dependencies are install tooling, not runtime dependencies.
-RUN node -e "const fs = require('node:fs'); const names = ['@maplibre/maplibre-gl-native', 'sharp']; const p = require('./package.json'); const lock = require('./package-lock.json'); p.dependencies = Object.fromEntries(names.map((name) => [name, lock.packages['node_modules/' + name].version])); delete p.devDependencies; fs.writeFileSync('package.json', JSON.stringify(p)); fs.unlinkSync('package-lock.json');" \
-  && npm install --omit=dev --no-package-lock --no-audit --no-fund \
-  && mv node_modules/@maplibre/maplibre-gl-native /tmp/maplibre-gl-native \
-  && node -e "const fs = require('node:fs'); const p = require('./package.json'); delete p.dependencies['@maplibre/maplibre-gl-native']; fs.writeFileSync('package.json', JSON.stringify(p));" \
-  && npm prune --omit=dev --no-audit --no-fund \
-  && mkdir -p node_modules/@maplibre \
-  && mv /tmp/maplibre-gl-native node_modules/@maplibre/maplibre-gl-native
+# The bundle externalizes only these native modules.
+RUN node -e "const fs = require('node:fs'); const names = ['@maplibre/native-ffi', '@maplibre/native-ffi-opengl', 'sharp']; const p = require('./package.json'); const lock = require('./package-lock.json'); p.dependencies = Object.fromEntries(names.map((name) => [name, lock.packages['node_modules/' + name].version])); delete p.devDependencies; fs.writeFileSync('package.json', JSON.stringify(p)); fs.unlinkSync('package-lock.json');" \
+  && npm install --omit=dev --no-package-lock --no-audit --no-fund
 
-# mbgl.node requires GLIBC_2.38 and GLIBCXX_3.4.32. These `ldd`-derived
-# libraries and Xvfb provide its headless GL runtime on Ubuntu Noble.
+# MapLibre Native renders offscreen through EGL's surfaceless platform; Mesa's
+# llvmpipe rasterizes on the CPU. No X server or display is needed.
 FROM ubuntu:noble AS gl-base
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  xvfb \
-  libopengl0 \
-  libglx0 \
-  libcurl4t64 \
-  libjpeg-turbo8 \
-  libuv1t64 \
-  libx11-6 \
-  libxext6 \
-  libwebp7 \
-  libicu74 \
-  libpng16-16t64 \
+  libegl1 \
+  libegl-mesa0 \
+  libgles2 \
+  libgl1-mesa-dri \
   && rm -rf /var/lib/apt/lists/*
 
 # Dev image for docker-compose: full Node toolchain (npm included) with all
@@ -66,8 +53,5 @@ COPY --from=node:24.22.1-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=runtime-deps /app/node_modules ./node_modules
-
-COPY --chmod=755 docker-entrypoint.sh ./docker-entrypoint.sh
-ENTRYPOINT [ "/app/docker-entrypoint.sh" ]
 
 CMD ["node", "/app/build/main.cjs", "tile-server"]

@@ -30,7 +30,7 @@ describe('getSource', () => {
     });
 
     it('file:// with percent-encoded path', async () => {
-        // maplibre-gl-native percent-encodes {fontstack} in glyphs URLs
+        // maplibre-native percent-encodes {fontstack} in glyphs URLs
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chiitiler-'));
         const fontDir = path.join(dir, 'Noto Sans Regular');
         fs.mkdirSync(fontDir);

@@ -41,10 +41,16 @@ jobs:
               with:
                   node-version: "24"
                   cache: "npm"
-            - name: Install native deps for maplibre-gl-native
+            # xvfb and the libraries after it serve maplibre-gl-native, which
+            # the baseline may still use; EGL/Mesa serve @maplibre/native-ffi.
+            - name: Install native deps
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
+                      libegl1 \
+                      libegl-mesa0 \
+                      libgles2 \
+                      libgl1-mesa-dri \
                       xvfb \
                       libcurl4-openssl-dev \
                       libglfw3-dev \

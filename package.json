@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
+    "build": "npx esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/native-ffi --external:sharp",
     "check": "tsc --noEmit",
     "dev": "tsx watch src/main.ts tile-server -D",
     "test:unit": "vitest src",
@@ -19,6 +19,9 @@
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
+  "engines": {
+    "node": ">=24.11"
+  },
   "license": "MIT",
   "repository": {
     "url": "https://github.com/Kanahiro/chiitiler"
@@ -40,8 +43,9 @@
     "@google-cloud/storage": "^7.22.0",
     "@hono/node-server": "^2.1.1",
     "@mapbox/tilebelt": "^2.0.3",
-    "@maplibre/maplibre-gl-native": "^6.4.1",
     "@maplibre/maplibre-gl-style-spec": "^26.4.2",
+    "@maplibre/native-ffi": "^0.202611.0",
+    "@maplibre/native-ffi-opengl": "^0.202611.0",
     "commander": "^14.0.3",
     "file-system-cache": "^2.4.7",
     "higuruma": "^0.1.6",

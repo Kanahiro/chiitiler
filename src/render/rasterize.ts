@@ -1,4 +1,4 @@
-import type { RenderOptions } from '@maplibre/maplibre-gl-native';
+import { CameraUpdateMode } from '@maplibre/native-ffi';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { getRenderPool } from './pool.js';
@@ -12,34 +12,50 @@ function getTileCenter(z: number, x: number, y: number): [number, number] {
     return [invMercX((x + 0.5) / n), invMercY((y + 0.5) / n)];
 }
 
+type RenderOptions = {
+    zoom: number;
+    width: number;
+    height: number;
+    center: [number, number];
+    bearing?: number;
+    pitch?: number;
+};
+
 async function render(
     style: StyleSpecification,
-    renderOptions: RenderOptions,
+    { zoom, width, height, center, bearing = 0, pitch = 0 }: RenderOptions,
     cache: Cache,
     mode: 'tile' | 'static',
-) {
+): Promise<Uint8Array> {
     const pool = await getRenderPool(style, cache, mode);
     const worker = await pool.acquire();
-
-    const rendered: Promise<Uint8Array> = new Promise((resolve, reject) => {
-        worker.render(
-            renderOptions,
-            function (err: any, buffer: Uint8Array | undefined) {
-                pool.release(worker);
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                if (buffer === undefined) {
-                    reject('buffer is undefined');
-                    return;
-                }
-                resolve(buffer);
+    try {
+        if (worker.width !== width || worker.height !== height) {
+            await worker.session.resize({ width, height });
+            worker.width = width;
+            worker.height = height;
+        }
+        worker.map.discarding.updateCamera({
+            mode: CameraUpdateMode.jump,
+            camera: {
+                center: { longitude: center[0], latitude: center[1] },
+                zoom,
+                bearing,
+                pitch,
             },
-        );
-    });
-
-    return rendered;
+        });
+        await worker.map.requestStillImage();
+        const { data, info } = await worker.session.readTexture();
+        const row = width * 4;
+        if (info.stride === row) return data;
+        // rows may be padded; pack them for sharp's raw input
+        const packed = new Uint8Array(row * height);
+        for (let y = 0; y < height; y++)
+            packed.set(data.subarray(y * info.stride, y * info.stride + row), y * row);
+        return packed;
+    } finally {
+        pool.release(worker);
+    }
 }
 
 async function renderTile(

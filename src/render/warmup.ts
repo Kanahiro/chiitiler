@@ -4,7 +4,7 @@ import { getRenderedTile } from './index.js';
 import type { Cache } from '../cache/index.js';
 
 // スタイル固有のリソース(タイル/glyphs/sprite)は温まらないが、
-// EGL/GLコンテキスト・Xvfb接続・sharp(libvips)・JITの初期化は共通で効く。
+// EGLデバイス/GLコンテキスト・sharp(libvips)・JITの初期化は共通で効く。
 const MINIMAL_STYLE: StyleSpecification = {
     version: 8,
     sources: {},
