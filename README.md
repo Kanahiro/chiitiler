@@ -36,9 +36,10 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** Run it from source with [pnpm](https://pnpm.io):
+> **No Docker?** Run it from source with [pnpm](https://pnpm.io) and a Rust toolchain:
 > ```bash
 > git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
+> rustup target add wasm32-unknown-unknown && pnpm build:wasm
 > pnpm tsx src/main.ts tile-server --debug
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
@@ -46,6 +47,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 ## Features
 
 - **Zero-config** — no config file, no YAML, no database. Just a style URL.
+- **No GPU, no native renderer** — rendered by [ml2drender](./crates), a pure-Rust 2D MapLibre renderer compiled to WebAssembly
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form camera shots (`/camera`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
@@ -83,16 +85,23 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `url` | — | Style JSON URL (required for `GET`) |
 | `tileSize` | `512` | Tile size in pixels |
-| `quality` | `100` | JPEG / WebP quality |
-| `margin` | `0` | Tile edge margin |
+| `quality` | `100` | JPEG quality (WebP is always lossless) |
+| `margin` | `0` | Extra pixels rendered around the tile (half on each side) and cropped, e.g. to keep labels across tile edges |
 | `bbox` | — | `/clip` bounding box: `minLon,minLat,maxLon,maxLat` |
 | `size` | `1024` | `/clip` longest edge in pixels |
 
 For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
+**Rendering limits** (ml2drender renders 2D only)
+
+- `pitch` must be `0` on `/camera`; other values return `400`.
+- `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.
+- Bidirectional text and Arabic shaping are not supported, and glyphs come only from the style's `glyphs` (no local font fallback).
+- JPEG has no alpha: transparent areas become black.
+
 ## Library Usage
 
-Chiitiler is also published to npm. Returns `Buffer` or `Sharp` streams.
+Chiitiler is also published to npm. Renderers return the encoded image as a `Uint8Array`.
 
 ```ts
 import { getRenderedTileBuffer, ChiitilerCache } from 'chiitiler';
@@ -110,7 +119,7 @@ const png = await getRenderedTileBuffer({
 });
 ```
 
-Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`, and their `*Stream` variants (`Sharp` instances for further piping).
+Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`. (The `*Stream` variants returning `Sharp` instances were removed with sharp.)
 
 For library use, explicitly call `prewarm(cache)` once per rendering process
 during application startup, before accepting requests:
@@ -122,7 +131,7 @@ const cache = ChiitilerCache.noneCache();
 await prewarm(cache);
 ```
 
-The promise resolves after a minimal tile has been rendered and PNG-encoded.
+The promise resolves after the WASM renderer has been compiled and a minimal tile has been rendered and PNG-encoded.
 It rejects if warmup fails; the application decides whether to continue startup.
 Library imports do not automatically run prewarm, and `CHIITILER_PREWARM` only
 controls the CLI server. Style-specific tiles, glyphs, and sprites are not preloaded.
@@ -167,10 +176,10 @@ Prewarm is enabled by default: one tile is rendered at startup **before** the se
 
 ### Cache
 
-Renderer Maps are reused per style and rendering mode without an idle timeout.
-They are released when their pool is evicted from the 10-entry LRU or explicitly
-closed. This avoids repeated initialization after quiet periods, at the cost of
-retaining native renderer memory between requests.
+A renderer (one WASM instance) is kept per style in a 10-entry LRU. It keeps decoded
+tiles, glyphs and sprites for 5 minutes, after which the next request starts from
+fetched bytes again (through the cache below). WASM memory does not shrink, so an
+instance retains its peak memory until its style is evicted.
 
 | Flag | Env | Default |
 | --- | --- | --- |
@@ -230,19 +239,28 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Develop
 
-Requires Node.js 24.22.1+, pnpm (`corepack enable`) and `sharp` system deps (see [Dockerfile](./Dockerfile)).
+Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust with the `wasm32-unknown-unknown` target.
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
 cd chiitiler
 pnpm install
+pnpm build:wasm       # build the renderer (wasm/ml2drender_wasm.wasm)
 pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
 pnpm test:benchmark   # see bench/BENCHMARK.md
-pnpm build            # bundle to build/main.cjs
+pnpm build            # bundle to build/main.mjs (reads ../wasm at runtime)
+pnpm test:rust        # cargo test (renderer)
+pnpm fixtures         # once: fetch MapLibre render/expression test fixtures
+pnpm test:render      # MapLibre render tests → target/test-report/render
 ```
+
+The renderer lives in [`crates/`](./crates) (copied from ml2drender; see [`crates/AGENTS.md`](./crates/AGENTS.md)):
+`crates/core` is the sans-IO renderer, `crates/wasm` its WASM exports, `crates/cli` the test runner, and
+[`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the TypeScript wrapper that drives the
+`needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
 
 ## Architecture
 

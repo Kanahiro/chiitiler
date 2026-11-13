@@ -6,6 +6,8 @@ on:
             - main
         paths:
             - "src/**"
+            - "crates/**"
+            - "Cargo.lock"
             - "package.json"
             - "pnpm-lock.yaml"
             - "tsconfig.json"
@@ -30,5 +32,7 @@ jobs:
             # so publish-time build failures are caught at PR time
             - name: Build with tsc
               run: pnpm exec tsc
+            - name: Build WASM
+              run: rustup target add wasm32-unknown-unknown && pnpm build:wasm
             - name: Bundle with esbuild
               run: pnpm build

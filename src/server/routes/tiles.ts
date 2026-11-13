@@ -29,10 +29,10 @@ function createTilesRouter(options: { cache: Cache }) {
             const quality = Number(c.req.query('quality') ?? 100);
             const margin = Number(c.req.query('margin') ?? 0);
 
-            c.header('Content-Type', `image/${ext}`);
+            c.header('Content-Type', `image/${ext === 'jpg' ? 'jpeg' : ext}`);
 
             try {
-                const sharp = await getRenderedTile({
+                const buf = await getRenderedTile({
                     stylejson: url,
                     z,
                     x,
@@ -44,9 +44,10 @@ function createTilesRouter(options: { cache: Cache }) {
                     quality,
                 });
 
-                const buf = await sharp.toBuffer();
-                return c.body(buf as Uint8Array<ArrayBuffer>);
+                return c.body(buf);
             } catch (e) {
+                // out-of-range parameters the route does not check itself
+                if (e instanceof RangeError) return c.text(e.message, 400);
                 console.error(`render error: ${e}`);
                 // c.text overrides the image/* Content-Type set above; a render
                 // failure is a server-side error so respond 500, not 400.
@@ -74,10 +75,10 @@ function createTilesRouter(options: { cache: Cache }) {
             const quality = Number(c.req.query('quality') ?? 100);
             const margin = Number(c.req.query('margin') ?? 0);
 
-            c.header('Content-Type', `image/${ext}`);
+            c.header('Content-Type', `image/${ext === 'jpg' ? 'jpeg' : ext}`);
 
             try {
-                const sharp = await getRenderedTile({
+                const buf = await getRenderedTile({
                     stylejson: style,
                     z,
                     x,
@@ -89,9 +90,10 @@ function createTilesRouter(options: { cache: Cache }) {
                     quality,
                 });
 
-                const buf = await sharp.toBuffer();
-                return c.body(buf as Uint8Array<ArrayBuffer>);
+                return c.body(buf);
             } catch (e) {
+                // out-of-range parameters the route does not check itself
+                if (e instanceof RangeError) return c.text(e.message, 400);
                 console.error(`render error: ${e}`);
                 // c.text overrides the image/* Content-Type set above; a render
                 // failure is a server-side error so respond 500, not 400.

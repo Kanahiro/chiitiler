@@ -1,0 +1,4 @@
+# WASM SIMD (supported by current browsers, Node, Deno and Cloudflare Workers). Autovectorization alone gains
+# little; the hot per-pixel paths (`Target::blend`, bilinear `Texture::sample`) use explicit f32x4 code.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]

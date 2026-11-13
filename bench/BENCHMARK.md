@@ -42,9 +42,9 @@ Knobs via env:
 - `GITHUB_STEP_SUMMARY` — when set (as in CI), the markdown table is
   also appended to the step summary.
 
-On macOS you can run it directly. On headless Linux (including the CI
-runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
-needs a display.
+Build the renderer first with `pnpm build:wasm`. Checkouts from before the
+ml2drender migration render with `@maplibre/maplibre-gl-native`; on headless
+Linux, wrap those runs with `xvfb-run -a` because it needs a display.
 
 ## First-request prewarm comparison
 
@@ -121,8 +121,9 @@ CHIITILER_BENCH_CURRENT=/absolute/path/to/current \
 node --import tsx tests/run-benchmark-comparison.ts
 ```
 
-Use the same checkout path on both sides for A/A. On Linux, prefix with
-`xvfb-run -a`. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
+Use the same checkout path on both sides for A/A. Run `pnpm build:wasm` in each
+checkout that has `Cargo.toml`; when a side still uses maplibre-gl-native, prefix
+with `xvfb-run -a` on Linux. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
 `CHIITILER_BENCH_DURATION` and `CHIITILER_BENCH_WARMUP` apply to every run.
 Optional `CHIITILER_BENCH_BASE_SHA` and `CHIITILER_BENCH_CURRENT_SHA` label local
 results (otherwise `local`). Regenerate a report with:

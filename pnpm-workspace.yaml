@@ -1,6 +1,4 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
 allowBuilds:
-  '@maplibre/maplibre-gl-native': true
   esbuild: true
-  sharp: true

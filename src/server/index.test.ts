@@ -3,8 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { initServer } from './index.js';
 import * as cache from '../cache/index.js';
 
-vi.mock('@maplibre/maplibre-gl-native', () => ({}));
-
 describe('initServer', () => {
     it('init', async () => {
         const { app } = await initServer({
@@ -164,6 +162,46 @@ describe('initServer', () => {
         expect(res4.status).toBe(400);
         expect(await res4.text()).toBe('invalid dimensions');
 
-        // rendering will be tested in integration test
+        const res5 = await app.request(
+            '/camera/10/67.89/123.45/0/45/1024x1024.png?url=file://localdata/style.json',
+        );
+        expect(res5.status).toBe(400);
+        expect(await res5.text()).toBe('pitch is not supported');
+    });
+
+    it('renders an inline style', async () => {
+        const { app } = await initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+            stream: false,
+        });
+        const style = {
+            version: 8,
+            sources: {},
+            layers: [
+                {
+                    id: 'bg',
+                    type: 'background',
+                    paint: { 'background-color': '#ff0000' },
+                },
+            ],
+        };
+        for (const [path, type, magic] of [
+            ['/tiles/1/0/0.png?tileSize=256', 'image/png', [0x89, 0x50]],
+            ['/tiles/1/0/0.jpg', 'image/jpeg', [0xff, 0xd8]],
+            ['/clip.webp?bbox=0,0,10,10&size=64', 'image/webp', [0x52, 0x49]],
+            ['/camera/2/0/0/30/0/64x32.png', 'image/png', [0x89, 0x50]],
+        ] as const) {
+            const res = await app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ style }),
+            });
+            expect(res.status, path).toBe(200);
+            expect(res.headers.get('content-type')).toBe(type);
+            const bytes = new Uint8Array(await res.arrayBuffer());
+            expect([...bytes.slice(0, 2)]).toEqual(magic);
+        }
     });
 });

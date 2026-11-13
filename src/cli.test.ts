@@ -8,7 +8,6 @@ import * as server from './server/index.js';
 import { prewarm } from './render/warmup.js';
 import * as caches from './cache/index.js';
 
-vi.mock('@maplibre/maplibre-gl-native', () => ({}));
 vi.mock('node:cluster', () => ({
     default: {
         get isPrimary() {

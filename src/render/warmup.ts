@@ -3,8 +3,8 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { getRenderedTile } from './index.js';
 import type { Cache } from '../cache/index.js';
 
-// スタイル固有のリソース(タイル/glyphs/sprite)は温まらないが、
-// EGL/GLコンテキスト・Xvfb接続・sharp(libvips)・JITの初期化は共通で効く。
+// Style-specific resources (tiles, glyphs, sprites) stay cold; this compiles
+// the WASM module and runs the render and PNG-encode paths once.
 const MINIMAL_STYLE: StyleSpecification = {
     version: 8,
     sources: {},
@@ -24,7 +24,7 @@ const MINIMAL_STYLE: StyleSpecification = {
  * Resolves after encoding finishes; rejects if rendering or encoding fails.
  */
 async function prewarm(cache: Cache): Promise<void> {
-    const sharp = await getRenderedTile({
+    await getRenderedTile({
         stylejson: MINIMAL_STYLE,
         z: 0,
         x: 0,
@@ -35,7 +35,6 @@ async function prewarm(cache: Cache): Promise<void> {
         ext: 'png',
         quality: 100,
     });
-    await sharp.toBuffer(); // force the actual encode
 }
 
 export { prewarm };

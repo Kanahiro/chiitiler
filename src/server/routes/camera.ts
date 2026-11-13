@@ -72,10 +72,10 @@ function createCameraRouter(options: { cache: Cache }) {
             if (url === undefined) return c.body('url is required', 400);
             const quality = Number(c.req.query('quality') ?? 100);
 
-            c.header('Content-Type', `image/${ext}`);
+            c.header('Content-Type', `image/${ext === 'jpg' ? 'jpeg' : ext}`);
 
             try {
-                const sharp = await getRenderedCamera({
+                const buf = await getRenderedCamera({
                     stylejson: url,
                     cache: options.cache,
                     ext,
@@ -88,9 +88,10 @@ function createCameraRouter(options: { cache: Cache }) {
                     width: _width,
                 });
 
-                const buf = await sharp.toBuffer();
-                return c.body(buf as Uint8Array<ArrayBuffer>);
+                return c.body(buf);
             } catch (e) {
+                // out-of-range parameters the route does not check itself
+                if (e instanceof RangeError) return c.text(e.message, 400);
                 console.error(`render error: ${e}`);
                 // c.text overrides the image/* Content-Type set above; a render
                 // failure is a server-side error so respond 500, not 400.
@@ -137,10 +138,10 @@ function createCameraRouter(options: { cache: Cache }) {
             // query params
             const quality = Number(c.req.query('quality') ?? 100);
 
-            c.header('Content-Type', `image/${ext}`);
+            c.header('Content-Type', `image/${ext === 'jpg' ? 'jpeg' : ext}`);
 
             try {
-                const sharp = await getRenderedCamera({
+                const buf = await getRenderedCamera({
                     stylejson: style,
                     cache: options.cache,
                     ext,
@@ -153,9 +154,10 @@ function createCameraRouter(options: { cache: Cache }) {
                     width: _width,
                 });
 
-                const buf = await sharp.toBuffer();
-                return c.body(buf as Uint8Array<ArrayBuffer>);
+                return c.body(buf);
             } catch (e) {
+                // out-of-range parameters the route does not check itself
+                if (e instanceof RangeError) return c.text(e.message, 400);
                 console.error(`render error: ${e}`);
                 // c.text overrides the image/* Content-Type set above; a render
                 // failure is a server-side error so respond 500, not 400.

@@ -6,3 +6,6 @@ cdk/
 .git/
 localdata/
 tests/
+target/
+fixtures/
+wasm/

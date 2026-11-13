@@ -7,3 +7,6 @@ coverage/
 benchmark-results/
 docs/
 build/
+/target
+/fixtures
+/wasm

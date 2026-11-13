@@ -23,10 +23,10 @@ function createClipRouter(options: { cache: Cache }) {
             const quality = Number(c.req.query('quality') ?? 100);
             const size = Number(c.req.query('size') ?? 1024);
 
-            c.header('Content-Type', `image/${ext}`);
+            c.header('Content-Type', `image/${ext === 'jpg' ? 'jpeg' : ext}`);
 
             try {
-                const sharp = await getRenderedClip({
+                const buf = await getRenderedClip({
                     stylejson: url,
                     bbox: [minx, miny, maxx, maxy],
                     size,
@@ -35,9 +35,10 @@ function createClipRouter(options: { cache: Cache }) {
                     quality,
                 });
 
-                const buf = await sharp.toBuffer();
-                return c.body(buf as Uint8Array<ArrayBuffer>);
+                return c.body(buf);
             } catch (e) {
+                // out-of-range parameters the route does not check itself
+                if (e instanceof RangeError) return c.text(e.message, 400);
                 console.error(`render error: ${e}`);
                 // c.text overrides the image/* Content-Type set above; a render
                 // failure is a server-side error so respond 500, not 400.
@@ -66,10 +67,10 @@ function createClipRouter(options: { cache: Cache }) {
             const quality = Number(c.req.query('quality') ?? 100);
             const size = Number(c.req.query('size') ?? 1024);
 
-            c.header('Content-Type', `image/${ext}`);
+            c.header('Content-Type', `image/${ext === 'jpg' ? 'jpeg' : ext}`);
 
             try {
-                const sharp = await getRenderedClip({
+                const buf = await getRenderedClip({
                     stylejson: style,
                     bbox: [minx, miny, maxx, maxy],
                     size,
@@ -78,9 +79,10 @@ function createClipRouter(options: { cache: Cache }) {
                     quality,
                 });
 
-                const buf = await sharp.toBuffer();
-                return c.body(buf as Uint8Array<ArrayBuffer>);
+                return c.body(buf);
             } catch (e) {
+                // out-of-range parameters the route does not check itself
+                if (e instanceof RangeError) return c.text(e.message, 400);
                 console.error(`render error: ${e}`);
                 // c.text overrides the image/* Content-Type set above; a render
                 // failure is a server-side error so respond 500, not 400.

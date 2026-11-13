@@ -1,11 +1,12 @@
-import sharp, { type Sharp } from 'sharp';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { LRUCache } from 'lru-cache';
 
-import { renderTile, render } from './rasterize.js';
-import { mercX, mercY, invMercY } from './mercator.js';
+import { MapRenderer, type RenderedImage } from './ml2drender.js';
+import { loadWasmModule } from '../wasm.js';
 import type { Cache } from '../cache/index.js';
 import { getSource } from '../source/index.js';
+
+type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
 type GetRenderedTileOptions = {
     stylejson: string | StyleSpecification;
@@ -14,37 +15,100 @@ type GetRenderedTileOptions = {
     y: number;
     tileSize: number;
     cache: Cache;
+    /** Extra pixels rendered around the tile (half on each side) and cropped away. */
     margin: number;
+    ext: SupportedFormat;
+    /** JPEG quality; WebP is always lossless. */
+    quality: number;
+};
+
+type GetRenderedClipOptions = {
+    stylejson: string | StyleSpecification;
+    bbox: [number, number, number, number];
+    size: number;
+    cache: Cache;
     ext: SupportedFormat;
     quality: number;
 };
 
-type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
+type GetRenderedCameraOptions = {
+    stylejson: string | StyleSpecification;
+    cache: Cache;
+    ext: SupportedFormat;
+    quality: number;
+    bearing: number;
+    /** Only 0: the renderer is 2D. */
+    pitch: number;
+    zoom: number;
+    center: [number, number];
+    height: number;
+    width: number;
+};
 
 const styleCache = new LRUCache<string, StyleSpecification>({
     max: 5,
 });
 async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
-    let style: StyleSpecification;
-    if (typeof stylejson === 'string') {
-        // url
-        const cachedStyle = styleCache.get(stylejson);
-        if (cachedStyle !== undefined) {
-            // hit-cache
-            style = cachedStyle;
-        } else {
-            const styleJsonBuf = await getSource(stylejson, cache);
-            if (styleJsonBuf === null) {
-                throw new Error('style not found');
-            }
-            style = JSON.parse(styleJsonBuf.toString());
-            styleCache.set(stylejson, style);
-        }
-    } else {
-        // as stylejson object
-        style = stylejson;
-    }
+    if (typeof stylejson !== 'string') return stylejson;
+    const cachedStyle = styleCache.get(stylejson);
+    if (cachedStyle !== undefined) return cachedStyle;
+    const styleJsonBuf = await getSource(stylejson, cache);
+    if (styleJsonBuf === null) throw new Error('style not found');
+    const style: StyleSpecification = JSON.parse(
+        new TextDecoder().decode(styleJsonBuf),
+    );
+    styleCache.set(stylejson, style);
     return style;
+}
+
+// Each renderer owns a WASM instance and keeps decoded tiles, glyphs and
+// sprites for a few minutes (ml2drender's default), so styles are reused.
+const rendererCache = new LRUCache<string, Promise<MapRenderer>>({
+    max: 10,
+});
+async function getRenderer(
+    stylejson: string | StyleSpecification,
+    cache: Cache,
+): Promise<MapRenderer> {
+    const style = await loadStyle(stylejson, cache);
+    const key = JSON.stringify(style);
+    let renderer = rendererCache.get(key);
+    if (renderer === undefined) {
+        renderer = loadWasmModule().then((wasm) =>
+            MapRenderer.init(style, {
+                wasm,
+                // null = 404 (empty vector tile, missing raster); errors fail the render
+                loadResource: async (url) => {
+                    const buf = await getSource(url, cache);
+                    return buf === null || buf.length === 0
+                        ? null
+                        : (buf as Uint8Array<ArrayBuffer>);
+                },
+            }),
+        );
+        rendererCache.set(key, renderer);
+        // a failed init is retried by the next request
+        renderer.catch(() => {
+            if (rendererCache.get(key) === renderer) rendererCache.delete(key);
+        });
+    }
+    return renderer;
+}
+
+function encode(
+    image: RenderedImage,
+    ext: SupportedFormat,
+    quality: number,
+): Uint8Array<ArrayBuffer> {
+    switch (ext) {
+        case 'png':
+            return image.toPng();
+        case 'jpeg':
+        case 'jpg':
+            return image.toJpeg(quality);
+        case 'webp':
+            return image.toWebp();
+    }
 }
 
 async function getRenderedTile({
@@ -57,117 +121,17 @@ async function getRenderedTile({
     margin,
     ext,
     quality,
-}: GetRenderedTileOptions): Promise<Sharp> {
-    const style = await loadStyle(stylejson, cache);
-
-    let pixels: Uint8Array;
-    pixels = await renderTile(style, z, x, y, {
+}: GetRenderedTileOptions): Promise<Uint8Array<ArrayBuffer>> {
+    const renderer = await getRenderer(stylejson, cache);
+    const image = await renderer.renderTile({
+        z,
+        x,
+        y,
         tileSize,
-        cache,
-        margin,
+        margin: Math.floor(margin / 2),
     });
-
-    // hack: tile-margin clip area
-    // maplibre-native won't render outer area of meractor
-    // so top-end and bottom-end clipped area is special
-    const isTopEnd = y === 0;
-    const isBottomEnd = y === 2 ** z - 1;
-    const topMargin = isTopEnd ? 0 : isBottomEnd ? margin : margin / 2;
-
-    let _sharp: Sharp;
-    if (tileSize === 256 && z === 0) {
-        // hack: when tileSize=256, z=0
-        // pixlels will be 512x512 so we need to resize to 256x256
-        _sharp = sharp(pixels, {
-            raw: {
-                width: 512,
-                height: 512,
-                channels: 4,
-                // maplibre-native returns premultiplied alpha; tell sharp so it
-                // unpremultiplies to straight alpha, otherwise antialiased edges
-                // (e.g. white text-halo) come out gray on transparent backgrounds.
-                premultiplied: true,
-            },
-        }).resize(256, 256);
-    } else if (margin === 0) {
-        _sharp = sharp(pixels, {
-            raw: {
-                width: tileSize,
-                height: tileSize,
-                channels: 4,
-                premultiplied: true,
-            },
-        });
-    } else {
-        _sharp = sharp(pixels, {
-            raw: {
-                width: tileSize + margin,
-                height: tileSize + margin,
-                channels: 4,
-                premultiplied: true,
-            },
-        })
-            .extract({
-                left: margin / 2,
-                top: topMargin,
-                width: tileSize,
-                height: tileSize,
-            })
-            .resize(tileSize, tileSize);
-    }
-
-    switch (ext) {
-        case 'png':
-            return _sharp.png();
-        case 'jpeg':
-        case 'jpg':
-            return _sharp.jpeg({ quality });
-        case 'webp':
-            return _sharp.webp({ quality, effort: 0 });
-    }
+    return encode(image, ext, quality);
 }
-
-const calcRenderingParams = (
-    bbox: [number, number, number, number],
-    size: number,
-): {
-    zoom: number;
-    width: number;
-    height: number;
-    center: [number, number];
-} => {
-    // bbox width/height as fractions of the whole world ([0, 1] mercator)
-    const x1 = mercX(bbox[0]);
-    const x2 = mercX(bbox[2]);
-    const y1 = mercY(bbox[3]); // north -> smaller y
-    const y2 = mercY(bbox[1]);
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-
-    // maplibre-native's world is 512px wide at zoom 0, so at zoom z it is
-    // 512 * 2^z px. The zoom that fits the longer side into `size` px solves
-    // 512 * 2^z * max(dx, dy) = size.
-    const zoom = Math.log2(size / (512 * Math.max(dx, dy)));
-
-    const width = dx >= dy ? size : Math.ceil((dx / dy) * size);
-    const height = dx >= dy ? Math.ceil((dy / dx) * size) : size;
-
-    const center: [number, number] = [
-        (bbox[0] + bbox[2]) / 2, // longitude is linear in mercator x
-        invMercY((y1 + y2) / 2), // latitude: invert the mercator-space midpoint
-    ];
-
-    return { zoom, width, height, center };
-};
-
-type GetRenderedClipOptions = {
-    stylejson: string | StyleSpecification;
-    bbox: [number, number, number, number];
-    size: number;
-    cache: Cache;
-    ext: SupportedFormat;
-    quality: number;
-};
 
 async function getRenderedClip({
     stylejson,
@@ -176,93 +140,25 @@ async function getRenderedClip({
     cache,
     ext,
     quality,
-}: GetRenderedClipOptions): Promise<Sharp> {
-    const style = await loadStyle(stylejson, cache);
-
-    const { zoom, width, height, center } = calcRenderingParams(bbox, size);
-
-    const pixels = await render(
-        style,
-        {
-            zoom,
-            width,
-            height,
-            center,
-        },
-        cache,
-        'static',
-    );
-
-    const _sharp = sharp(pixels, {
-        raw: {
-            width,
-            height,
-            channels: 4,
-            // see getRenderedTile: maplibre-native returns premultiplied alpha
-            premultiplied: true,
-        },
-    });
-
-    switch (ext) {
-        case 'png':
-            return _sharp.png();
-        case 'jpeg':
-        case 'jpg':
-            return _sharp.jpeg({ quality });
-        case 'webp':
-            return _sharp.webp({ quality, effort: 0 });
-    }
+}: GetRenderedClipOptions): Promise<Uint8Array<ArrayBuffer>> {
+    const renderer = await getRenderer(stylejson, cache);
+    const image = await renderer.render({ bbox, size });
+    return encode(image, ext, quality);
 }
 
-type GetRenderedCameraOptions = {
-    stylejson: string | StyleSpecification;
-    cache: Cache;
-    ext: SupportedFormat;
-    quality: number;
-    bearing: number;
-    pitch: number;
-    zoom: number;
-    center: [number, number];
-    height: number;
-    width: number;
-};
-
-async function getRenderedCamera(options: GetRenderedCameraOptions) {
-    const style = await loadStyle(options.stylejson, options.cache);
-
-    const pixels = await render(
-        style,
-        {
-            center: options.center,
-            height: options.height,
-            width: options.width,
-            zoom: options.zoom,
-            bearing: options.bearing,
-            pitch: options.pitch,
-        },
-        options.cache,
-        'static',
-    );
-
-    const _sharp = sharp(pixels, {
-        raw: {
-            width: options.width,
-            height: options.height,
-            channels: 4,
-            // see getRenderedTile: maplibre-native returns premultiplied alpha
-            premultiplied: true,
-        },
+async function getRenderedCamera(
+    options: GetRenderedCameraOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+    if (options.pitch !== 0) throw new RangeError('pitch is not supported');
+    const renderer = await getRenderer(options.stylejson, options.cache);
+    const image = await renderer.renderView({
+        center: options.center,
+        zoom: options.zoom,
+        bearing: options.bearing,
+        width: options.width,
+        height: options.height,
     });
-
-    switch (options.ext) {
-        case 'png':
-            return _sharp.png();
-        case 'jpeg':
-        case 'jpg':
-            return _sharp.jpeg({ quality: options.quality });
-        case 'webp':
-            return _sharp.webp({ quality: options.quality, effort: 0 });
-    }
+    return encode(image, options.ext, options.quality);
 }
 
 export {

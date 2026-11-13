@@ -2,35 +2,14 @@ import {
     getRenderedClip,
     getRenderedTile,
     getRenderedCamera,
-    type GetRenderedClipOptions,
-    type GetRenderedTileOptions,
-    type GetRenderedCameraOptions,
 } from './render/index.js';
 
-export async function getRenderedClipBuffer(
-    options: GetRenderedClipOptions,
-): Promise<Buffer> {
-    const sharp = await getRenderedClip(options);
-    return sharp.toBuffer();
-}
-
-export { getRenderedClip as getRenderedClipStream };
-export async function getRenderedCameraBuffer(
-    options: GetRenderedCameraOptions,
-): Promise<Buffer> {
-    const sharp = await getRenderedCamera(options);
-    return sharp.toBuffer();
-}
-
-export { getRenderedCamera as getRenderedCameraStream };
-export async function getRenderedTileBuffer(
-    options: GetRenderedTileOptions,
-): Promise<Buffer> {
-    const sharp = await getRenderedTile(options);
-    return sharp.toBuffer();
-}
-
-export { getRenderedTile as getRenderedTileStream };
+/** Render a slippy-map tile and encode it as `ext`. */
+export const getRenderedTileBuffer = getRenderedTile;
+/** Render a lon/lat bounding box and encode it as `ext`. */
+export const getRenderedClipBuffer = getRenderedClip;
+/** Render a free camera (pitch 0 only) and encode it as `ext`. */
+export const getRenderedCameraBuffer = getRenderedCamera;
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';

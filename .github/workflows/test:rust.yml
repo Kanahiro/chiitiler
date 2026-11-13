@@ -1,0 +1,25 @@
+name: test:rust
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "crates/**"
+            - "Cargo.toml"
+            - "Cargo.lock"
+            - ".github/workflows/test:rust.yml"
+    workflow_dispatch:
+
+jobs:
+    rusttest:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - name: Test
+              run: cargo test --release
+            - name: Check the WASM build
+              run: |
+                  rustup target add wasm32-unknown-unknown
+                  cargo build -p ml2drender-wasm --target wasm32-unknown-unknown --profile wasm
