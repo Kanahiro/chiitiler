@@ -1,7 +1,7 @@
 FROM node:24.22.3-bookworm-slim AS builder
 
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY src ./src
@@ -11,7 +11,7 @@ RUN pnpm build
 FROM node:24.22.3-bookworm-slim AS runtime-deps
 
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # The bundle externalizes only these native modules. maplibre's remaining
 # JavaScript dependencies are install tooling, not runtime dependencies.
@@ -51,7 +51,7 @@ COPY --from=node:24.22.3-bookworm-slim /usr/local/bin /usr/local/bin
 COPY --from=node:24.22.3-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 RUN pnpm install --frozen-lockfile
 
