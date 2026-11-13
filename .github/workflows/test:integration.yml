@@ -37,3 +37,6 @@ jobs:
                     || { docker compose logs app; exit 1; }
             - name: run test
               run: npm run test:integration
+            - name: dump server logs
+              if: failure()
+              run: docker compose logs
