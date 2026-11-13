@@ -26,4 +26,4 @@ const memoryCache: (options: MemoryCacheOptions) => Cache = function (
     };
 };
 
-export { memoryCache };
+export { memoryCache, type MemoryCacheOptions };

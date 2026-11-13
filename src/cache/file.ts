@@ -36,4 +36,4 @@ const fileCache: (options: fileCacheOptions) => Cache = function (options) {
     };
 };
 
-export { fileCache };
+export { fileCache, type fileCacheOptions };

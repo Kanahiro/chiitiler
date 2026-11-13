@@ -15,7 +15,8 @@
     "test:unit": "vitest src",
     "test:coverage": "vitest src --coverage --coverage.provider=v8",
     "test:integration": "vitest tests/integration.test.ts",
-    "test:benchmark": "tsx tests/benchmark.ts"
+    "test:benchmark": "tsx tests/benchmark.ts",
+    "docs": "typedoc src/index.ts --out docs"
   },
   "keywords": [],
   "author": "Kanahiro Iguchi",
@@ -32,6 +33,7 @@
     "esbuild": "^0.28.2",
     "image-size": "^2.0.2",
     "tsx": "^4.23.13",
+    "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   },
