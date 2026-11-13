@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - run: npm ci
+      - run: npm ci --ignore-scripts # native binaries are not needed for docs
       - run: npm run docs
       - uses: actions/upload-pages-artifact@v4
         with:
