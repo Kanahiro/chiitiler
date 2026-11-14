@@ -5,12 +5,7 @@ import { bodyLimit } from 'hono/body-limit';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { isSupportedFormat, isValidStylejson } from './utils.js';
-import {
-    renderView,
-    renderBbox,
-    renderTile,
-    type SupportedFormat,
-} from '../render/index.js';
+import { Chiitiler, type SupportedFormat } from '../render/index.js';
 import type { Cache } from '../cache/index.js';
 
 type RouteOptions = {
@@ -28,8 +23,6 @@ type Common = {
     stylejson: string | StyleSpecification;
     ext: SupportedFormat;
     quality: number;
-    cache: Cache;
-    maxSize?: number;
 };
 
 /**
@@ -39,7 +32,7 @@ type Common = {
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
     path: string,
-    options: RouteOptions,
+    cacheControl: string | undefined,
     failure: string,
     parse: (c: Context) => P | Response,
     render: (params: P & Common) => Promise<Uint8Array<ArrayBuffer>>,
@@ -57,15 +50,11 @@ function imageRoute<P extends { ext: SupportedFormat }>(
                 ...params,
                 stylejson,
                 quality: Number(c.req.query('quality') ?? 100),
-                cache: options.cache,
-                maxSize: options.maxSize,
             });
             const type = params.ext === 'jpg' ? 'jpeg' : params.ext;
             const headers: Record<string, string> = {
                 'Content-Type': `image/${type}`,
-                ...(options.cacheControl
-                    ? { 'Cache-Control': options.cacheControl }
-                    : {}),
+                ...(cacheControl ? { 'Cache-Control': cacheControl } : {}),
             };
             if (c.req.method !== 'GET') return c.body(image, 200, headers);
             // Lets clients and caches revalidate (304 without the image). Hashed here, from the
@@ -120,10 +109,12 @@ function format(c: Context, nameExt: string): SupportedFormat | Response {
 }
 
 function registerRoutes(app: Hono, options: RouteOptions) {
+    const chiitiler = new Chiitiler(options);
+    const { cacheControl } = options;
     imageRoute(
         app,
         '/tiles/:z/:x/:y_ext',
-        options,
+        cacheControl,
         'failed to render tile',
         (c) => {
             const z = Number(param(c, 'z'));
@@ -142,14 +133,14 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 margin: Number(c.req.query('margin') ?? 0),
             };
         },
-        renderTile,
+        (p) => chiitiler.renderTile(p),
     );
 
     imageRoute(
         app,
         // only clip.<ext>: other paths are not found
         '/:file{clip\\.[^/]*}',
-        options,
+        cacheControl,
         'failed to render tile',
         (c) => {
             const ext = format(c, param(c, 'file'));
@@ -170,13 +161,13 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 size: Number(c.req.query('size') ?? 1024),
             };
         },
-        renderBbox,
+        (p) => chiitiler.renderBbox(p),
     );
 
     imageRoute(
         app,
         '/view/:zoom/:lat/:lon/:bearing/:dimensions_ext',
-        options,
+        cacheControl,
         'failed to render static image',
         (c) => {
             const ext = format(c, param(c, 'dimensions_ext'));
@@ -208,7 +199,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 height,
             };
         },
-        renderView,
+        (p) => chiitiler.renderView(p),
     );
 }
 
