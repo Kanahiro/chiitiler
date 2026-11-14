@@ -5,7 +5,6 @@ import { availableParallelism } from 'node:os';
 
 import { createProgram } from './cli.js';
 import * as server from './server/index.js';
-import { prewarm } from './render/warmup.js';
 import * as caches from './cache/index.js';
 
 vi.mock('node:cluster', () => ({
@@ -16,14 +15,9 @@ vi.mock('node:cluster', () => ({
         fork: vi.fn(),
     },
 }));
-vi.mock('./render/warmup.js', () => ({
-    prewarm: vi.fn().mockResolvedValue(undefined),
-}));
 
 beforeEach(() => {
     vi.mocked(cluster.fork).mockReset();
-    vi.mocked(prewarm).mockReset().mockResolvedValue(undefined);
-    vi.stubEnv('CHIITILER_PREWARM', undefined);
     vi.stubEnv('CHIITILER_PROCESSES', undefined);
     vi.stubEnv('CHIITILER_FRONT_CACHE_TTL_SEC', undefined);
     vi.stubEnv('CHIITILER_FRONT_CACHE_MAX_BYTES', undefined);
@@ -108,7 +102,6 @@ describe('run chiitiler', () => {
             ]),
         ).rejects.toThrow(error);
         expect(init).not.toHaveBeenCalled();
-        expect(prewarm).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -244,7 +237,6 @@ describe('run chiitiler', () => {
         ]);
         expect(fork).toHaveBeenCalledTimes(count === 1 ? 0 : count);
         expect(init).toHaveBeenCalledTimes(count === 1 ? 1 : 0);
-        expect(prewarm).toHaveBeenCalledTimes(count === 1 ? 1 : 0);
     });
 
     it('starts a cluster worker without forking again', async () => {
@@ -278,14 +270,17 @@ describe('run chiitiler', () => {
         },
     );
 
-    it('rejects the removed --no-prewarm flag', async () => {
-        const program = createProgram()
-            .commands[0]!.exitOverride()
-            .configureOutput({ writeErr: () => {} });
-        await expect(
-            program.parseAsync(['node', 'cli.js', '--no-prewarm']),
-        ).rejects.toThrow("unknown option '--no-prewarm'");
-    });
+    it.each(['--prewarm', '--no-prewarm'])(
+        'rejects the removed %s flag',
+        async (flag) => {
+            const program = createProgram()
+                .commands[0]!.exitOverride()
+                .configureOutput({ writeErr: () => {} });
+            await expect(
+                program.parseAsync(['node', 'cli.js', flag]),
+            ).rejects.toThrow(`unknown option '${flag}'`);
+        },
+    );
 
     it('parse options1', async () => {
         let options: server.InitServerOptions | undefined;
@@ -358,67 +353,5 @@ describe('run chiitiler', () => {
         const program = createProgram();
         await program.parseAsync(['node', 'cli.js', 'tile-server', '-c', 's3']);
         expect(options!.cache.name).toBe('s3');
-    });
-
-    it.each([
-        { env: 'false', flags: ['--prewarm'], enabled: true },
-        { env: 'false', flags: ['--prewarm', 'true'], enabled: true },
-        { env: undefined, flags: [], enabled: true },
-        { env: 'true', flags: [], enabled: true },
-        { env: 'false', flags: [], enabled: false },
-        { env: undefined, flags: ['--prewarm', 'false'], enabled: false },
-        { env: 'true', flags: ['--prewarm', 'false'], enabled: false },
-        { env: 'false', flags: ['--prewarm', 'false'], enabled: false },
-    ])(
-        'prewarm env=$env flags=$flags enabled=$enabled',
-        async ({ env, flags, enabled }) => {
-            vi.stubEnv('CHIITILER_PREWARM', env);
-            const start = vi.fn();
-            vi.spyOn(server, 'initServer').mockImplementation(() => ({
-                app: {} as any,
-                start,
-            }));
-
-            const program = createProgram();
-            await program.parseAsync([
-                'node',
-                'cli.js',
-                'tile-server',
-                ...flags,
-            ]);
-            expect(prewarm).toHaveBeenCalledTimes(enabled ? 1 : 0);
-            expect(start).toHaveBeenCalled();
-        },
-    );
-
-    it('prewarm runs before the server starts', async () => {
-        const callOrder: string[] = [];
-        vi.mocked(prewarm).mockImplementation(async () => {
-            callOrder.push('prewarm');
-        });
-        vi.spyOn(server, 'initServer').mockImplementation(() => ({
-            app: {} as any,
-            start: () => {
-                callOrder.push('start');
-            },
-        }));
-
-        const program = createProgram();
-        await program.parseAsync(['node', 'cli.js', 'tile-server']);
-        expect(callOrder).toEqual(['prewarm', 'start']);
-    });
-
-    it('prewarm failure does not prevent startup', async () => {
-        vi.mocked(prewarm).mockRejectedValue(new Error('boom'));
-        const start = vi.fn();
-        vi.spyOn(server, 'initServer').mockImplementation(() => ({
-            app: {} as any,
-            start,
-        }));
-
-        const program = createProgram();
-        await program.parseAsync(['node', 'cli.js', 'tile-server']);
-        expect(prewarm).toHaveBeenCalled();
-        expect(start).toHaveBeenCalled();
     });
 });

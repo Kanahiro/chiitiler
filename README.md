@@ -174,21 +174,6 @@ const png = await getRenderedTileBuffer({
 });
 ```
 
-For library use, explicitly call `prewarm(cache)` once per rendering process
-during application startup, before accepting requests:
-
-```ts
-import { prewarm, ChiitilerCache } from 'chiitiler';
-
-const cache = ChiitilerCache.noneCache();
-await prewarm(cache);
-```
-
-The promise resolves after the native renderer has been loaded and a minimal tile has been rendered and PNG-encoded.
-It rejects if warmup fails; the application decides whether to continue startup.
-Library imports do not automatically run prewarm, and `CHIITILER_PREWARM` only
-controls the CLI server. Style-specific tiles, glyphs, and sprites are not preloaded.
-
 Types are re-exported as well, so you can annotate call sites without depending on
 `@maplibre/maplibre-gl-style-spec` resolution in your own tree:
 
@@ -222,10 +207,7 @@ All options can be set via CLI flag or environment variable.
 | `--port <n>` | `CHIITILER_PORT` | `3000` |
 | `--debug` | `CHIITILER_DEBUG` | `false` |
 | `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
-| `--prewarm [true\|false]` | `CHIITILER_PREWARM` | `true` |
 | `--processes <n>` | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
-
-Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. `--prewarm false` or `CHIITILER_PREWARM=false` disables it. `--prewarm` alone enables it. The CLI flag takes precedence over the environment variable. Style-specific tiles, glyphs, and sprites are not preloaded.
 
 `--processes` takes precedence over `CHIITILER_PROCESSES` and accepts non-negative integers; `0` uses all available CPUs.
 

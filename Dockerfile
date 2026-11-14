@@ -29,9 +29,6 @@ FROM node:24.22.3-bookworm-slim AS runtime
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.1 /lambda-adapter /opt/extensions/lambda-adapter
 ENV AWS_LWA_PORT=3000
 ENV AWS_LWA_READINESS_CHECK_PATH=/health
-# If prewarm pushes INIT past Lambda's 10s limit, continue it during the
-# first invoke instead of letting Lambda restart the sandbox.
-ENV AWS_LWA_ASYNC_INIT=true
 
 WORKDIR /app
 # The bundle includes every dependency but the renderer, which it loads from ../native.

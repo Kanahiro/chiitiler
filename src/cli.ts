@@ -7,7 +7,6 @@ import { Command, Option, InvalidArgumentError } from 'commander';
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
 import { setUserAgent } from './source/userAgent.js';
-import { prewarm } from './render/warmup.js';
 
 function parseCacheStrategy(
     method: 'none' | 'memory' | 'file' | 's3' | 'gcs',
@@ -153,13 +152,6 @@ export function createProgram() {
             'User-Agent header for outbound HTTP requests',
         )
         .addOption(
-            new Option('--prewarm [boolean]', 'startup renderer warmup')
-                .choices(['true', 'false'])
-                .preset('true')
-                .env('CHIITILER_PREWARM')
-                .default('true'),
-        )
-        .addOption(
             new Option('--processes <n>', 'worker processes (0 for all CPUs)')
                 .env('CHIITILER_PROCESSES')
                 .argParser(parseProcesses)
@@ -246,20 +238,6 @@ export function createProgram() {
                 console.log(
                     `editor page: http://localhost:${serverOptions.port}/editor`,
                 );
-            }
-
-            // warm up BEFORE listening: Lambda Web Adapter polls the
-            // readiness check until the port opens, so work done here
-            // stays inside the INIT phase (full CPU boost)
-            if (options.prewarm === 'true') {
-                const startedAt = Date.now();
-                try {
-                    await prewarm(serverOptions.cache);
-                    console.log(`prewarm done in ${Date.now() - startedAt}ms`);
-                } catch (err) {
-                    // 温まらないだけでサーバとしては動けるので起動は続行する
-                    console.warn(`prewarm failed: ${err}`);
-                }
             }
 
             const { start } = initServer(serverOptions);
