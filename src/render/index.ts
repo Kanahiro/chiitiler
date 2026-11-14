@@ -61,7 +61,10 @@ function resourcesKey({ cache, protocols }: Resources): string {
     const id = (o: object | undefined) => {
         if (o === undefined) return 0;
         let n = ids.get(o);
-        if (n === undefined) ids.set(o, (n = ++lastId));
+        if (n === undefined) {
+            n = ++lastId;
+            ids.set(o, n);
+        }
         return n;
     };
     return `${id(cache)}/${id(protocols)}`;
