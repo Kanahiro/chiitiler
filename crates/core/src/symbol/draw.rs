@@ -425,9 +425,63 @@ fn draw_symbol(
             };
             Some(out)
         };
+        // `shade` with the texture sampled per pixel and the rest four pixels at a time.
+        #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+        {
+            use crate::render::x4;
+            use core::arch::wasm32::*;
+            let f = |x: f32| f32x4_splat(std::hint::black_box(x));
+            let to = total_opacity;
+            let gamma = gamma_base / fs;
+            let text_ss = m.plain.then(|| x4::Smoothstep::new(0.75 - gamma, 0.75 + gamma));
+            let halo_ss = m.halo.then(|| {
+                let gamma_halo = (paint.halo_blur * 1.19 / 8.0 + gamma_base) / fs;
+                let inner = 0.75 + gamma_halo;
+                let edge = (6.0 - paint.halo_width / fs) / 8.0;
+                (x4::Smoothstep::new(inner - gamma_halo, inner + gamma_halo), x4::Smoothstep::new(edge - gamma_halo, edge + gamma_halo))
+            });
+            let (fill, halo, one, tov) = (paint.fill.map(|c| f(c * to)), paint.halo.map(|c| f(c * to)), f(1.0), f(to));
+            let mut shade4 = |v: &[v128; 2], k: &x4::K| {
+                let (u, w) = (x4::lanes(v[0]), x4::lanes(v[1]));
+                let s: [Rgba; 4] = std::array::from_fn(|j| sample(&q.tex, u[j], w[j], m.filter));
+                let channel = |c: usize| f32x4(s[0][c], s[1][c], s[2][c], s[3][c]);
+                let draw = u32x4_splat(u32::MAX);
+                if !sdf {
+                    return x4::Shaded { draw, c: std::array::from_fn(|c| f32x4_mul(channel(c), tov)), uniform: None };
+                }
+                let dist = channel(3);
+                let text = match &text_ss {
+                    Some(ss) => {
+                        let alpha = ss.eval(dist, k);
+                        fill.map(|c| f32x4_mul(c, alpha))
+                    }
+                    None => [f32x4_splat(0.0); 4],
+                };
+                let halo = match &halo_ss {
+                    Some((sh, se)) => {
+                        let a = x4::min(se.eval(dist, k), f32x4_sub(one, sh.eval(dist, k)));
+                        halo.map(|c| f32x4_mul(c, a))
+                    }
+                    None => [f32x4_splat(0.0); 4],
+                };
+                let c = if m.plain && m.halo {
+                    std::array::from_fn(|c| f32x4_add(text[c], f32x4_mul(f32x4_sub(one, text[3]), halo[c])))
+                } else if m.halo {
+                    halo
+                } else {
+                    text
+                };
+                x4::Shaded { draw, c, uniform: None }
+            };
+            x4::triangle(target, None, [pts[0], pts[2], pts[1]], [uv[0], uv[2], uv[1]], &mut shade, &mut shade4);
+            x4::triangle(target, None, [pts[1], pts[2], pts[3]], [uv[1], uv[2], uv[3]], &mut shade, &mut shade4);
+        }
         // Index order (0, 2, 1), (1, 2, 3).
-        raster::triangle(target, None, [pts[0], pts[2], pts[1]], [uv[0], uv[2], uv[1]], &mut shade);
-        raster::triangle(target, None, [pts[1], pts[2], pts[3]], [uv[1], uv[2], uv[3]], &mut shade);
+        #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+        {
+            raster::triangle(target, None, [pts[0], pts[2], pts[1]], [uv[0], uv[2], uv[1]], &mut shade);
+            raster::triangle(target, None, [pts[1], pts[2], pts[3]], [uv[1], uv[2], uv[3]], &mut shade);
+        }
     }
 }
 

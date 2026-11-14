@@ -316,7 +316,7 @@ pub fn for_each_run(w: usize, h: usize, p: [[f64; 2]; 3], f: impl FnMut(usize, u
 type Edge = ([f64; 2], f64, f64, f64, bool);
 
 /// A positively oriented triangle's edge functions and pixel bounds.
-struct Setup {
+pub(super) struct Setup {
     edges: [Edge; 3],
     area: f64,
     flip: bool,
@@ -364,7 +364,7 @@ impl Setup {
     }
 
     /// Calls `f(y, x0, x1)` for each run `x0..x1` of covered pixels in row `y`.
-    fn runs(&self, mut f: impl FnMut(usize, usize, usize)) {
+    pub(super) fn runs(&self, mut f: impl FnMut(usize, usize, usize)) {
         let (x0, x1) = (self.x0, self.x1);
         'rows: for y in self.y0..=self.y1 {
             let cy = y as f64 + 0.5;
@@ -372,7 +372,7 @@ impl Setup {
             // Whether every pixel of row_x0..=row_x1 is known to be inside.
             let mut exact = false;
             // Direct testing is cheaper than span setup for short rows (e.g. glyph quads).
-            if x1 - x0 >= 16 {
+            if x1 - x0 >= 8 {
                 exact = true;
                 // Each edge is monotone along a scanline. An intersection suggests its pixel
                 // boundary, but only the original edge predicate can confirm it. Binary search
@@ -455,17 +455,7 @@ pub fn triangle<const N: usize>(
     shade: &mut impl FnMut(&[f32; N]) -> Option<Rgba>,
 ) {
     let w = t.w;
-    let Some(setup) = Setup::new(t.clip, p) else { return };
-    // v(x, y) = v0 + gx (x - p0x) + gy (y - p0y).
-    let (e1, e2) = ([p[1][0] - p[0][0], p[1][1] - p[0][1]], [p[2][0] - p[0][0], p[2][1] - p[0][1]]);
-    let det = e1[0] * e2[1] - e1[1] * e2[0];
-    let mut gx = [0f64; N];
-    let mut gy = [0f64; N];
-    for k in 0..N {
-        let (d1, d2) = ((v[1][k] - v[0][k]) as f64, (v[2][k] - v[0][k]) as f64);
-        gx[k] = (d1 * e2[1] - d2 * e1[1]) / det;
-        gy[k] = (d2 * e1[0] - d1 * e2[0]) / det;
-    }
+    let Some((setup, gx, gy)) = triangle_setup(t.clip, p, v) else { return };
     setup.runs(|y, x0, x1| {
         let dy = y as f64 + 0.5 - p[0][1];
         let row: [f64; N] = std::array::from_fn(|k| v[0][k] as f64 + gy[k] * dy);
@@ -480,6 +470,22 @@ pub fn triangle<const N: usize>(
             }
         }
     });
+}
+
+/// A triangle's coverage within `clip` and its varyings' screen gradients:
+/// v(x, y) = v0 + gx (x - p0x) + gy (y - p0y).
+pub(super) fn triangle_setup<const N: usize>(clip: [usize; 4], p: [[f64; 2]; 3], v: [[f32; N]; 3]) -> Option<(Setup, [f64; N], [f64; N])> {
+    let setup = Setup::new(clip, p)?;
+    let (e1, e2) = ([p[1][0] - p[0][0], p[1][1] - p[0][1]], [p[2][0] - p[0][0], p[2][1] - p[0][1]]);
+    let det = e1[0] * e2[1] - e1[1] * e2[0];
+    let mut gx = [0f64; N];
+    let mut gy = [0f64; N];
+    for k in 0..N {
+        let (d1, d2) = ((v[1][k] - v[0][k]) as f64, (v[2][k] - v[0][k]) as f64);
+        gx[k] = (d1 * e2[1] - d2 * e1[1]) / det;
+        gy[k] = (d2 * e1[0] - d1 * e2[0]) / det;
+    }
+    Some((setup, gx, gy))
 }
 
 /// Aliased 1px GL line (`gl.LINES`); `shade` gets the distance of the fragment center from

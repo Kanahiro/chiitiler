@@ -728,6 +728,8 @@ fn draw_feature(
             .collect(),
         None => Vec::new(),
     };
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    let line4 = (dash.is_none() && pattern.is_none() && gradient.is_none()).then(|| super::x4::Line::new(c, outset_f, inset_f, blur2));
     for t in &b.triangles {
         let t = t.map(|i| i as usize);
         if !broken.is_empty() {
@@ -765,7 +767,16 @@ fn draw_feature(
             };
             [if v.round { 1.0 } else { 0.0 }, if v.up { 1.0 } else { -1.0 }, x as f32, v.uv_x]
         });
-        raster::triangle(target, Some(tf.mask), [screen[t[0]], screen[t[1]], screen[t[2]]], vary, &mut shade);
+        let tri = [screen[t[0]], screen[t[1]], screen[t[2]]];
+        #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+        if let Some(l4) = &line4 {
+            // Only (round, up) are read: the other varyings are left out.
+            let vary = vary.map(|v| [v[0], v[1]]);
+            let mut shade = |v: &[f32; 2]| super::x4::Line::shade_scalar(c, outset_f, inset_f, blur2, v);
+            super::x4::triangle(target, Some(tf.mask), tri, vary, &mut shade, &mut |v, k| l4.shade(v, k));
+            continue;
+        }
+        raster::triangle(target, Some(tf.mask), tri, vary, &mut shade);
     }
 }
 

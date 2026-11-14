@@ -4,6 +4,7 @@ chiitiler での差分:
 - TS ラッパーは `packages/ml2drender/src/index.ts` ではなく `src/render/ml2drender.ts`(`toJpeg` を追加)。WASM は `pnpm build:wasm` で `wasm/` に出力し、`src/wasm.ts` が読み込む。
 - `examples/browser`・`pnpm bench`・`pnpm demo` は取り込んでいない。`pnpm test` は chiitiler の vitest なので、Rust のテストは `pnpm test:rust`。
 - 採用済みクレートに `jpeg-encoder`(純 Rust、JPEG 書き出し)を追加。
+- `render/x4.rs`: WASM SIMD で三角形の行を4画素ずつ処理する経路(円・線(破線・パターン・グラデーションなし)・シンボル・単色の塗り)。ネイティブ(render テスト)はスカラー経路しか通らないので、変更したら render テストのスタイルを変更前後の WASM で描いて RGBA の一致を確かめる。
 -->
 
 # MapLibre style 2D タイルレンダラ (Rust / WASM)

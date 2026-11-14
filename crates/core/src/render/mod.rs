@@ -6,6 +6,8 @@ mod line;
 mod pattern;
 pub mod raster;
 pub mod raster_layer;
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+pub(crate) mod x4;
 
 use crate::expression::{self as ex, CanonicalTileId, Object, Value};
 use crate::mvt::{self, GeomType};
@@ -707,6 +709,12 @@ pub fn draw_fill(target: &mut Target, layer: &Layer, ctx: &Ctx, tiles: &[TileFea
                         });
                         continue;
                     }
+                    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+                    if let FillPaint::Color(c) = paint {
+                        let c4 = x4::Constant::new(c);
+                        x4::triangle(target, Some(tf.mask), p, [[]; 3], &mut |_: &[f32; 0]| Some(c), &mut |_, _| c4.shade());
+                        continue;
+                    }
                     let v = [vary[t[0]], vary[t[1]], vary[t[2]]];
                     let g = raster::varying_gradients(p, v);
                     raster::triangle(target, Some(tf.mask), p, v, &mut |v: &[f32; 2]| Some(paint.shade(*v, &g)));
@@ -842,6 +850,8 @@ pub fn draw_circle(target: &mut Target, layer: &Layer, ctx: &Ctx, tiles: &[TileF
             // The color where `opacity_t` is 1 and `color_t` 0 (see `shade`), with its visibility.
             let interior: Rgba = std::array::from_fn(|k| 1.0 * (fill[k] + (stroke[k] - fill[k]) * 0.0));
             let interior = interior.iter().any(|&x| x >= 0.5 / 255.0).then_some(interior);
+            #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+            let circle4 = x4::Circle::new(fill, stroke, radius, stroke_width, aa_blur, interior);
             for pt in f.geometry.iter().flatten() {
                 if pt[0] < 0.0 || pt[0] >= EXTENT || pt[1] < 0.0 || pt[1] >= EXTENT {
                     continue;
@@ -868,8 +878,17 @@ pub fn draw_circle(target: &mut Target, layer: &Layer, ctx: &Ctx, tiles: &[TileF
                     let c: Rgba = std::array::from_fn(|k| opacity_t * (fill[k] + (stroke[k] - fill[k]) * color_t));
                     (c.iter().any(|&x| x >= 0.5 / 255.0)).then_some(c)
                 };
-                raster::triangle(target, None, [pos[0], pos[1], pos[2]], [v[0], v[1], v[2]], &mut shade);
-                raster::triangle(target, None, [pos[0], pos[2], pos[3]], [v[0], v[2], v[3]], &mut shade);
+                #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+                {
+                    let mut shade4 = |e: &[core::arch::wasm32::v128; 2], k: &x4::K| circle4.shade(e, k);
+                    x4::triangle(target, None, [pos[0], pos[1], pos[2]], [v[0], v[1], v[2]], &mut shade, &mut shade4);
+                    x4::triangle(target, None, [pos[0], pos[2], pos[3]], [v[0], v[2], v[3]], &mut shade, &mut shade4);
+                }
+                #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+                {
+                    raster::triangle(target, None, [pos[0], pos[1], pos[2]], [v[0], v[1], v[2]], &mut shade);
+                    raster::triangle(target, None, [pos[0], pos[2], pos[3]], [v[0], v[2], v[3]], &mut shade);
+                }
             }
         }
     }
