@@ -136,9 +136,7 @@ describe('initServer', () => {
             debug: false,
         });
 
-        const res = await app.request(
-            '/view/10/67.89/123.45/0/1024x1024.png',
-        );
+        const res = await app.request('/view/10/67.89/123.45/0/1024x1024.png');
         expect(res.status).toBe(400);
         expect(await res.text()).toBe('url is required');
 
