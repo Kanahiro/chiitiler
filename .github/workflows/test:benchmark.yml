@@ -79,8 +79,10 @@ jobs:
                       else
                           npm ci --prefix "$dir"
                       fi
-                      # ml2drender-based checkouts render with the WASM built from their crates
-                      if [ -f "$dir/Cargo.toml" ]; then
+                      # ml2drender-based checkouts render with the renderer built from their crates
+                      if grep -q '"build:native"' "$dir/package.json"; then
+                          pnpm --dir "$dir" build:native
+                      elif [ -f "$dir/Cargo.toml" ]; then
                           pnpm --dir "$dir" build:wasm
                       fi
                   done

@@ -9,3 +9,4 @@ tests/
 target/
 fixtures/
 wasm/
+native/

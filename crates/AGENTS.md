@@ -1,10 +1,10 @@
 <!--
 chiitiler に取り込んだ ml2drender の開発ノート(ml2drender リポジトリの AGENTS.md のコピー)。
 chiitiler での差分:
-- TS ラッパーは `packages/ml2drender/src/index.ts` ではなく `src/render/ml2drender.ts`(`toJpeg` を追加)。WASM は `pnpm build:wasm` で `wasm/` に出力し、`src/wasm.ts` が読み込む。
+- chiitiler は WASM ではなく Node-API(`crates/napi`、`pnpm build:native` → `native/ml2drender.<platform>-<arch>.node`、`src/native.ts` が読み込む)で描く。TS のホストは `src/render/ml2drender.ts`(WASM 版のホストから投影・書き出し・インスタンス共有を除いたもの)。`crates/wasm` はコアの別バインディングとして残す。x86_64 のネイティブビルドは x86-64-v2(`.cargo/config.toml`)。
 - `examples/browser`・`pnpm bench`・`pnpm demo` は取り込んでいない。`pnpm test` は chiitiler の vitest なので、Rust のテストは `pnpm test:rust`。
 - 採用済みクレートに `jpeg-encoder`(純 Rust、JPEG 書き出し)を追加。
-- `render/x4.rs`: WASM SIMD で三角形の行を4画素ずつ処理する経路(円・線(破線・パターン・グラデーションなし)・シンボル・単色の塗り)。ネイティブ(render テスト)はスカラー経路しか通らないので、変更したら render テストのスタイルを変更前後の WASM で描いて RGBA の一致を確かめる。
+- `render/x4.rs`(WASM 版のみ。chiitiler の napi 版は通らない): WASM SIMD で三角形の行を4画素ずつ処理する経路(円・線(破線・パターン・グラデーションなし)・シンボル・単色の塗り)。ネイティブ(render テスト)はスカラー経路しか通らないので、変更したら render テストのスタイルを変更前後の WASM で描いて RGBA の一致を確かめる。
 -->
 
 # MapLibre style 2D タイルレンダラ (Rust / WASM)

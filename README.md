@@ -39,7 +39,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 > **No Docker?** Run it from source with [pnpm](https://pnpm.io) and a Rust toolchain:
 > ```bash
 > git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
-> rustup target add wasm32-unknown-unknown && pnpm build:wasm
+> pnpm build:native
 > pnpm tsx src/main.ts tile-server --debug
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
@@ -47,7 +47,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 ## Features
 
 - **Zero-config** — no config file, no YAML, no database. Just a style URL.
-- **No GPU, no native renderer** — rendered by [ml2drender](./crates), a pure-Rust 2D MapLibre renderer compiled to WebAssembly
+- **No GPU, no system libraries** — rendered by [ml2drender](./crates), a pure-Rust 2D MapLibre renderer, as a Node-API addon
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form camera shots (`/camera`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
@@ -184,7 +184,7 @@ const cache = ChiitilerCache.noneCache();
 await prewarm(cache);
 ```
 
-The promise resolves after the WASM renderer has been compiled and a minimal tile has been rendered and PNG-encoded.
+The promise resolves after the native renderer has been loaded and a minimal tile has been rendered and PNG-encoded.
 It rejects if warmup fails; the application decides whether to continue startup.
 Library imports do not automatically run prewarm, and `CHIITILER_PREWARM` only
 controls the CLI server. Style-specific tiles, glyphs, and sprites are not preloaded.
@@ -231,10 +231,9 @@ Prewarm is enabled by default: one tile is rendered at startup **before** the se
 
 ### Cache
 
-A renderer (one WASM instance) is kept per style in a 10-entry LRU. It keeps decoded
-tiles, glyphs and sprites for 5 minutes, after which the next request starts from
-fetched bytes again (through the cache below). WASM memory does not shrink, so an
-instance retains its peak memory until its style is evicted.
+A renderer is kept per style in a 10-entry LRU. It keeps decoded tiles, glyphs and
+sprites for 5 minutes, after which the next request starts from fetched bytes again
+(through the cache below).
 
 | Flag | Env | Default |
 | --- | --- | --- |
@@ -294,28 +293,32 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Develop
 
-Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust with the `wasm32-unknown-unknown` target.
+Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust.
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
 cd chiitiler
 pnpm install
-pnpm build:wasm       # build the renderer (wasm/ml2drender_wasm.wasm)
+pnpm build:native     # build the renderer (native/ml2drender.<platform>-<arch>.node)
 pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
 pnpm test:benchmark   # see bench/BENCHMARK.md
-pnpm build            # bundle to build/main.mjs (reads ../wasm at runtime)
+pnpm build            # bundle to build/main.mjs (loads ../native at runtime)
 pnpm test:rust        # cargo test (renderer)
 pnpm fixtures         # once: fetch MapLibre render/expression test fixtures
 pnpm test:render      # MapLibre render tests → target/test-report/render
 ```
 
 The renderer lives in [`crates/`](./crates) (copied from ml2drender; see [`crates/AGENTS.md`](./crates/AGENTS.md)):
-`crates/core` is the sans-IO renderer, `crates/wasm` its WASM exports, `crates/cli` the test runner, and
-[`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the TypeScript wrapper that drives the
-`needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
+`crates/core` is the sans-IO renderer, independent of its bindings: `crates/napi` (the Node-API addon
+chiitiler uses) and `crates/wasm` (WebAssembly exports, for runtimes without native addons).
+`crates/cli` is the test runner, and [`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the
+TypeScript host that drives the `needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
+
+The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.35+), darwin-arm64 and
+win32-x64; elsewhere, build it with `pnpm build:native`. x86-64 builds target x86-64-v2 (SSE4.2).
 
 ## Architecture
 

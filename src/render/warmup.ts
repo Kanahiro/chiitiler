@@ -4,7 +4,7 @@ import { getRenderedTile } from './index.js';
 import type { Cache } from '../cache/index.js';
 
 // Style-specific resources (tiles, glyphs, sprites) stay cold; this compiles
-// the WASM module and runs the render and PNG-encode paths once.
+// the native renderer and runs the render and PNG-encode paths once.
 const MINIMAL_STYLE: StyleSpecification = {
     version: 8,
     sources: {},

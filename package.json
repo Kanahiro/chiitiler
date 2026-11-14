@@ -10,7 +10,7 @@
     },
     "files": [
         "dist",
-        "wasm"
+        "native"
     ],
     "scripts": {
         "build": "esbuild --bundle src/main.ts --minify --format=esm --outfile=build/main.mjs --platform=node --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
@@ -27,7 +27,8 @@
         "test:rust": "cargo test --release",
         "test:render": "cargo run --release -p ml2drender-cli -- render-tests",
         "test:expression": "cargo run --release -p ml2drender-cli -- expression-tests",
-        "fixtures": "sh scripts/fetch-fixtures.sh"
+        "fixtures": "sh scripts/fetch-fixtures.sh",
+        "build:native": "node scripts/build-native.ts"
     },
     "keywords": [],
     "author": "Kanahiro Iguchi",

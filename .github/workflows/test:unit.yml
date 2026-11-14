@@ -26,8 +26,8 @@ jobs:
               with:
                   node-version-file: .node-version
                   cache: pnpm
-            - name: Build WASM
-              run: rustup target add wasm32-unknown-unknown && pnpm build:wasm
+            - name: Build the native renderer
+              run: pnpm build:native
             - name: Build App
               run: |
                   pnpm install --frozen-lockfile

@@ -1,13 +1,14 @@
-FROM rust:1.97-slim-bookworm AS wasm
+FROM rust:1.97-slim-bookworm AS native
 
 WORKDIR /app
-RUN rustup target add wasm32-unknown-unknown
 COPY Cargo.toml Cargo.lock ./
 COPY .cargo ./.cargo
 COPY crates ./crates
-RUN cargo build -p ml2drender-wasm --target wasm32-unknown-unknown --profile wasm \
-  && mkdir -p wasm \
-  && cp target/wasm32-unknown-unknown/wasm/ml2drender_wasm.wasm wasm/
+# The Node-API renderer for this image's platform, named like scripts/build-native.ts names it.
+RUN cargo build -p ml2drender-napi --profile native \
+  && mkdir -p native \
+  && arch=$(uname -m | sed 's/x86_64/x64/; s/aarch64/arm64/') \
+  && cp target/native/libml2drender_napi.so "native/ml2drender.linux-$arch.node"
 
 FROM node:24.22.3-bookworm-slim AS builder
 
@@ -21,7 +22,7 @@ RUN pnpm build
 
 # Dev image for docker-compose: dependencies installed at build time, src from a bind mount.
 FROM builder AS dev
-COPY --from=wasm /app/wasm ./wasm
+COPY --from=native /app/native ./native
 
 FROM node:24.22.3-bookworm-slim AS runtime
 
@@ -33,8 +34,8 @@ ENV AWS_LWA_READINESS_CHECK_PATH=/health
 ENV AWS_LWA_ASYNC_INIT=true
 
 WORKDIR /app
-# The bundle includes every dependency; it reads the WASM from ../wasm.
+# The bundle includes every dependency but the renderer, which it loads from ../native.
 COPY --from=builder /app/build ./build
-COPY --from=wasm /app/wasm ./wasm
+COPY --from=native /app/native ./native
 
 CMD ["node", "/app/build/main.mjs", "tile-server"]

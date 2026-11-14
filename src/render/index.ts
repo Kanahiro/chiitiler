@@ -2,7 +2,6 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { LRUCache } from 'lru-cache';
 
 import { MapRenderer, type RenderedImage } from './ml2drender.js';
-import { loadWasmModule } from '../wasm.js';
 import type { Cache } from '../cache/index.js';
 import { getSource, type Protocols } from '../source/index.js';
 
@@ -94,8 +93,8 @@ async function loadStyle(
     return style;
 }
 
-// Each renderer owns a WASM instance and keeps decoded tiles, glyphs and
-// sprites for a few minutes (ml2drender's default), so styles are reused.
+// Each renderer keeps decoded tiles, glyphs and sprites for a few minutes
+// (ml2drender's default), so styles are reused.
 const rendererCache = new LRUCache<string, Promise<MapRenderer>>({
     max: 10,
 });
@@ -113,22 +112,17 @@ async function getRenderer(
     }`;
     let renderer = rendererCache.get(key);
     if (renderer === undefined) {
-        renderer = loadWasmModule().then((wasm) =>
-            MapRenderer.init(style, {
-                wasm,
-                // null = 404 (empty vector tile, missing raster); errors fail the render
-                loadResource: async (url) => {
-                    const buf = await getSource(
-                        url,
-                        resources.cache,
-                        resources.protocols,
-                    );
-                    return buf === null || buf.length === 0
-                        ? null
-                        : (buf as Uint8Array<ArrayBuffer>);
-                },
-            }),
-        );
+        renderer = MapRenderer.init(style, {
+            // null = 404 (empty vector tile, missing raster); errors fail the render
+            loadResource: async (url) => {
+                const buf = await getSource(
+                    url,
+                    resources.cache,
+                    resources.protocols,
+                );
+                return buf === null || buf.length === 0 ? null : buf;
+            },
+        });
         rendererCache.set(key, renderer);
         // a failed init is retried by the next request
         renderer.catch(() => {

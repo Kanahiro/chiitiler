@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/core", "crates/cli", "crates/wasm"]
+members = ["crates/core", "crates/cli", "crates/wasm", "crates/napi"]
 resolver = "3"
 
 [workspace.package]
@@ -17,4 +17,12 @@ opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+strip = true
+
+# Node-API build (`pnpm build:native`): like `wasm`, but panics unwind into JS errors instead of
+# aborting the server process.
+[profile.native]
+inherits = "release"
+lto = true
+codegen-units = 1
 strip = true
