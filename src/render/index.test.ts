@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
-import { getRenderedTile } from './index.js';
+import { getRenderedClip, getRenderedTile } from './index.js';
 import type { Cache } from '../cache/index.js';
 import type { Protocols } from '../source/index.js';
 
@@ -100,5 +100,22 @@ describe('library resources', () => {
             layers: [{ id: 'bg', type: 'background' }, ...style.layers],
         });
         expect(fetch.mock.calls.length).toBe(fetched);
+    });
+
+    it('sizes clips like 1.x: the long side is `size`, the short one rounded up', async () => {
+        const size = async (n: number) => {
+            const png = await getRenderedClip({
+                stylejson: { version: 8, sources: {}, layers: [] },
+                bbox: [100, 30, 150, 60],
+                size: n,
+                cache: { get: async () => undefined, set: async () => {} },
+                ext: 'png',
+                quality: 100,
+            });
+            const view = new DataView(png.buffer, png.byteOffset);
+            return [view.getUint32(16), view.getUint32(20)];
+        };
+        expect(await size(1024)).toEqual([1024, 901]);
+        expect(await size(512)).toEqual([512, 451]);
     });
 });

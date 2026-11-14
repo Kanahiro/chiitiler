@@ -32,8 +32,8 @@ export interface Tile {
 }
 
 /**
- * A longitude/latitude box in Web Mercator. The image has the box's aspect ratio, `size` on its long side,
- * at the zoom that fits the box into it.
+ * A longitude/latitude box in Web Mercator. The image has the box's aspect ratio, `size` on its long side
+ * (the short side rounded up), at the zoom that fits the box into it.
  */
 export interface LngLatBox {
     /** Degrees; `west > east` crosses the antimeridian. Latitudes are clamped to Web Mercator's ±85.0511°. */
@@ -199,8 +199,9 @@ function fitLngLat({
             (Math.atan(Math.sinh(Math.PI * (1 - (y0 + y1)))) * 180) / Math.PI,
         ],
         zoom: Math.log2(scale / 512),
-        width: Math.max(1, Math.round(dx * scale)),
-        height: Math.max(1, Math.round(dy * scale)),
+        // The long side is `size`; the short one is rounded up (as chiitiler 1.x did).
+        width: dx >= dy ? size : Math.max(1, Math.ceil((dx / dy) * size)),
+        height: dx >= dy ? Math.max(1, Math.ceil((dy / dx) * size)) : size,
         pixelRatio,
         margin,
     };
