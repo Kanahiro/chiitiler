@@ -41,13 +41,18 @@
         "url": "git+https://github.com/Kanahiro/chiitiler.git"
     },
     "devDependencies": {
+        "@aws-sdk/client-s3": "^3.1131.0",
         "@biomejs/biome": "^2.6.6",
+        "@google-cloud/storage": "^7.22.0",
+        "@hono/node-server": "^2.1.1",
+        "@maplibre/maplibre-gl-style-spec": "^26.4.2",
         "@tsconfig/node24": "^24.0.5",
         "@types/autocannon": "^7.12.7",
         "@types/node": "^25.9.6",
         "@vitest/coverage-v8": "^4.1.4",
         "autocannon": "^8.0.0",
         "esbuild": "^0.28.2",
+        "hono": "^4.13.7",
         "image-size": "^2.0.2",
         "tsx": "^4.23.13",
         "typedoc": "^0.28.20",
@@ -55,14 +60,21 @@
         "vitest": "^4.1.4"
     },
     "dependencies": {
-        "@aws-sdk/client-s3": "^3.1131.0",
-        "@google-cloud/storage": "^7.22.0",
-        "@hono/node-server": "^2.1.1",
-        "@mapbox/tilebelt": "^2.0.3",
-        "@maplibre/maplibre-gl-style-spec": "^26.4.2",
-        "hono": "^4.13.7",
         "lru-cache": "^11.5.2",
         "pmtiles": "^4.5.0"
+    },
+    "peerDependencies": {
+        "@aws-sdk/client-s3": "^3.0.0",
+        "@google-cloud/storage": "^7.0.0",
+        "@maplibre/maplibre-gl-style-spec": "^26.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@aws-sdk/client-s3": {
+            "optional": true
+        },
+        "@google-cloud/storage": {
+            "optional": true
+        }
     },
     "packageManager": "pnpm@12.18.0"
 }

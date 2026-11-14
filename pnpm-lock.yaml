@@ -166,24 +166,6 @@ importers:
 
   .:
     dependencies:
-      '@aws-sdk/client-s3':
-        specifier: ^3.1131.0
-        version: 3.1131.0
-      '@google-cloud/storage':
-        specifier: ^7.22.0
-        version: 7.22.0(supports-color@7.2.0)
-      '@hono/node-server':
-        specifier: ^2.1.1
-        version: 2.1.6(hono@4.13.16)
-      '@mapbox/tilebelt':
-        specifier: ^2.0.3
-        version: 2.0.3
-      '@maplibre/maplibre-gl-style-spec':
-        specifier: ^26.4.2
-        version: 26.4.2
-      hono:
-        specifier: ^4.13.7
-        version: 4.13.16
       lru-cache:
         specifier: ^11.5.2
         version: 11.5.2
@@ -191,9 +173,21 @@ importers:
         specifier: ^4.5.0
         version: 4.5.0
     devDependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1131.0
+        version: 3.1131.0
       '@biomejs/biome':
         specifier: ^2.6.6
         version: 2.6.6
+      '@google-cloud/storage':
+        specifier: ^7.22.0
+        version: 7.22.0(supports-color@7.2.0)
+      '@hono/node-server':
+        specifier: ^2.1.1
+        version: 2.1.6(hono@4.13.16)
+      '@maplibre/maplibre-gl-style-spec':
+        specifier: ^26.4.2
+        version: 26.4.2
       '@tsconfig/node24':
         specifier: ^24.0.5
         version: 24.0.5
@@ -212,6 +206,9 @@ importers:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+      hono:
+        specifier: ^4.13.7
+        version: 4.13.16
       image-size:
         specifier: ^2.0.2
         version: 2.0.2
@@ -602,9 +599,6 @@ packages:
   '@mapbox/jsonlint-lines-primitives@2.0.3':
     resolution: {integrity: sha512-0SElaV0uMxEnxzBhhX9WTuPyUeMsAN/SS0i16tjuba4/mio63MG9khjC1a0JAiPGXAwvwm4UfHJURCN7nyudQg==}
     engines: {node: '>= 22'}
-
-  '@mapbox/tilebelt@2.0.3':
-    resolution: {integrity: sha512-HSscGw2yBlcm0GdLI3S5i8Xw/ffP2fTT2qmRbR1/AkJ02PnNN52yY+zzfw705LKKjesy8jJ/H1dieuioqN0Slw==}
 
   '@mapbox/unitbezier@1.0.0':
     resolution: {integrity: sha512-fqd515fjBmANKGGsQ286E2Wvj/XvDFpGzwJxq4CI6jMQue6Oy04uCKp+JWKF00xRTmk6cEu1jPJ9p3xqH8YWqQ==}
@@ -2146,8 +2140,6 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.6.0
 
   '@mapbox/jsonlint-lines-primitives@2.0.3': {}
-
-  '@mapbox/tilebelt@2.0.3': {}
 
   '@mapbox/unitbezier@1.0.0': {}
 

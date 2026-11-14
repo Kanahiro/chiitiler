@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Cache, Value } from './index.js';
-import { getStorageClient } from '../gcs.js';
+import { getStorage } from '../gcs.js';
 import type { File } from '@google-cloud/storage';
 
 type GCSCacheOptions = {
@@ -16,27 +16,24 @@ function gcsCache(options: GCSCacheOptions): Cache {
         options.prefix = options.prefix.slice(0, -1);
     }
 
-    const storageClient = getStorageClient({
-        projectId: options.projectId,
-        keyFilename: options.keyFilename,
-        apiEndpoint: options.apiEndpoint,
-    });
-    const bucket = storageClient.bucket(options.bucket);
-
-    function bucketFile(key: string): File {
+    async function bucketFile(key: string): Promise<File> {
+        const storage = await getStorage({
+            projectId: options.projectId,
+            keyFilename: options.keyFilename,
+            apiEndpoint: options.apiEndpoint,
+        });
         const name = objectName(key);
         const nameWithPrefix = options.prefix
             ? `${options.prefix}/${name}`
             : name;
-        return bucket.file(nameWithPrefix);
+        return storage.bucket(options.bucket).file(nameWithPrefix);
     }
 
     return {
         name: 'gcs',
         set: async (key: string, value: Value) => {
-            const file = bucketFile(key);
-
             try {
+                const file = await bucketFile(key);
                 await file.save(value, {
                     resumable: false,
                 });
@@ -45,9 +42,8 @@ function gcsCache(options: GCSCacheOptions): Cache {
             }
         },
         get: async (key: string): Promise<Value | undefined> => {
-            const file = bucketFile(key);
-
             try {
+                const file = await bucketFile(key);
                 const [content] = await file.download();
                 return content;
             } catch {

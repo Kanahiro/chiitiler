@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { send } = vi.hoisted(() => ({ send: vi.fn() }));
 
 vi.mock('../s3.js', () => ({
-    getS3Client: () => ({ send }),
+    getS3: async () => ({
+        client: { send },
+        sdk: await vi.importActual('@aws-sdk/client-s3'),
+    }),
 }));
 
 import { getS3Source } from './s3.js';

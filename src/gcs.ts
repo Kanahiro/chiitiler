@@ -1,4 +1,4 @@
-import { Storage } from '@google-cloud/storage';
+import type { Storage } from '@google-cloud/storage';
 
 type StorageOptions = {
     projectId?: string;
@@ -6,9 +6,20 @@ type StorageOptions = {
     apiEndpoint?: string;
 };
 
-// One client per configuration (see getS3Client).
+let sdk: Promise<typeof import('@google-cloud/storage')> | undefined;
+
+// One client per configuration (see getS3).
 const clients = new Map<string, Storage>();
-const getStorageClient = (options: StorageOptions) => {
+/** A client of `@google-cloud/storage`, an optional peer dependency loaded on first use. */
+async function getStorage(options: StorageOptions): Promise<Storage> {
+    sdk ??= import('@google-cloud/storage').catch((e) => {
+        sdk = undefined;
+        throw new Error(
+            'gs:// sources and the gcs cache need @google-cloud/storage: install it',
+            { cause: e },
+        );
+    });
+    const { Storage } = await sdk;
     const { projectId, keyFilename, apiEndpoint } = options;
     const key = JSON.stringify([projectId, keyFilename, apiEndpoint]);
     let client = clients.get(key);
@@ -17,6 +28,6 @@ const getStorageClient = (options: StorageOptions) => {
         clients.set(key, client);
     }
     return client;
-};
+}
 
-export { getStorageClient };
+export { getStorage };

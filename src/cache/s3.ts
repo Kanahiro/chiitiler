@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 
 import type { Cache, Value } from './index.js';
-import { getS3Client } from '../s3.js';
+import { getS3 } from '../s3.js';
 
 type S3CacheOptions = {
     bucket: string;
@@ -11,32 +10,35 @@ type S3CacheOptions = {
     forcePathStyle?: boolean;
 };
 function s3Cache(options: S3CacheOptions): Cache {
-    const s3Client = getS3Client({
-        region: options.region,
-        endpoint: options.endpoint,
-        forcePathStyle: options.forcePathStyle,
-    });
+    const s3 = () =>
+        getS3({
+            region: options.region,
+            endpoint: options.endpoint,
+            forcePathStyle: options.forcePathStyle,
+        });
     return {
         name: 's3',
         set: async (key: string, value: Value) => {
             try {
-                const cmd = new PutObjectCommand({
+                const { client, sdk } = await s3();
+                const cmd = new sdk.PutObjectCommand({
                     Bucket: options.bucket,
                     Key: objectName(key),
                     Body: value,
                 });
-                await s3Client.send(cmd);
+                await client.send(cmd);
             } catch (e) {
                 console.log(`[error]: ${e}`);
             }
         },
         get: async (key: string): Promise<Value | undefined> => {
-            const cmd = new GetObjectCommand({
-                Bucket: options.bucket,
-                Key: objectName(key),
-            });
             try {
-                const obj = await s3Client.send(cmd);
+                const { client, sdk } = await s3();
+                const cmd = new sdk.GetObjectCommand({
+                    Bucket: options.bucket,
+                    Key: objectName(key),
+                });
+                const obj = await client.send(cmd);
                 if (obj.Body === undefined) return undefined;
                 return await obj.Body.transformToByteArray();
             } catch {

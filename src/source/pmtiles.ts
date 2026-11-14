@@ -7,14 +7,10 @@ import {
     type Source,
     type RangeResponse,
 } from 'pmtiles';
-import {
-    GetObjectCommand,
-    type GetObjectCommandOutput,
-    type S3Client,
-} from '@aws-sdk/client-s3';
+import type { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { LRUCache } from 'lru-cache';
 
-import { getS3Client } from '../s3.js';
+import { getS3 } from '../s3.js';
 import { type Cache, noneCache } from '../cache/index.js';
 import { getUserAgent } from './userAgent.js';
 
@@ -45,17 +41,10 @@ class FilesystemSource implements Source {
 class S3Source implements Source {
     bucket: string;
     key: string;
-    s3Client: S3Client;
 
     constructor(bucket: string, key: string) {
         this.bucket = bucket;
         this.key = key;
-        this.s3Client = getS3Client({
-            region: process.env.CHIITILER_S3_REGION ?? 'us-east-1',
-            endpoint: process.env.CHIITILER_S3_ENDPOINT,
-            forcePathStyle:
-                process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
-        });
     }
 
     getKey() {
@@ -68,10 +57,16 @@ class S3Source implements Source {
         signal?: AbortSignal,
         etag?: string,
     ): Promise<RangeResponse> {
+        const { client, sdk } = await getS3({
+            region: process.env.CHIITILER_S3_REGION ?? 'us-east-1',
+            endpoint: process.env.CHIITILER_S3_ENDPOINT,
+            forcePathStyle:
+                process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
+        });
         let resp: GetObjectCommandOutput;
         try {
-            resp = await this.s3Client.send(
-                new GetObjectCommand({
+            resp = await client.send(
+                new sdk.GetObjectCommand({
                     Bucket: this.bucket,
                     Key: this.key,
                     Range: 'bytes=' + offset + '-' + (offset + length - 1),
