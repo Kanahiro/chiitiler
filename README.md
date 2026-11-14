@@ -40,7 +40,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 > ```bash
 > git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
 > pnpm build:native
-> pnpm tsx src/main.ts tile-server --debug
+> CHIITILER_DEBUG=true pnpm tsx src/main.ts
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
 
@@ -75,7 +75,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
 | `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
 | `GET` / `POST` | `/camera/{zoom}/{lat}/{lon}/{bearing}/{pitch}/{width}x{height}.{ext}` | Free-form camera shot |
-| `GET` | `/debug`, `/editor` | Debug UI (requires `--debug`) |
+| `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) |
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`.
 
@@ -198,30 +198,36 @@ chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default
 
 ## Configuration
 
-All options can be set via CLI flag or environment variable.
+The server is configured with environment variables only; it takes no command-line options
+(`tile-server`, the 1.x command, is still accepted and ignored). Empty values count as unset, and an
+invalid value stops startup with an error naming the variable.
+
+```bash
+docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESSES=0 ghcr.io/kanahiro/chiitiler:latest
+```
 
 ### Server
 
-| Flag | Env | Default |
-| --- | --- | --- |
-| `--port <n>` | `CHIITILER_PORT` | `3000` |
-| `--debug` | `CHIITILER_DEBUG` | `false` |
-| `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
-| `--processes <n>` | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
-| `--max-size <px>` | `CHIITILER_MAX_SIZE` | `4096` |
-| `--cache-control <value>` | `CHIITILER_CACHE_CONTROL` | (none) |
-| `--cors <origins>` | `CHIITILER_CORS` | (none) |
+| Variable | Default |
+| --- | --- |
+| `CHIITILER_PORT` | `3000` |
+| `CHIITILER_DEBUG` | `false` |
+| `CHIITILER_USER_AGENT` | (none) |
+| `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
+| `CHIITILER_MAX_SIZE` | `4096` |
+| `CHIITILER_CACHE_CONTROL` | (none) |
+| `CHIITILER_CORS` | (none) |
 
-`--processes` takes precedence over `CHIITILER_PROCESSES` and accepts non-negative integers; `0` uses all available CPUs.
+`CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
 Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in
 parallel), so the server keeps answering (e.g. `/health`) while it draws.
 
-`--max-size` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/camera`
+`CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/camera`
 dimensions); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
 
-`--cache-control` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
+`CHIITILER_CACHE_CONTROL` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
 keep them; chiitiler doesn't cache rendered images itself). `GET` images carry an `ETag`, so
-`If-None-Match` revalidations answer `304`. `--cors` adds CORS headers for `*` or a comma-separated
+`If-None-Match` revalidations answer `304`. `CHIITILER_CORS` adds CORS headers for `*` or a comma-separated
 list of origins.
 
 On `SIGTERM` / `SIGINT` the server stops accepting connections and exits once the requests in
@@ -234,23 +240,23 @@ sprites for 5 minutes, after which the next request starts from fetched bytes ag
 (through the cache below). Styles given by URL are read again after 60 seconds, past the
 backing cache (only the memory layer below applies), so edits upstream show up within a minute.
 
-| Flag | Env | Default |
-| --- | --- | --- |
-| `--cache <none\|memory\|file\|s3\|gcs>` | `CHIITILER_CACHE_METHOD` | `none` |
-| `--cache-ttl <seconds>` | `CHIITILER_CACHE_TTL_SEC` | `3600` |
-| `--memory-cache-max-item-count <n>` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
-| `--front-cache-ttl-sec <seconds>` | `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
-| `--front-cache-max-bytes <bytes>` | `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
-| `--file-cache-dir <dir>` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
-| `--s3-cache-bucket <name>` | `CHIITILER_S3CACHE_BUCKET` | — |
-| `--s3-region <region>` | `CHIITILER_S3_REGION` | `us-east-1` |
-| `--s3-endpoint <url>` | `CHIITILER_S3_ENDPOINT` | — |
-| `--s3-force-path-style` | `CHIITILER_S3_FORCE_PATH_STYLE` | `false` |
-| `--gcs-cache-bucket <name>` | `CHIITILER_GCS_CACHE_BUCKET` | — |
-| `--gcs-project-id <id>` | `CHIITILER_GCS_PROJECT_ID` | — |
-| `--gcs-key-filename <path>` | `CHIITILER_GCS_KEY_FILENAME` | — |
-| `--gcs-cache-prefix <prefix>` | `CHIITILER_GCS_CACHE_PREFIX` | — |
-| `--gcs-api-endpoint <url>` | `CHIITILER_GCS_API_ENDPOINT` | — |
+| Variable | Default |
+| --- | --- |
+| `CHIITILER_CACHE_METHOD` | `none` |
+| `CHIITILER_CACHE_TTL_SEC` | `3600` |
+| `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
+| `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
+| `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
+| `CHIITILER_FILECACHE_DIR` | `./.cache` |
+| `CHIITILER_S3CACHE_BUCKET` | — |
+| `CHIITILER_S3_REGION` | `us-east-1` |
+| `CHIITILER_S3_ENDPOINT` | — |
+| `CHIITILER_S3_FORCE_PATH_STYLE` | `false` |
+| `CHIITILER_GCS_CACHE_BUCKET` | — |
+| `CHIITILER_GCS_PROJECT_ID` | — |
+| `CHIITILER_GCS_KEY_FILENAME` | — |
+| `CHIITILER_GCS_CACHE_PREFIX` | — |
+| `CHIITILER_GCS_API_ENDPOINT` | — |
 
 Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final rasters — so cached data is reused across requests. Standard AWS / GCP credentials (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.) are respected.
 
@@ -262,9 +268,9 @@ Only `http(s)://` sources (including `pmtiles://http(s)://` tiles) are also stor
 backing cache; reads promote backing-cache hits into memory, and writes populate memory
 immediately and also write to the backing cache.
 
-Set `--front-cache-ttl-sec` / `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
-`--front-cache-max-bytes` / `CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
-these limits. CLI flags take precedence over environment variables. Set either limit to `0`
+Set `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
+`CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
+these limits. Set either limit to `0`
 (e.g. `CHIITILER_FRONT_CACHE_TTL_SEC=0`) to disable the front cache entirely. Otherwise,
 invalid values stop startup. These settings do not affect library callers.
 
@@ -283,7 +289,7 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Deployment
 
-- **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (entrypoint: `tile-server`)
+- **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables)
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 - **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
@@ -303,8 +309,10 @@ placement differ).
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
   `400` instead of `500`.
-- **Server:** `--prewarm` / `CHIITILER_PREWARM` are removed (the flag is rejected as unknown; startup
-  is fast without it). Images are at most 4096 px on a side unless `--max-size` says otherwise.
+- **Server:** command-line options are removed: set the `CHIITILER_*` environment variable each
+  flag had (see [Configuration](#configuration)); any option now stops startup with an error.
+  Unknown `CHIITILER_CACHE_METHOD` values and other invalid values stop startup too (1.x fell back to
+  defaults). `CHIITILER_PREWARM` is removed (startup is fast without it). Images are at most 4096 px on a side unless `CHIITILER_MAX_SIZE` says otherwise.
 - **Caches:** `file`, `s3` and `gcs` caches use new file and object names (SHA-256 of the URL; the
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.

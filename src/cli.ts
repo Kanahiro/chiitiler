@@ -2,282 +2,148 @@ import process from 'node:process';
 import cluster from 'node:cluster';
 import { availableParallelism } from 'node:os';
 
-import { Command, Option, InvalidArgumentError } from 'commander';
-
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
-import { setUserAgent } from './source/userAgent.js';
 
-function parseCacheStrategy(
-    method: 'none' | 'memory' | 'file' | 's3' | 'gcs',
-    options: {
-        cacheTtl: number;
-        memoryCacheMaxItemCount: number;
-        fileCacheDir: string;
-        s3CacheBucket: string;
-        s3Region: string;
-        s3Endpoint: string;
-        s3ForcePathStyle: boolean;
-        gcsCacheBucket: string;
-        gcsCachePrefix: string;
-        gcsProjectId: string;
-        gcsKeyFilename: string;
-        gcsApiEndpoint: string;
-    },
-) {
-    // command-line option
-    if (method === 'memory')
-        return caches.memoryCache({
-            ttl: options.cacheTtl,
-            maxItemCount: options.memoryCacheMaxItemCount,
-        });
-    if (method === 'file')
-        return caches.fileCache({
-            dir: options.fileCacheDir,
-            ttl: options.cacheTtl,
-        });
-    if (method === 's3')
-        return caches.s3Cache({
-            bucket: options.s3CacheBucket,
-            region: options.s3Region,
-            endpoint: options.s3Endpoint,
-            forcePathStyle: options.s3ForcePathStyle,
-        });
-    if (method === 'gcs')
-        return caches.gcsCache({
-            bucket: options.gcsCacheBucket,
-            projectId: options.gcsProjectId,
-            keyFilename: options.gcsKeyFilename,
-            prefix: options.gcsCachePrefix,
-            apiEndpoint: options.gcsApiEndpoint,
-        });
+type Env = Record<string, string | undefined>;
 
-    // command-line is not specified -> try to read from env
-    const cacheEnv = process.env.CHIITILER_CACHE_METHOD;
-    if (cacheEnv === 'memory')
-        return caches.memoryCache({
-            ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
-            maxItemCount: Number(
-                process.env.CHIITILER_MEMORYCACHE_MAXITEMCOUNT ?? '1000',
-            ),
-        });
-    if (cacheEnv === 'file')
-        return caches.fileCache({
-            dir: process.env.CHIITILER_FILECACHE_DIR ?? './.cache',
-            ttl: Number(process.env.CHIITILER_CACHE_TTL_SEC ?? '3600'),
-        });
-    if (cacheEnv === 's3')
-        return caches.s3Cache({
-            bucket: process.env.CHIITILER_S3CACHE_BUCKET ?? '',
-            region: process.env.CHIITILER_S3_REGION ?? 'us-east-1',
-            endpoint: process.env.CHIITILER_S3_ENDPOINT,
-            forcePathStyle:
-                process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
-        });
-    if (cacheEnv === 'gcs')
-        return caches.gcsCache({
-            bucket: process.env.CHIITILER_GCS_CACHE_BUCKET ?? '',
-            prefix: process.env.CHIITILER_GCS_CACHE_PREFIX,
-            projectId: process.env.CHIITILER_GCS_PROJECT_ID,
-            keyFilename: process.env.CHIITILER_GCS_KEY_FILENAME,
-            apiEndpoint: process.env.CHIITILER_GCS_API_ENDPOINT,
-        });
-
-    // undefined or invalid
-    return caches.noneCache();
+/** The value of `name`; empty means unset. */
+function read(env: Env, name: string): string | undefined {
+    const value = env[name]?.trim();
+    return value === '' ? undefined : value;
 }
 
-function parsePort(port: string | undefined) {
-    // command-line option
-    if (port !== undefined) return Number(port);
-
-    // command-line is not specified -> try to read from env
-    const portEnv = process.env.CHIITILER_PORT;
-    if (portEnv !== undefined) return Number(portEnv);
-
-    // undefined or invalid
-    return 3000;
+function integer(env: Env, name: string, fallback: number, min: number) {
+    const value = read(env, name);
+    if (value === undefined) return fallback;
+    const n = Number(value);
+    if (!Number.isSafeInteger(n) || n < min)
+        throw new Error(`${name} must be an integer of at least ${min}`);
+    return n;
 }
 
-function parseProcesses(value: string) {
-    const count = Number(value.trim() || NaN);
-    if (!Number.isSafeInteger(count) || count < 0) {
-        throw new InvalidArgumentError(
-            'processes must be a non-negative safe integer',
+function number(env: Env, name: string): number | undefined {
+    const value = read(env, name);
+    if (value === undefined) return undefined;
+    const n = Number(value);
+    if (Number.isNaN(n)) throw new Error(`${name} must be a number`);
+    return n;
+}
+
+function boolean(env: Env, name: string): boolean {
+    const value = read(env, name);
+    if (value === undefined || value === 'false') return false;
+    if (value === 'true') return true;
+    throw new Error(`${name} must be true or false`);
+}
+
+function required(env: Env, name: string, method: string): string {
+    const value = read(env, name);
+    if (value === undefined)
+        throw new Error(
+            `${name} is required with CHIITILER_CACHE_METHOD=${method}`,
         );
-    }
-    return count;
+    return value;
 }
 
-function parsePositiveInteger(name: string) {
-    return (value: string) => {
-        const n = Number(value.trim() || NaN);
-        if (!Number.isSafeInteger(n) || n < 1) {
-            throw new InvalidArgumentError(
-                `${name} must be a positive integer`,
+function readCache(env: Env): caches.Cache {
+    const method = read(env, 'CHIITILER_CACHE_METHOD') ?? 'none';
+    const ttl = integer(env, 'CHIITILER_CACHE_TTL_SEC', 3600, 0);
+    let cache: caches.Cache;
+    switch (method) {
+        case 'none':
+            return caches.noneCache();
+        case 'memory':
+            // already in-process: no memory layer in front of it
+            return caches.memoryCache({
+                ttl,
+                maxItemCount: integer(
+                    env,
+                    'CHIITILER_MEMORYCACHE_MAXITEMCOUNT',
+                    1000,
+                    1,
+                ),
+            });
+        case 'file':
+            cache = caches.fileCache({
+                dir: read(env, 'CHIITILER_FILECACHE_DIR') ?? './.cache',
+                ttl,
+            });
+            break;
+        case 's3':
+            cache = caches.s3Cache({
+                bucket: required(env, 'CHIITILER_S3CACHE_BUCKET', method),
+                region: read(env, 'CHIITILER_S3_REGION') ?? 'us-east-1',
+                endpoint: read(env, 'CHIITILER_S3_ENDPOINT'),
+                forcePathStyle: boolean(env, 'CHIITILER_S3_FORCE_PATH_STYLE'),
+            });
+            break;
+        case 'gcs':
+            cache = caches.gcsCache({
+                bucket: required(env, 'CHIITILER_GCS_CACHE_BUCKET', method),
+                prefix: read(env, 'CHIITILER_GCS_CACHE_PREFIX'),
+                projectId: read(env, 'CHIITILER_GCS_PROJECT_ID'),
+                keyFilename: read(env, 'CHIITILER_GCS_KEY_FILENAME'),
+                apiEndpoint: read(env, 'CHIITILER_GCS_API_ENDPOINT'),
+            });
+            break;
+        default:
+            throw new Error(
+                `CHIITILER_CACHE_METHOD must be none, memory, file, s3 or gcs (got ${method})`,
             );
-        }
-        return n;
+    }
+    return caches.withMemoryCache(cache, {
+        ttlSeconds: number(env, 'CHIITILER_FRONT_CACHE_TTL_SEC'),
+        maxBytes: number(env, 'CHIITILER_FRONT_CACHE_MAX_BYTES'),
+    });
+}
+
+type Config = InitServerOptions & { processes: number };
+
+/**
+ * The server's configuration, from CHIITILER_* environment variables (empty values count as
+ * unset). Throws for an invalid value, before anything starts.
+ */
+function readConfig(env: Env = process.env): Config {
+    const processes = integer(env, 'CHIITILER_PROCESSES', 1, 0);
+    return {
+        cache: readCache(env),
+        port: integer(env, 'CHIITILER_PORT', 3000, 0),
+        debug: boolean(env, 'CHIITILER_DEBUG'),
+        processes: processes === 0 ? availableParallelism() : processes,
+        maxSize: integer(env, 'CHIITILER_MAX_SIZE', 4096, 1),
+        cacheControl: read(env, 'CHIITILER_CACHE_CONTROL'),
+        corsOrigins: read(env, 'CHIITILER_CORS')
+            ?.split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean),
     };
 }
 
-function parseDebug(debug: boolean | undefined) {
-    // command-line option
-    if (debug) return true;
-
-    // command-line is not specified or false -> try to read from env
-    const debugEnv = process.env.CHIITILER_DEBUG;
-    if (debugEnv !== undefined) return debugEnv === 'true';
-
-    // undefined or invalid
-    return false;
+/**
+ * Start the tile server configured by environment variables. It takes no command-line options;
+ * `tile-server`, the 1.x command, is accepted and ignored.
+ */
+async function run(args: string[], env: Env = process.env) {
+    const rest = args[0] === 'tile-server' ? args.slice(1) : args;
+    if (rest.length > 0)
+        throw new Error(
+            `chiitiler takes no command-line options (got ${rest.join(' ')}): configure it with CHIITILER_* environment variables`,
+        );
+    const { processes, ...options } = readConfig(env);
+    if (cluster.isPrimary && processes !== 1) {
+        // Workers inherit the environment, and initialize their own renderer and cache.
+        for (let i = 0; i < processes; i++) cluster.fork();
+        return;
+    }
+    if (options.debug) {
+        console.log(`running server: http://localhost:${options.port}`);
+        console.log(`cache method: ${options.cache.name}`);
+        console.log(`debug page: http://localhost:${options.port}/debug`);
+        console.log(`editor page: http://localhost:${options.port}/editor`);
+    }
+    // CHIITILER_USER_AGENT is read by source/userAgent.ts.
+    initServer(options).start();
 }
 
-export function createProgram() {
-    const program = new Command();
-    program
-        .command('tile-server')
-        .option('-c, --cache <type>', 'cache type', 'none')
-        .option('--cache-ttl', 'cache ttl', '3600')
-        .option(
-            '--memory-cache-max-item-count',
-            'memory cache max item count',
-            '1000',
-        )
-        .option('--file-cache-dir <dir>', 'file cache directory', './.cache')
-        .option(
-            '--s3-region <region-name>',
-            's3 bucket region for get/put',
-            'us-east-1',
-        )
-        .option('--s3-cache-bucket <bucket-name>', 's3 cache bucket name', '')
-        .option('--s3-endpoint <url>', 's3 endpoint url', '')
-        .option('--s3-force-path-style', 's3 force path style', '')
-        .option('--gcs-cache-bucket <bucket-name>', 'gcs cache bucket name', '')
-        .option('--gcs-project-id <project-id>', 'gcs project id', '')
-        .option('--gcs-key-filename <key-filename>', 'gcs key filename', '')
-        .option('--gcs-cache-prefix <prefix>', 'gcs cache prefix', '')
-        .option('--gcs-api-endpoint <api-endpoint>', 'gcs api endpoint', '')
-        .option('-p, --port <port>', 'port number')
-        .option(
-            '--user-agent <user-agent>',
-            'User-Agent header for outbound HTTP requests',
-        )
-        .addOption(
-            new Option('--processes <n>', 'worker processes (0 for all CPUs)')
-                .env('CHIITILER_PROCESSES')
-                .argParser(parseProcesses)
-                .default(1),
-        )
-        .addOption(
-            new Option(
-                '--front-cache-ttl-sec <seconds>',
-                'memory front cache TTL (0 to disable)',
-            ).env('CHIITILER_FRONT_CACHE_TTL_SEC'),
-        )
-        .addOption(
-            new Option(
-                '--front-cache-max-bytes <bytes>',
-                'memory front cache byte limit (0 to disable)',
-            ).env('CHIITILER_FRONT_CACHE_MAX_BYTES'),
-        )
-        .addOption(
-            new Option('--max-size <px>', 'largest image side in pixels')
-                .env('CHIITILER_MAX_SIZE')
-                .argParser(parsePositiveInteger('max-size'))
-                .default(4096),
-        )
-        .addOption(
-            new Option(
-                '--cache-control <value>',
-                'Cache-Control header of rendered images',
-            ).env('CHIITILER_CACHE_CONTROL'),
-        )
-        .addOption(
-            new Option(
-                '--cors <origins>',
-                'origins allowed by CORS: * or a comma-separated list',
-            ).env('CHIITILER_CORS'),
-        )
-        .option('-D, --debug', 'debug mode')
-        .action(async (options) => {
-            const numProcesses =
-                options.processes === 0
-                    ? availableParallelism()
-                    : options.processes;
-            if (cluster.isPrimary && numProcesses !== 1) {
-                // Workers inherit argv and env, and initialize their own renderer and cache.
-                for (let i = 0; i < numProcesses; i++) cluster.fork();
-                return;
-            }
-
-            // env fallback (CHIITILER_USER_AGENT) is handled in userAgent.ts
-            if (options.userAgent !== undefined)
-                setUserAgent(options.userAgent);
-
-            const serverOptions: InitServerOptions = {
-                cache: parseCacheStrategy(options.cache, {
-                    cacheTtl: Number(options.cacheTtl),
-                    memoryCacheMaxItemCount: Number(
-                        options.memoryCacheMaxItemCount,
-                    ),
-                    fileCacheDir: options.fileCacheDir,
-                    s3CacheBucket: options.s3CacheBucket,
-                    s3Region: options.s3Region,
-                    s3Endpoint: options.s3Endpoint,
-                    s3ForcePathStyle: options.s3ForcePathStyle === 'true',
-                    gcsCacheBucket: options.gcsCacheBucket,
-                    gcsCachePrefix: options.gcsCachePrefix,
-                    gcsProjectId: options.gcsProjectId,
-                    gcsKeyFilename: options.gcsKeyFilename,
-                    gcsApiEndpoint: options.gcsApiEndpoint,
-                }),
-                port: parsePort(options.port),
-                debug: parseDebug(options.debug),
-                maxSize: options.maxSize,
-                cacheControl: options.cacheControl,
-                corsOrigins: options.cors
-                    ?.split(',')
-                    .map((origin: string) => origin.trim())
-                    .filter(Boolean),
-            };
-
-            // none: caching was declined; memory: already in-process
-            if (
-                ['file', 's3', 'gcs'].includes(serverOptions.cache.name ?? '')
-            ) {
-                const ttl = options.frontCacheTtlSec;
-                const size = options.frontCacheMaxBytes;
-                serverOptions.cache = caches.withMemoryCache(
-                    serverOptions.cache,
-                    {
-                        ttlSeconds:
-                            ttl === undefined
-                                ? undefined
-                                : Number(ttl.trim() || NaN),
-                        maxBytes:
-                            size === undefined
-                                ? undefined
-                                : Number(size.trim() || NaN),
-                    },
-                );
-            }
-
-            if (serverOptions.debug) {
-                console.log(
-                    `running server: http://localhost:${serverOptions.port}`,
-                );
-                console.log(`cache method: ${serverOptions.cache.name}`);
-                console.log(
-                    `debug page: http://localhost:${serverOptions.port}/debug`,
-                );
-                console.log(
-                    `editor page: http://localhost:${serverOptions.port}/editor`,
-                );
-            }
-
-            const { start } = initServer(serverOptions);
-            start();
-        });
-    return program;
-}
+export { readConfig, run };

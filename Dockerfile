@@ -35,4 +35,4 @@ WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=native /app/native ./native
 
-CMD ["node", "/app/build/main.mjs", "tile-server"]
+CMD ["node", "/app/build/main.mjs"]
