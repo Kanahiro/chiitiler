@@ -1,13 +1,10 @@
-export {
-    renderTile,
-    renderBbox,
-    renderView,
-} from './render/index.js';
+export { Chiitiler } from './render/index.js';
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';
 
 export type {
+    ChiitilerOptions,
     RenderBboxOptions,
     RenderTileOptions,
     RenderViewOptions,

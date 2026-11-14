@@ -100,7 +100,8 @@ For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
 ## Library Usage
 
-Chiitiler is also published to npm. Renderers return the encoded image as a `Uint8Array`.
+Chiitiler is also published to npm. A `Chiitiler` renders any style and returns the encoded image as
+a `Uint8Array`.
 
 ```bash
 npm install chiitiler @maplibre/maplibre-gl-style-spec
@@ -114,26 +115,29 @@ npm install @google-cloud/storage
 optional ones, loaded when first used.
 
 ```ts
-import { renderTile, ChiitilerCache } from 'chiitiler';
+import { Chiitiler, ChiitilerCache } from 'chiitiler';
 
-const cache = ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 });
+const chiitiler = new Chiitiler({
+    cache: ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 }),
+    // protocols: { ... },  custom URL schemes (below)
+    // maxSize: 4096,       the largest image side in pixels
+});
 
-const png = await renderTile({
+const png = await chiitiler.renderTile({
     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
     z: 5, x: 27, y: 12,
     tileSize: 512,
     ext: 'png',
     quality: 100,
     margin: 0,
-    cache,
 });
 ```
 
-Available renderers: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long
-side) and `renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
+Methods: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long side) and
+`renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
 
-A renderer is kept per style, cache and protocols (compared by identity): create the cache and the
-protocols object once and pass the same ones to every call, or each call starts a new renderer.
+`stylejson` is a URL or a style object, and may differ on every call. An instance keeps renderers of
+the styles it drew last, with their decoded tiles, glyphs and sprites: create one and reuse it.
 
 ### Your own cache
 
@@ -142,7 +146,7 @@ Any object with `get` and `set` is a cache. Keys are resource URLs, values `Uint
 tiles), e.g. in Redis to share them between processes or hosts:
 
 ```ts
-import { renderTile, type Cache } from 'chiitiler';
+import type { Cache } from 'chiitiler';
 
 const cache: Cache = {
     get: async (url) => {
@@ -168,7 +172,7 @@ failures: the render fails rather than returning a map with holes. Results go th
 `memory` layer, not the cache itself (cache inside the loader if needed).
 
 ```ts
-import { renderTile, type Protocols } from 'chiitiler';
+import { Chiitiler, type Protocols } from 'chiitiler';
 
 const protocols: Protocols = {
     db: async (url) => {
@@ -178,10 +182,10 @@ const protocols: Protocols = {
     },
 };
 
-const png = await renderTile({
+const chiitiler = new Chiitiler({ cache, protocols });
+const png = await chiitiler.renderTile({
     stylejson: { version: 8, sources: { t: { type: 'vector', tiles: ['db://tiles/{z}/{x}/{y}'] } }, layers: [/* … */] },
     z: 5, x: 27, y: 12, tileSize: 512, ext: 'png', quality: 100, margin: 0,
-    cache, protocols,
 });
 ```
 
@@ -191,6 +195,7 @@ Types are re-exported as well, so you can annotate call sites without depending 
 ```ts
 import type {
     StyleSpecification,
+    ChiitilerOptions,
     RenderTileOptions,
     RenderBboxOptions,
     RenderViewOptions,
@@ -357,13 +362,14 @@ placement differ).
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
 - **Library:**
-  - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are renamed
-    `renderTile`, `renderBbox` and `renderView` (which takes no `pitch`; its options type is
-    `RenderViewOptions`, and so on), and resolve to a `Uint8Array`. The `*Stream` variants (Sharp)
+  - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are replaced by
+    the `renderTile`, `renderBbox` and `renderView` methods of a `Chiitiler` (`renderView` takes no
+    `pitch`; its options type is `RenderViewOptions`, and so on), which resolve to a `Uint8Array`.
+    `cache`, `protocols` and `maxSize` are given once to `new Chiitiler(...)`, the style to every
+    call. The `*Stream` variants (Sharp)
     and `prewarm()` are removed.
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
   - New `protocols` option for custom URL schemes.
-  - Renderers are reused per style, cache and protocols object: create the cache once, not per call.
   - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
     `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
   - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and

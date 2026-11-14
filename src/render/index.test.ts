@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
-import { renderBbox, renderTile } from './index.js';
+import { Chiitiler } from './index.js';
 import type { Cache } from '../cache/index.js';
 import type { Protocols } from '../source/index.js';
 
@@ -44,7 +44,11 @@ describe('library resources', () => {
                 return tile(url.replace('test://tiles/', ''));
             },
         };
-        const png = await renderTile({
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+            protocols,
+        });
+        const png = await chiitiler.renderTile({
             stylejson: 'test://style.json',
             z: 5,
             x: 28,
@@ -53,8 +57,6 @@ describe('library resources', () => {
             margin: 0,
             ext: 'png',
             quality: 100,
-            cache: { get: async () => undefined, set: async () => {} },
-            protocols,
         });
         expect([...png.slice(0, 4)]).toEqual(PNG);
         expect(urls[0]).toBe('test://style.json');
@@ -77,8 +79,9 @@ describe('library resources', () => {
             },
         };
         const style = circles('https://tiles.test/{z}/{x}/{y}.pbf');
+        const chiitiler = new Chiitiler({ cache });
         const render = (stylejson: StyleSpecification) =>
-            renderTile({
+            chiitiler.renderTile({
                 stylejson,
                 z: 5,
                 x: 28,
@@ -87,7 +90,6 @@ describe('library resources', () => {
                 margin: 0,
                 ext: 'png',
                 quality: 100,
-                cache,
             });
         await render(style);
         const url = 'https://tiles.test/4/14/6.pbf';
@@ -103,12 +105,14 @@ describe('library resources', () => {
     });
 
     it('sizes clips like 1.x: the long side is `size`, the short one rounded up', async () => {
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+        });
         const size = async (n: number) => {
-            const png = await renderBbox({
+            const png = await chiitiler.renderBbox({
                 stylejson: { version: 8, sources: {}, layers: [] },
                 bbox: [100, 30, 150, 60],
                 size: n,
-                cache: { get: async () => undefined, set: async () => {} },
                 ext: 'png',
                 quality: 100,
             });
