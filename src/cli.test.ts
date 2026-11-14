@@ -302,6 +302,41 @@ describe('run chiitiler', () => {
         expect(options!.cache.name).toBe('none');
         expect(options!.port).toBe(3000);
         expect(options!.debug).toBe(false);
+        expect(options!.maxSize).toBe(4096);
+        expect(options!.cacheControl).toBeUndefined();
+        expect(options!.corsOrigins).toBeUndefined();
+    });
+
+    it('parses the response options from flags and environment', async () => {
+        let options: server.InitServerOptions | undefined;
+        vi.spyOn(server, 'initServer').mockImplementation((opts) => {
+            options = opts;
+            return { app: {} as any, start: vi.fn() };
+        });
+        vi.stubEnv('CHIITILER_CACHE_CONTROL', 'public, max-age=60');
+        vi.stubEnv('CHIITILER_CORS', 'https://a.example, https://b.example');
+        await createProgram().parseAsync([
+            'node',
+            'cli.js',
+            'tile-server',
+            '--max-size',
+            '2048',
+        ]);
+        expect(options!.maxSize).toBe(2048);
+        expect(options!.cacheControl).toBe('public, max-age=60');
+        expect(options!.corsOrigins).toEqual([
+            'https://a.example',
+            'https://b.example',
+        ]);
+    });
+
+    it.each(['0', '-1', '1.5', 'x'])('rejects --max-size %s', async (value) => {
+        const program = createProgram()
+            .commands[0]!.exitOverride()
+            .configureOutput({ writeErr: () => {} });
+        await expect(
+            program.parseAsync(['node', 'cli.js', '--max-size', value]),
+        ).rejects.toThrow('max-size must be a positive integer');
     });
 
     it('parse options2', async () => {

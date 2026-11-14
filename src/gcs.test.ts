@@ -8,8 +8,9 @@ describe('getStorageClient', () => {
         const client1 = getStorageClient({});
         expect(client1).toBeInstanceOf(Storage);
         const client2 = getStorageClient({});
-        expect(client2).toBe(client1); // singleton
+        expect(client2).toBe(client1); // one per configuration
         const client3 = getStorageClient({ projectId: 'test-project' });
-        expect(client3).toBe(client1); // even when different options...
+        expect(client3).not.toBe(client1);
+        expect(getStorageClient({ projectId: 'test-project' })).toBe(client3);
     });
 });

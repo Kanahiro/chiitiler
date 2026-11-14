@@ -109,6 +109,18 @@ function parseProcesses(value: string) {
     return count;
 }
 
+function parsePositiveInteger(name: string) {
+    return (value: string) => {
+        const n = Number(value.trim() || NaN);
+        if (!Number.isSafeInteger(n) || n < 1) {
+            throw new InvalidArgumentError(
+                `${name} must be a positive integer`,
+            );
+        }
+        return n;
+    };
+}
+
 function parseDebug(debug: boolean | undefined) {
     // command-line option
     if (debug) return true;
@@ -169,6 +181,24 @@ export function createProgram() {
                 'memory front cache byte limit (0 to disable)',
             ).env('CHIITILER_FRONT_CACHE_MAX_BYTES'),
         )
+        .addOption(
+            new Option('--max-size <px>', 'largest image side in pixels')
+                .env('CHIITILER_MAX_SIZE')
+                .argParser(parsePositiveInteger('max-size'))
+                .default(4096),
+        )
+        .addOption(
+            new Option(
+                '--cache-control <value>',
+                'Cache-Control header of rendered images',
+            ).env('CHIITILER_CACHE_CONTROL'),
+        )
+        .addOption(
+            new Option(
+                '--cors <origins>',
+                'origins allowed by CORS: * or a comma-separated list',
+            ).env('CHIITILER_CORS'),
+        )
         .option('-D, --debug', 'debug mode')
         .action(async (options) => {
             const numProcesses =
@@ -204,6 +234,12 @@ export function createProgram() {
                 }),
                 port: parsePort(options.port),
                 debug: parseDebug(options.debug),
+                maxSize: options.maxSize,
+                cacheControl: options.cacheControl,
+                corsOrigins: options.cors
+                    ?.split(',')
+                    .map((origin: string) => origin.trim())
+                    .filter(Boolean),
             };
 
             // none: caching was declined; memory: already in-process

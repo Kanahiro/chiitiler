@@ -12,14 +12,17 @@ export type NativeView = {
     margin: number;
 };
 
-/** The renderer of `crates/napi`. */
+/**
+ * The renderer of `crates/napi`. Its asynchronous methods run on libuv's thread pool; calls on
+ * one renderer must not overlap (the host queues them).
+ */
 export interface NativeRenderer {
     setView(view: NativeView): void;
     setTicket(ticket: number): void;
     setKeepBuckets(keep: boolean): void;
-    needs(): string[];
-    provide(url: string, bytes: Uint8Array | null): void;
-    render(oldest: number): Uint8Array<ArrayBuffer>;
+    needs(): Promise<string[]>;
+    provide(url: string, bytes: Uint8Array | null): Promise<void>;
+    render(oldest: number): Promise<Uint8Array<ArrayBuffer>>;
 }
 
 export interface Native {
@@ -28,18 +31,18 @@ export interface Native {
         rgba: Uint8Array,
         width: number,
         height: number,
-    ): Uint8Array<ArrayBuffer>;
+    ): Promise<Uint8Array<ArrayBuffer>>;
     encodeWebp(
         rgba: Uint8Array,
         width: number,
         height: number,
-    ): Uint8Array<ArrayBuffer>;
+    ): Promise<Uint8Array<ArrayBuffer>>;
     encodeJpeg(
         rgba: Uint8Array,
         width: number,
         height: number,
         quality: number,
-    ): Uint8Array<ArrayBuffer>;
+    ): Promise<Uint8Array<ArrayBuffer>>;
 }
 
 let loaded: Native | undefined;

@@ -1,25 +1,23 @@
-import { S3Client, type S3ClientConfig } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 
-let s3Client: S3Client; // singleton
-const getS3Client = ({
-    region,
-    endpoint,
-    forcePathStyle,
-}: {
+type S3Options = {
     region: string;
     endpoint?: string;
     forcePathStyle?: boolean;
-}) => {
-    if (s3Client !== undefined) return s3Client;
+};
 
-    const s3ClientConfig: S3ClientConfig = {
-        region,
-        endpoint,
-        forcePathStyle,
-    };
-
-    s3Client = new S3Client(s3ClientConfig);
-    return s3Client;
+// One client per configuration: a cache bucket and s3:// sources may live in different regions
+// or behind different endpoints.
+const clients = new Map<string, S3Client>();
+const getS3Client = (options: S3Options) => {
+    const { region, endpoint, forcePathStyle } = options;
+    const key = JSON.stringify([region, endpoint, forcePathStyle]);
+    let client = clients.get(key);
+    if (client === undefined) {
+        client = new S3Client({ region, endpoint, forcePathStyle });
+        clients.set(key, client);
+    }
+    return client;
 };
 
 export { getS3Client };

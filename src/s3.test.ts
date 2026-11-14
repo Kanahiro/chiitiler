@@ -8,8 +8,9 @@ describe('getS3Client', () => {
         const client1 = getS3Client({ region: 'us-east-1' });
         expect(client1).toBeInstanceOf(S3Client);
         const client2 = getS3Client({ region: 'us-east-1' });
-        expect(client2).toBe(client1); // singleton
+        expect(client2).toBe(client1); // one per configuration
         const client3 = getS3Client({ region: 'ap-northeast-1' });
-        expect(client3).toBe(client1); // even when different options...
+        expect(client3).not.toBe(client1);
+        expect(getS3Client({ region: 'ap-northeast-1' })).toBe(client3);
     });
 });

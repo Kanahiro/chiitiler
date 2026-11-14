@@ -208,14 +208,31 @@ All options can be set via CLI flag or environment variable.
 | `--debug` | `CHIITILER_DEBUG` | `false` |
 | `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
 | `--processes <n>` | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
+| `--max-size <px>` | `CHIITILER_MAX_SIZE` | `4096` |
+| `--cache-control <value>` | `CHIITILER_CACHE_CONTROL` | (none) |
+| `--cors <origins>` | `CHIITILER_CORS` | (none) |
 
 `--processes` takes precedence over `CHIITILER_PROCESSES` and accepts non-negative integers; `0` uses all available CPUs.
+Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in
+parallel), so the server keeps answering (e.g. `/health`) while it draws.
+
+`--max-size` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/camera`
+dimensions); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
+
+`--cache-control` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
+keep them; chiitiler doesn't cache rendered images itself). `GET` images carry an `ETag`, so
+`If-None-Match` revalidations answer `304`. `--cors` adds CORS headers for `*` or a comma-separated
+list of origins.
+
+On `SIGTERM` / `SIGINT` the server stops accepting connections and exits once the requests in
+progress finish (at most 10 seconds).
 
 ### Cache
 
 A renderer is kept per style in a 10-entry LRU. It keeps decoded tiles, glyphs and
 sprites for 5 minutes, after which the next request starts from fetched bytes again
-(through the cache below).
+(through the cache below). Styles given by URL are read again after 60 seconds, past the
+backing cache (only the memory layer below applies), so edits upstream show up within a minute.
 
 | Flag | Env | Default |
 | --- | --- | --- |
@@ -287,7 +304,10 @@ placement differ).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
   `400` instead of `500`.
 - **Server:** `--prewarm` / `CHIITILER_PREWARM` are removed (the flag is rejected as unknown; startup
-  is fast without it). The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
+  is fast without it). Images are at most 4096 px on a side unless `--max-size` says otherwise.
+- **Caches:** `file`, `s3` and `gcs` caches use new file and object names (SHA-256 of the URL; the
+  old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
+  not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
 - **Library:**
   - `getRendered*Buffer` resolve to a `Uint8Array`; the `*Stream` variants (Sharp) and `prewarm()`
     are removed.

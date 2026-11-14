@@ -15,10 +15,10 @@ function getDebugPage(c: Context) {
             <meta charset="utf-8" />
             <title>MapLibre GL JS</title>
             <!-- maplibre gl js-->
-            <script src="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.js"></script>
+            <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
             <link
                 rel="stylesheet"
-                href="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.css"
+                href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css"
             />
             <style>
                 body {
@@ -76,10 +76,10 @@ function getEditorPage(c: Context) {
             <meta charset="utf-8" />
             <title>MapLibre GL JS</title>
             <!-- maplibre gl js-->
-            <script src="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.js"></script>
+            <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
             <link
                 rel="stylesheet"
-                href="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.css"
+                href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css"
             />
             <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.css" rel="stylesheet" type="text/css">
             <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.min.js"></script>

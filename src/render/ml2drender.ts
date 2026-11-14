@@ -50,11 +50,12 @@ export interface RenderedImage {
     height: number;
     /** Row-major, 8-bit RGBA pixels. */
     data: Uint8Array<ArrayBuffer>;
-    toPng(): Uint8Array<ArrayBuffer>;
+    /** Encoders run on libuv's thread pool. */
+    toPng(): Promise<Uint8Array<ArrayBuffer>>;
     /** Lossless. */
-    toWebp(): Uint8Array<ArrayBuffer>;
+    toWebp(): Promise<Uint8Array<ArrayBuffer>>;
     /** `quality` 1–100, flattened over black. */
-    toJpeg(quality: number): Uint8Array<ArrayBuffer>;
+    toJpeg(quality: number): Promise<Uint8Array<ArrayBuffer>>;
 }
 
 /** Style Spec layers supported by the 2D renderer. */
@@ -74,6 +75,11 @@ export interface InitOptions {
      * lower peak), Infinity never expires. Default: 5 minutes.
      */
     cache?: { ttlMs?: number };
+    /**
+     * Native renderers (each with its own decoded resources) that draw overlapping renders in
+     * parallel on libuv's thread pool. Default: 1.
+     */
+    concurrency?: number;
     /** Replace each fill-extrusion layer. Defaults to a fill preserving its 2D appearance. */
     transformFillExtrusion?: (layer: FillExtrusionLayer) => StyleLayer;
 }
@@ -84,6 +90,12 @@ interface Core {
     createdAt: number;
     active: number;
     retired: boolean;
+    /** The end of the last operation queued: calls on a renderer must not overlap. */
+    queue: Promise<unknown>;
+    /** Fetches in flight, shared by overlapping renders, with the newest ticket that awaits each. */
+    pending: Map<string, { request: Promise<void>; ticket: number }>;
+    /** Tickets of the renders in progress: the renderer keeps the tiles they need. */
+    tickets: Set<number>;
 }
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
@@ -268,21 +280,15 @@ function prepareStyle(
 
 /** Render a MapLibre Style as a static 2D RGBA image with the Node-API renderer. */
 export class MapRenderer {
-    /** The reused core (none with a TTL of 0). */
-    private core?: Core;
-    /** Fetches in flight, shared by overlapping renders, with the newest ticket that awaits each. */
-    private readonly pending = new Map<
-        string,
-        { request: Promise<void>; ticket: number }
-    >();
-    /** Tickets of the renders in progress: the renderer keeps the tiles they need. */
-    private readonly tickets = new Set<number>();
+    /** Cores in use, at most `concurrency` (none kept with a TTL of 0). */
+    private cores: Core[] = [];
     private lastTicket = 0;
 
     private constructor(
         private readonly style: string,
         private readonly loadResource: InitOptions['loadResource'],
         private readonly ttlMs: number,
+        private readonly concurrency: number,
     ) {}
 
     /** Snapshot a style object. Resource URLs are passed to `loadResource` as written. */
@@ -295,15 +301,20 @@ export class MapRenderer {
             throw new RangeError(
                 'cache.ttlMs must be a finite, non-negative number',
             );
+        const concurrency = options.concurrency ?? 1;
+        if (!Number.isInteger(concurrency) || concurrency < 1)
+            throw new RangeError('concurrency must be a positive integer');
         const renderer = new MapRenderer(
             prepareStyle(style, options.transformFillExtrusion),
             options.loadResource,
             ttlMs,
+            concurrency,
         );
         // Parse the style now: errors surface here, not at the first render.
-        renderer.release(
-            renderer.acquire(nativeView(tileView({ z: 0, x: 0, y: 0 }))),
+        const core = renderer.acquire(
+            nativeView(tileView({ z: 0, x: 0, y: 0 })),
         );
+        core.active--;
         return renderer;
     }
 
@@ -312,46 +323,30 @@ export class MapRenderer {
         const args = nativeView(view);
         const core = this.acquire(args);
         const ticket = ++this.lastTicket;
-        this.tickets.add(ticket);
+        core.tickets.add(ticket);
         try {
-            // Other renders may move the camera while this one awaits resources.
             for (let round = 0; ; round++) {
-                core.renderer.setView(args);
-                core.renderer.setTicket(ticket);
-                const urls = core.renderer.needs();
-                if (urls.length === 0) break;
+                // Other renders may move the camera while this one awaits resources: point it back
+                // and ask what is missing in one operation, and draw in the same one if nothing is.
+                const step = await this.exec(core, async () => {
+                    core.renderer.setView(args);
+                    core.renderer.setTicket(ticket);
+                    const urls = await core.renderer.needs();
+                    if (urls.length > 0) return { urls };
+                    // Tickets increase, so the first in the set is the oldest in progress.
+                    const oldest = core.tickets.values().next().value as number;
+                    return { data: await core.renderer.render(oldest) };
+                });
+                if (step.data) return image(step.data, args);
                 if (round >= 32)
                     throw new Error('Resource requests did not settle');
                 await Promise.all(
-                    urls.map((url) => this.fetch(core, url, ticket)),
+                    step.urls.map((url) => this.fetch(core, url, ticket)),
                 );
             }
-            // Tickets increase, so the first in the set is the oldest in progress.
-            const oldest = this.tickets.values().next().value as number;
-            const data = core.renderer.render(oldest);
-            const width = Math.round(args.width * args.pixelRatio);
-            const height = Math.round(args.height * args.pixelRatio);
-            const n = native();
-            return {
-                width,
-                height,
-                data,
-                toPng: () => n.encodePng(data, width, height),
-                toWebp: () => n.encodeWebp(data, width, height),
-                toJpeg: (quality) => {
-                    if (!Number.isFinite(quality))
-                        throw new RangeError('quality must be finite');
-                    const q = Math.min(100, Math.max(1, Math.round(quality)));
-                    return n.encodeJpeg(data, width, height, q);
-                },
-            };
-        } catch (error) {
-            // A failed render may leave the core half provided: start the next one afresh.
-            this.retire(core);
-            throw error;
         } finally {
-            this.tickets.delete(ticket);
-            this.release(core);
+            core.tickets.delete(ticket);
+            core.active--;
         }
     }
 
@@ -366,40 +361,60 @@ export class MapRenderer {
     }
 
     /**
-     * Fetch `url` once and provide it to `core`, which requested it, before it leaves `pending`. It is
-     * kept for the newest render awaiting it: while any of them is in progress, the oldest ticket in
-     * progress is at most that one.
+     * Run `op` on `core` after the operations queued before it. A failed operation may leave the
+     * renderer inconsistent: later renders use a new core.
+     */
+    private exec<T>(core: Core, op: () => Promise<T>): Promise<T> {
+        const result = core.queue.then(op).catch((error) => {
+            this.retire(core);
+            throw error;
+        });
+        core.queue = result.catch(() => {});
+        return result;
+    }
+
+    /**
+     * Fetch `url` once per core and provide it to `core`, which requested it, before it leaves
+     * `pending`. It is kept for the newest render awaiting it: while any of them is in progress,
+     * the oldest ticket in progress is at most that one.
      */
     private fetch(core: Core, url: string, ticket: number): Promise<void> {
-        const shared = this.pending.get(url);
+        const shared = core.pending.get(url);
         if (shared) {
             shared.ticket = Math.max(shared.ticket, ticket);
             return shared.request;
         }
         const entry = { ticket, request: Promise.resolve() };
         entry.request = this.loadResource(url)
-            .then((bytes) => {
-                // A dropped core was retired; its successor fetches again.
-                if (core.retired && core.active === 0) return;
-                core.renderer.setTicket(entry.ticket);
-                core.renderer.provide(url, bytes);
-            })
-            .finally(() => this.pending.delete(url));
-        this.pending.set(url, entry);
+            .then((bytes) =>
+                this.exec(core, async () => {
+                    core.renderer.setTicket(entry.ticket);
+                    await core.renderer.provide(url, bytes);
+                }),
+            )
+            .finally(() => core.pending.delete(url));
+        core.pending.set(url, entry);
         return entry.request;
     }
 
     /**
-     * The current native renderer, replaced once older than the cache TTL. With a TTL of 0, each
-     * render gets its own, dropped when the render ends.
+     * The least busy core, a new one while all are busy and fewer than `concurrency` exist. Cores
+     * older than the cache TTL are replaced. With a TTL of 0, each render gets its own.
      */
     private acquire(view: NativeView): Core {
         const now = performance.now();
-        if (this.core && now - this.core.createdAt >= this.ttlMs) {
-            this.retire(this.core);
+        for (const core of this.cores) {
+            if (now - core.createdAt >= this.ttlMs) this.retire(core);
         }
-        let core = this.core;
-        if (!core) {
+        let core = this.cores.reduce<Core | undefined>(
+            (best, c) =>
+                best === undefined || c.active < best.active ? c : best,
+            undefined,
+        );
+        if (
+            !core ||
+            (core.active > 0 && this.cores.length < this.concurrency)
+        ) {
             const renderer = new (native().Renderer)(this.style, view);
             // A core that is not reused drops buckets as soon as they are drawn.
             if (this.ttlMs === 0) renderer.setKeepBuckets(false);
@@ -408,19 +423,38 @@ export class MapRenderer {
                 createdAt: now,
                 active: 0,
                 retired: this.ttlMs === 0,
+                queue: Promise.resolve(),
+                pending: new Map(),
+                tickets: new Set(),
             };
-            if (!core.retired) this.core = core;
+            if (!core.retired) this.cores.push(core);
         }
         core.active++;
         return core;
     }
 
+    /** Stop handing `core` to new renders; it is dropped once its renders end. */
     private retire(core: Core) {
         core.retired = true;
-        if (this.core === core) this.core = undefined;
+        this.cores = this.cores.filter((c) => c !== core);
     }
+}
 
-    private release(core: Core) {
-        core.active--;
-    }
+function image(data: Uint8Array<ArrayBuffer>, view: NativeView): RenderedImage {
+    const width = Math.round(view.width * view.pixelRatio);
+    const height = Math.round(view.height * view.pixelRatio);
+    const n = native();
+    return {
+        width,
+        height,
+        data,
+        toPng: () => n.encodePng(data, width, height),
+        toWebp: () => n.encodeWebp(data, width, height),
+        toJpeg: async (quality) => {
+            if (!Number.isFinite(quality))
+                throw new RangeError('quality must be finite');
+            const q = Math.min(100, Math.max(1, Math.round(quality)));
+            return n.encodeJpeg(data, width, height, q);
+        },
+    };
 }
