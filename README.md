@@ -273,6 +273,30 @@ const cache = ChiitilerCache.withMemoryCache(
 > [!WARNING]
 > **Do not expose chiitiler directly to the public internet.** Chiitiler fetches whatever the request tells it to: the `url` style and every source, glyph, and sprite URL inside the style (`GET` or `POST`). This allows SSRF — requests to internal networks or cloud metadata endpoints — and reads of local files (`file://`, `mbtiles://`) and buckets (`s3://`, `gs://`) with the server's credentials. Accept requests only from trusted clients, e.g. behind an authenticating proxy or a private network.
 
+## Migrating from 1.x
+
+2.0 renders with [ml2drender](./crates) instead of MapLibre Native: no GPU, Xvfb or sharp, and about
+a third of the memory. Images are close to MapLibre's but not pixel-identical (antialiasing and label
+placement differ).
+
+- **Not rendered:** 3D (`fill-extrusion` is drawn as a flat fill), terrain, globe, sky, bidirectional
+  and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
+  `/camera` accepts only pitch `0` (otherwise `400`).
+- **Formats:** WebP is lossless, so `quality` applies to JPEG only; JPEG uses 4:2:0 chroma and
+  flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
+- **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
+  `400` instead of `500`.
+- **Server:** `--prewarm` / `CHIITILER_PREWARM` are removed (the flag is rejected as unknown; startup
+  is fast without it). The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
+- **Library:**
+  - `getRendered*Buffer` resolve to a `Uint8Array`; the `*Stream` variants (Sharp) and `prewarm()`
+    are removed.
+  - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
+  - New `protocols` option for custom URL schemes.
+  - Renderers are reused per style, cache and protocols object: create the cache once, not per call.
+  - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.35+), darwin-arm64 and
+    win32-x64; elsewhere, build it from a checkout with `pnpm build:native`.
+
 ## Develop
 
 Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust; [uv](https://docs.astral.sh/uv/) for the Python build.

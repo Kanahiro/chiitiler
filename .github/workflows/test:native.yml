@@ -1,0 +1,34 @@
+name: test:native
+
+# Builds and loads the renderer addon on every platform the npm package ships (as npm.yml
+# builds them), without publishing.
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "crates/**"
+            - "Cargo.toml"
+            - "Cargo.lock"
+            - ".cargo/**"
+            - "scripts/build-native.ts"
+            - "scripts/smoke-native.ts"
+            - "src/native.ts"
+            - ".github/workflows/test:native.yml"
+            - ".github/workflows/npm.yml"
+    workflow_dispatch:
+
+jobs:
+    native:
+        strategy:
+            fail-fast: false
+            matrix:
+                runner: [ubuntu-22.04, ubuntu-22.04-arm, macos-latest, windows-latest]
+        runs-on: ${{ matrix.runner }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version-file: .node-version
+            - run: node scripts/build-native.ts
+            - run: node scripts/smoke-native.ts
