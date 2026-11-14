@@ -9,5 +9,6 @@ docs/
 build/
 /target
 /fixtures
-/wasm
+/packages/ml2drender/wasm
 /native
+.venv/

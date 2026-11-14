@@ -320,6 +320,31 @@ TypeScript host that drives the `needs()` → fetch → `provide()` loop through
 The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.35+), darwin-arm64 and
 win32-x64; elsewhere, build it with `pnpm build:native`. x86-64 builds target x86-64-v2 (SSE4.2).
 
+The same renderer builds for other hosts:
+
+| Target | Binding | Build | Test |
+| --- | --- | --- | --- |
+| Node.js (chiitiler) | `crates/napi` | `pnpm build:native` → `native/ml2drender.<platform>-<arch>.node` | `pnpm test:unit` |
+| Browsers, Deno, Workers (WASM) | `crates/wasm` + [`packages/ml2drender`](./packages/ml2drender) (TypeScript API) | `pnpm build:wasm` → `packages/ml2drender/wasm/` | `pnpm test:wasm` |
+| Python ≥ 3.9 | `crates/python` (PyO3, abi3) | `pnpm build:python` → `target/wheels/*.whl` (needs `pip install maturin`) | `pnpm test:python` (in a virtualenv) |
+
+```python
+import ml2drender, urllib.request
+
+def load(url):  # bytes, or None when missing (like HTTP 404)
+    try:
+        return urllib.request.urlopen(url).read()
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+style = urllib.request.urlopen('https://tile.openstreetmap.jp/styles/osm-bright/style.json').read().decode()
+view = ml2drender.View.tile(5, 27, 12, 512)
+rgba = ml2drender.render(style, view, load)
+png = ml2drender.encode_png(rgba, *view.size)
+```
+
 ## Architecture
 
 ```mermaid
