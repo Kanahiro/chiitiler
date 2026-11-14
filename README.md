@@ -320,8 +320,10 @@ placement differ).
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
 - **Library:**
-  - `renderTileBuffer`, `renderBboxBuffer` and `renderViewBuffer` are renamed
-    `renderTile`, `renderBbox` and `renderView` (which takes no `pitch`), and resolve to a `Uint8Array`; the `*Stream` variants (Sharp) and `prewarm()` are removed.
+  - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are renamed
+    `renderTile`, `renderBbox` and `renderView` (which takes no `pitch`; its options type is
+    `RenderViewOptions`, and so on), and resolve to a `Uint8Array`. The `*Stream` variants (Sharp)
+    and `prewarm()` are removed.
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
   - New `protocols` option for custom URL schemes.
   - Renderers are reused per style, cache and protocols object: create the cache once, not per call.
