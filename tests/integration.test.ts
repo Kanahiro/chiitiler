@@ -316,7 +316,7 @@ describe('intergration test', () => {
 
     test('GET /static', async () => {
         const res = await fetch(
-            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png?url=file://localdata/style.json',
+            'http://localhost:3000/camera/10/56.7/123.4/0/1024x1024.png?url=file://localdata/style.json',
         );
         expect(res.status).toBe(200);
         expect(res.headers.get('content-type')).toBe('image/png');
@@ -326,7 +326,7 @@ describe('intergration test', () => {
         expect(pngsize.height).toBe(1024);
 
         const res2 = await fetch(
-            'http://localhost:3000/camera/10/56.7/123.4/0/0/512x512.webp?url=file://localdata/style.json',
+            'http://localhost:3000/camera/10/56.7/123.4/0/512x512.webp?url=file://localdata/style.json',
         );
         expect(res2.headers.get('content-type')).toBe('image/webp');
         const webp = new Uint8Array(await res2.arrayBuffer());
@@ -337,7 +337,7 @@ describe('intergration test', () => {
 
     test('GET /static render failure -> 500 text/plain', async () => {
         const res = await fetch(
-            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png?url=file://localdata/nonexistent.json',
+            'http://localhost:3000/camera/10/56.7/123.4/0/1024x1024.png?url=file://localdata/nonexistent.json',
         );
         expect(res.status).toBe(500);
         expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
@@ -346,7 +346,7 @@ describe('intergration test', () => {
 
     test('POST /static valid', async () => {
         const res = await fetch(
-            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png',
+            'http://localhost:3000/camera/10/56.7/123.4/0/1024x1024.png',
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -396,7 +396,7 @@ describe('intergration test', () => {
 
     test('POST /static missing/malformed body', async () => {
         const res1 = await fetch(
-            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png',
+            'http://localhost:3000/camera/10/56.7/123.4/0/1024x1024.png',
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -407,7 +407,7 @@ describe('intergration test', () => {
         expect(await res1.text()).toBe('invalid stylejson');
 
         const res2 = await fetch(
-            'http://localhost:3000/camera/10/56.7/123.4/0/0/1024x1024.png',
+            'http://localhost:3000/camera/10/56.7/123.4/0/1024x1024.png',
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

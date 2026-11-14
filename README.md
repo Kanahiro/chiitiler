@@ -74,7 +74,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
 | `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
-| `GET` / `POST` | `/camera/{zoom}/{lat}/{lon}/{bearing}/{pitch}/{width}x{height}.{ext}` | Free-form camera shot |
+| `GET` / `POST` | `/camera/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form camera shot (2D: no pitch) |
 | `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) |
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`.
@@ -94,7 +94,6 @@ For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
 **Rendering limits** (ml2drender renders 2D only)
 
-- `pitch` must be `0` on `/camera`; other values return `400`.
 - `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.
 - Bidirectional text and Arabic shaping are not supported, and glyphs come only from the style's `glyphs` (no local font fallback).
 - JPEG has no alpha: transparent areas become black. Chroma is subsampled 4:2:0 at every quality (as sharp did by default).
@@ -305,7 +304,7 @@ placement differ).
 
 - **Not rendered:** 3D (`fill-extrusion` is drawn as a flat fill), terrain, globe, sky, bidirectional
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
-  `/camera` accepts only pitch `0` (otherwise `400`).
+  `/camera` has no pitch segment: `/camera/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
 - **Formats:** WebP is lossless, so `quality` applies to JPEG only; JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer

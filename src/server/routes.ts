@@ -175,7 +175,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
 
     imageRoute(
         app,
-        '/camera/:zoom/:lat/:lon/:bearing/:pitch/:dimensions_ext',
+        '/camera/:zoom/:lat/:lon/:bearing/:dimensions_ext',
         options,
         'failed to render static image',
         (c) => {
@@ -187,8 +187,8 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 .map(Number);
             if (Number.isNaN(width) || Number.isNaN(height))
                 return c.body('invalid dimensions', 400);
-            const [zoom, lat, lon, bearing, pitch] = (
-                ['zoom', 'lat', 'lon', 'bearing', 'pitch'] as const
+            const [zoom, lat, lon, bearing] = (
+                ['zoom', 'lat', 'lon', 'bearing'] as const
             ).map((name) => Number(param(c, name)));
             const within = (v: number, min: number, max: number) =>
                 v >= min && v <= max; // false for NaN
@@ -196,12 +196,9 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 !within(lat, -90, 90) ||
                 !within(lon, -180, 180) ||
                 !within(zoom, 0, 24) ||
-                !within(bearing, 0, 360) ||
-                !within(pitch, 0, 180)
+                !within(bearing, 0, 360)
             )
                 return c.body('invalid camera', 400);
-            // the path keeps 1.x's pitch, but the renderer is 2D
-            if (pitch !== 0) return c.body('pitch is not supported', 400);
             return {
                 ext,
                 center: [lon, lat] as [number, number],
