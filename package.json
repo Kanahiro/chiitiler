@@ -37,7 +37,8 @@
     "author": "Kanahiro Iguchi",
     "license": "MIT",
     "repository": {
-        "url": "https://github.com/Kanahiro/chiitiler"
+        "type": "git",
+        "url": "git+https://github.com/Kanahiro/chiitiler.git"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.6.6",

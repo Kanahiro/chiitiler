@@ -58,4 +58,8 @@ jobs:
           for p in linux-x64 linux-arm64 darwin-arm64 win32-x64; do test -f "native/ml2drender.$p.node"; done
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc
-      - run: npm publish
+      # npm requires a dist-tag for prereleases (e.g. 2.0.0-pre.2): publish them as `next`, so
+      # `npm install chiitiler` keeps installing the latest release.
+      - run: |
+          tag=$(node -p "require('./package.json').version.includes('-') ? 'next' : 'latest'")
+          npm publish --tag "$tag"
