@@ -12,3 +12,4 @@ build/
 /packages/ml2drender/wasm
 /native
 .venv/
+__pycache__/
