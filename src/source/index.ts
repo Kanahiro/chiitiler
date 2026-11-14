@@ -4,7 +4,6 @@ import { getPmtilesSource } from './pmtiles.js';
 import { getMbtilesSource } from './mbtiles.js';
 import { getS3Source } from './s3.js';
 import { getGCSSource } from './gcs.js';
-import { getCogSource } from './cog.js';
 import { type Cache, noneCache } from '../cache/index.js';
 
 /**
@@ -48,7 +47,6 @@ async function fetchSource(
     if (uri.startsWith('gs://')) return getGCSSource(uri);
     if (uri.startsWith('mbtiles://')) return getMbtilesSource(uri);
     if (uri.startsWith('pmtiles://')) return getPmtilesSource(uri, cache);
-    if (uri.startsWith('cog://')) return getCogSource(uri);
     return null;
 }
 

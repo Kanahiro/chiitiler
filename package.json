@@ -60,7 +60,6 @@
         "@hono/node-server": "^2.1.1",
         "@mapbox/tilebelt": "^2.0.3",
         "@maplibre/maplibre-gl-style-spec": "^26.4.2",
-        "higuruma": "^0.1.6",
         "hono": "^4.13.7",
         "lru-cache": "^11.5.2",
         "pmtiles": "^4.5.0"

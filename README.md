@@ -52,7 +52,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form camera shots (`/camera`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
 - **Pluggable caching** — `memory` · `file` · `s3` · `gcs` backends for shared source assets
-- **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles` · `cog`
+- **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles`
 - **Library or server** — import the renderer directly into your Node.js pipeline
 - **Built-in debug UI** — `/debug` and `/editor` for live style preview
 
@@ -263,7 +263,7 @@ Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final r
 For the `file`, `s3` and `gcs` cache methods, the tile server adds a per-process memory front
 cache (not for `none`, which declines caching, or `memory`, which is already in-process): by default, buffers are retained for 10 seconds from insertion, with an
 LRU limit of 64 MiB of buffer payloads (JavaScript overhead is additional). It applies to
-every source (`http(s)://`, `s3://`, `gs://`, `file://`, `mbtiles://`, `pmtiles://`, `cog://`).
+every source (`http(s)://`, `s3://`, `gs://`, `file://`, `mbtiles://`, `pmtiles://`).
 Only `http(s)://` sources (including `pmtiles://http(s)://` tiles) are also stored in the
 backing cache; reads promote backing-cache hits into memory, and writes populate memory
 immediately and also write to the backing cache.
@@ -314,6 +314,7 @@ placement differ).
   [Configuration](#configuration)); any argument now stops startup with an error.
   Unknown `CHIITILER_CACHE_METHOD` values and other invalid values stop startup too (1.x fell back to
   defaults). `CHIITILER_PREWARM` is removed (startup is fast without it). Images are at most 4096 px on a side unless `CHIITILER_MAX_SIZE` says otherwise.
+- **Sources:** `cog://` is removed: serve COGs as raster tiles from another server (e.g. TiTiler).
 - **Caches:** `file`, `s3` and `gcs` caches use new file and object names (SHA-256 of the URL; the
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
