@@ -3,7 +3,7 @@ chiitiler に取り込んだ ml2drender の開発ノート(ml2drender リポジ�
 chiitiler での差分:
 - chiitiler は WASM ではなく Node-API(`crates/napi`、`pnpm build:native` → `native/ml2drender.<platform>-<arch>.node`、`src/native.ts` が読み込む)で描く。TS のホストは `src/render/ml2drender.ts`(WASM 版のホストから投影・書き出し・インスタンス共有を除いたもの)。`crates/wasm` はコアの別バインディングとして残す。x86_64 のネイティブビルドは x86-64-v2(`.cargo/config.toml`)。
 - `examples/browser`・`pnpm bench`・`pnpm demo` は取り込んでいない。`pnpm test` は chiitiler の vitest なので、Rust のテストは `pnpm test:rust`。
-- バインディングは `crates/napi`(Node、chiitiler が使う)・`crates/wasm` + `packages/ml2drender`(ブラウザ等、本家の TS API。`pnpm build:wasm` / `pnpm test:wasm`)・`crates/python`(PyO3 abi3、maturin。`pnpm build:python` / `pnpm test:python`)。コアはどれにも依存しない。
+- バインディングは `crates/napi`(Node、chiitiler が使う)・`crates/wasm` + `packages/ml2drender`(ブラウザ等、本家の TS API。`pnpm build:wasm` / `pnpm test:wasm`)・`crates/python`(PyO3 abi3、maturin。Python 環境は uv: `pnpm build:python` は `uvx maturin build`、`pnpm test:python` は `uv run --project crates/python`)。コアはどれにも依存しない。
 - 採用済みクレートに `jpeg-encoder`(純 Rust、JPEG 書き出し)を追加。
 - `render/x4.rs`(WASM 版のみ。chiitiler の napi 版は通らない): WASM SIMD で三角形の行を4画素ずつ処理する経路(円・線(破線・パターン・グラデーションなし)・シンボル・単色の塗り)。ネイティブ(render テスト)はスカラー経路しか通らないので、変更したら render テストのスタイルを変更前後の WASM で描いて RGBA の一致を確かめる。
 -->

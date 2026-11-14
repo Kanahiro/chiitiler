@@ -29,9 +29,9 @@
         "test:expression": "cargo run --release -p ml2drender-cli -- expression-tests",
         "fixtures": "sh scripts/fetch-fixtures.sh",
         "build:native": "node scripts/build-native.ts",
-        "build:python": "maturin build -m crates/python/Cargo.toml -o target/wheels",
+        "build:python": "uvx --from 'maturin>=1.16,<2' maturin build -m crates/python/Cargo.toml -o target/python",
         "test:wasm": "pnpm build:wasm && pnpm --filter ml2drender test",
-        "test:python": "maturin develop -m crates/python/Cargo.toml && python -m unittest discover crates/python/tests"
+        "test:python": "uv run --project crates/python --reinstall-package ml2drender python -m unittest discover crates/python/tests"
     },
     "keywords": [],
     "author": "Kanahiro Iguchi",

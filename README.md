@@ -293,7 +293,7 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Develop
 
-Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust.
+Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust; [uv](https://docs.astral.sh/uv/) for the Python build.
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
@@ -326,7 +326,7 @@ The same renderer builds for other hosts:
 | --- | --- | --- | --- |
 | Node.js (chiitiler) | `crates/napi` | `pnpm build:native` → `native/ml2drender.<platform>-<arch>.node` | `pnpm test:unit` |
 | Browsers, Deno, Workers (WASM) | `crates/wasm` + [`packages/ml2drender`](./packages/ml2drender) (TypeScript API) | `pnpm build:wasm` → `packages/ml2drender/wasm/` | `pnpm test:wasm` |
-| Python ≥ 3.9 | `crates/python` (PyO3, abi3) | `pnpm build:python` → `target/wheels/*.whl` (needs `pip install maturin`) | `pnpm test:python` (in a virtualenv) |
+| Python ≥ 3.9 | `crates/python` (PyO3, abi3) | `pnpm build:python` → `target/python/*.whl` | `pnpm test:python` |
 
 ```python
 import ml2drender, urllib.request
