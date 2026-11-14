@@ -1,7 +1,10 @@
 # Benchmark
 
-`pnpm test:benchmark` spawns `tile-server`, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
+`pnpm test:benchmark` spawns the server, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
 against each scenario and reports throughput + latency percentiles.
+
+The server is started without arguments, which chiitiler 1.x (needing its `tile-server`
+command) refuses: checkouts from before 2.0 can't be benchmarked by this harness.
 
 ## Setup
 

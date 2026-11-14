@@ -110,24 +110,20 @@ describe('configuration', () => {
 });
 
 describe('run chiitiler', () => {
-    it.each([[[]], [['tile-server']]])(
-        'starts with arguments %j',
-        async (args) => {
-            expect(await start({}, args)).toBeDefined();
+    it('starts without arguments', async () => {
+        expect(await start({})).toBeDefined();
+    });
+
+    it.each([['tile-server'], ['--port', '3000'], ['-D']])(
+        'rejects command-line arguments: %j',
+        async (...args) => {
+            const init = vi.spyOn(server, 'initServer');
+            await expect(run(args, {})).rejects.toThrow(
+                'chiitiler takes no command-line arguments',
+            );
+            expect(init).not.toHaveBeenCalled();
         },
     );
-
-    it.each([
-        ['tile-server', '--port', '3000'],
-        ['-D'],
-        ['tile-server', '--prewarm'],
-    ])('rejects command-line options: %j', async (...args) => {
-        const init = vi.spyOn(server, 'initServer');
-        await expect(run(args, {})).rejects.toThrow(
-            'chiitiler takes no command-line options',
-        );
-        expect(init).not.toHaveBeenCalled();
-    });
 
     it('applies front-cache limits', async () => {
         let now = 1;

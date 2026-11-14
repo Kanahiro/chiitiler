@@ -120,15 +120,11 @@ function readConfig(env: Env = process.env): Config {
     };
 }
 
-/**
- * Start the tile server configured by environment variables. It takes no command-line options;
- * `tile-server`, the 1.x command, is accepted and ignored.
- */
+/** Start the tile server configured by environment variables. It takes no arguments. */
 async function run(args: string[], env: Env = process.env) {
-    const rest = args[0] === 'tile-server' ? args.slice(1) : args;
-    if (rest.length > 0)
+    if (args.length > 0)
         throw new Error(
-            `chiitiler takes no command-line options (got ${rest.join(' ')}): configure it with CHIITILER_* environment variables`,
+            `chiitiler takes no command-line arguments (got ${args.join(' ')}): configure it with CHIITILER_* environment variables`,
         );
     const { processes, ...options } = readConfig(env);
     if (cluster.isPrimary && processes !== 1) {

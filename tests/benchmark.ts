@@ -117,7 +117,6 @@ function startServer(): ChildProcess {
             '--import',
             pathToFileURL(require.resolve('tsx')).href,
             path.join(TARGET, 'src/main.ts'),
-            'tile-server',
         ],
         {
             env: {
@@ -248,7 +247,7 @@ async function main() {
     if (process.env.CHIITILER_BENCH_MARKDOWN) {
         const preamble =
             '## Benchmark\n\n' +
-            'autocannon against single-process `tile-server` ' +
+            'autocannon against a single-process server ' +
             '(`CHIITILER_CACHE_METHOD=none`). ' +
             `Duration: ${DURATION}s per scenario.\n\n`;
         await fs.writeFile(

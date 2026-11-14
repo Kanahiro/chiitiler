@@ -198,9 +198,9 @@ chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default
 
 ## Configuration
 
-The server is configured with environment variables only; it takes no command-line options
-(`tile-server`, the 1.x command, is still accepted and ignored). Empty values count as unset, and an
-invalid value stops startup with an error naming the variable.
+The server is configured with environment variables only; it takes no command-line arguments
+(not even 1.x's `tile-server` command). Empty values count as unset, and an invalid value stops
+startup with an error naming the variable.
 
 ```bash
 docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESSES=0 ghcr.io/kanahiro/chiitiler:latest
@@ -309,8 +309,9 @@ placement differ).
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
   `400` instead of `500`.
-- **Server:** command-line options are removed: set the `CHIITILER_*` environment variable each
-  flag had (see [Configuration](#configuration)); any option now stops startup with an error.
+- **Server:** the `tile-server` command and its options are removed: start chiitiler without
+  arguments and set the `CHIITILER_*` environment variable each flag had (see
+  [Configuration](#configuration)); any argument now stops startup with an error.
   Unknown `CHIITILER_CACHE_METHOD` values and other invalid values stop startup too (1.x fell back to
   defaults). `CHIITILER_PREWARM` is removed (startup is fast without it). Images are at most 4096 px on a side unless `CHIITILER_MAX_SIZE` says otherwise.
 - **Caches:** `file`, `s3` and `gcs` caches use new file and object names (SHA-256 of the URL; the
