@@ -43,7 +43,10 @@ jobs:
           path: native
           pattern: native-*
           merge-multiple: true
-      - run: ls -l native
+      - name: Check every platform's addon is there
+        run: |
+          ls -l native
+          for p in linux-x64 linux-arm64 darwin-arm64 win32-x64; do test -f "native/ml2drender.$p.node"; done
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc
       - run: npm publish
