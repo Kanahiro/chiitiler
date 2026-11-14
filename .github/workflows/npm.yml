@@ -17,8 +17,11 @@ jobs:
         runner: [ubuntu-22.04, ubuntu-22.04-arm, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     steps:
+      # Workflow file names contain ':', which Windows paths can't: Git must not reject them
+      # (system config: actions/checkout overrides HOME), and the sparse checkout leaves them out.
+      - if: runner.os == 'Windows'
+        run: git config --system core.protectNTFS false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        # Workflow file names contain ':', which Windows paths can't.
         with:
           sparse-checkout: |
             /*
