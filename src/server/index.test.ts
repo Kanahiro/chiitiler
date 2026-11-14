@@ -110,7 +110,7 @@ describe('initServer', () => {
         for (const path of [
             '/tiles/0/0/0.png',
             '/clip.png?bbox=0,1,2,3',
-            '/camera/10/67.89/123.45/0/1024x1024.png',
+            '/view/10/67.89/123.45/0/1024x1024.png',
         ]) {
             // empty object body - missing style key
             const res1 = await jsonPost(path, '{}');
@@ -129,7 +129,7 @@ describe('initServer', () => {
         }
     });
 
-    it('camera', async () => {
+    it('view', async () => {
         const { app } = await initServer({
             port: 8989,
             cache: cache.noneCache(),
@@ -137,25 +137,25 @@ describe('initServer', () => {
         });
 
         const res = await app.request(
-            '/camera/10/67.89/123.45/0/1024x1024.png',
+            '/view/10/67.89/123.45/0/1024x1024.png',
         );
         expect(res.status).toBe(400);
         expect(await res.text()).toBe('url is required');
 
         const res2 = await app.request(
-            '/camera/10/67.89/123.45/0/1024x1024.gif?url=file://localdata/style.json',
+            '/view/10/67.89/123.45/0/1024x1024.gif?url=file://localdata/style.json',
         );
         expect(res2.status).toBe(400);
         expect(await res2.text()).toBe('invalid format');
 
         const res3 = await app.request(
-            '/camera/10/67.89/1234.5/0/1024x1024.png?url=file://localdata/style.json',
+            '/view/10/67.89/1234.5/0/1024x1024.png?url=file://localdata/style.json',
         );
         expect(res3.status).toBe(400);
-        expect(await res3.text()).toBe('invalid camera');
+        expect(await res3.text()).toBe('invalid view');
 
         const res4 = await app.request(
-            '/camera/10/67.89/123.45/0/1024xno.png?url=file://localdata/style.json',
+            '/view/10/67.89/123.45/0/1024xno.png?url=file://localdata/style.json',
         );
         expect(res4.status).toBe(400);
         expect(await res4.text()).toBe('invalid dimensions');
@@ -182,7 +182,7 @@ describe('initServer', () => {
             ['/tiles/1/0/0.png?tileSize=256', 'image/png', [0x89, 0x50]],
             ['/tiles/1/0/0.jpg', 'image/jpeg', [0xff, 0xd8]],
             ['/clip.webp?bbox=0,0,10,10&size=64', 'image/webp', [0x52, 0x49]],
-            ['/camera/2/0/0/30/64x32.png', 'image/png', [0x89, 0x50]],
+            ['/view/2/0/0/30/64x32.png', 'image/png', [0x89, 0x50]],
         ] as const) {
             const res = await app.request(path, {
                 method: 'POST',
@@ -211,7 +211,7 @@ describe('initServer', () => {
                 body,
             });
         for (const path of [
-            '/camera/1/0/0/0/1001x10.png',
+            '/view/1/0/0/0/1001x10.png',
             '/clip.png?bbox=0,0,1,1&size=1001',
             '/tiles/0/0/0.png?tileSize=1000&margin=2',
         ]) {
@@ -222,7 +222,7 @@ describe('initServer', () => {
             );
         }
         const ok = await post(
-            '/camera/1/0/0/0/1000x10.png',
+            '/view/1/0/0/0/1000x10.png',
             JSON.stringify({ style }),
         );
         expect(ok.status).toBe(200);

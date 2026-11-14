@@ -49,7 +49,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **Zero-config** — no config file, no YAML, no database. Just a style URL.
 - **No GPU, no system libraries** — rendered by [ml2drender](./crates), a pure-Rust 2D MapLibre renderer, as a Node-API addon
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
-- **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form camera shots (`/camera`)
+- **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form views (`/view`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
 - **Pluggable caching** — `memory` · `file` · `s3` · `gcs` backends for shared source assets
 - **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles`
@@ -74,7 +74,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
 | `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
-| `GET` / `POST` | `/camera/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form camera shot (2D: no pitch) |
+| `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form view (2D: no pitch) |
 | `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) |
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`.
@@ -222,7 +222,7 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in
 parallel), so the server keeps answering (e.g. `/health`) while it draws.
 
-`CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/camera`
+`CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/view`
 dimensions); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
 
 `CHIITILER_CACHE_CONTROL` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
@@ -304,7 +304,8 @@ placement differ).
 
 - **Not rendered:** 3D (`fill-extrusion` is drawn as a flat fill), terrain, globe, sky, bidirectional
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
-  `/camera` has no pitch segment: `/camera/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
+  `/camera` is renamed `/view` and has no pitch segment:
+  `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
 - **Formats:** WebP is lossless, so `quality` applies to JPEG only; JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer

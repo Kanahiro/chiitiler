@@ -175,7 +175,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
 
     imageRoute(
         app,
-        '/camera/:zoom/:lat/:lon/:bearing/:dimensions_ext',
+        '/view/:zoom/:lat/:lon/:bearing/:dimensions_ext',
         options,
         'failed to render static image',
         (c) => {
@@ -198,7 +198,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 !within(zoom, 0, 24) ||
                 !within(bearing, 0, 360)
             )
-                return c.body('invalid camera', 400);
+                return c.body('invalid view', 400);
             return {
                 ext,
                 center: [lon, lat] as [number, number],
