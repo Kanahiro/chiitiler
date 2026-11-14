@@ -1,15 +1,8 @@
-import {
-    getRenderedClip,
+export {
     getRenderedTile,
+    getRenderedClip,
     getRenderedCamera,
 } from './render/index.js';
-
-/** Render a slippy-map tile and encode it as `ext`. */
-export const getRenderedTileBuffer = getRenderedTile;
-/** Render a lon/lat bounding box and encode it as `ext`. */
-export const getRenderedClipBuffer = getRenderedClip;
-/** Render a free camera (pitch 0 only) and encode it as `ext`. */
-export const getRenderedCameraBuffer = getRenderedCamera;
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';

@@ -180,6 +180,7 @@ function encode(
     }
 }
 
+/** Render a slippy-map tile and encode it as `ext`. */
 async function getRenderedTile({
     stylejson,
     z,
@@ -205,6 +206,7 @@ async function getRenderedTile({
     return encode(image, ext, quality);
 }
 
+/** Render a lon/lat bounding box and encode it as `ext`. */
 async function getRenderedClip({
     stylejson,
     bbox,
@@ -221,6 +223,7 @@ async function getRenderedClip({
     return encode(image, ext, quality);
 }
 
+/** Render a free camera (pitch 0 only) and encode it as `ext`. */
 async function getRenderedCamera(
     options: GetRenderedCameraOptions,
 ): Promise<Uint8Array<ArrayBuffer>> {
