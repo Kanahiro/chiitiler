@@ -1,0 +1,40 @@
+name: test:bindings
+
+# The renderer's bindings besides the Node-API addon chiitiler uses (tested by test:unit):
+# the browser package (WASM) and the Python module.
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "crates/**"
+            - "packages/**"
+            - "Cargo.toml"
+            - "Cargo.lock"
+            - ".github/workflows/test:bindings.yml"
+    workflow_dispatch:
+
+jobs:
+    wasm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version-file: .node-version
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: rustup target add wasm32-unknown-unknown
+            - run: pnpm --filter ml2drender typecheck
+            - run: pnpm test:wasm
+
+    python:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - run: pipx install uv==0.11.32
+            - name: Build the wheel
+              run: uvx --from 'maturin>=1.16,<2' maturin build -m crates/python/Cargo.toml -o target/python
+            - name: Test
+              run: uv run --project crates/python --reinstall-package ml2drender python -m unittest discover crates/python/tests

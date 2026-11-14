@@ -36,21 +36,23 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** Run it from source with [pnpm](https://pnpm.io):
+> **No Docker?** Run it from source with [pnpm](https://pnpm.io) and a Rust toolchain:
 > ```bash
 > git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
-> pnpm tsx src/main.ts tile-server --debug
+> pnpm build:native
+> CHIITILER_DEBUG=true pnpm tsx src/main.ts
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
 
 ## Features
 
 - **Zero-config** — no config file, no YAML, no database. Just a style URL.
+- **No GPU, no system libraries** — rendered by [ml2drender](./crates), a pure-Rust 2D MapLibre renderer, as a Node-API addon
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
-- **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form camera shots (`/camera`)
+- **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form views (`/view`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
 - **Pluggable caching** — `memory` · `file` · `s3` · `gcs` backends for shared source assets
-- **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles` · `cog`
+- **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles`
 - **Library or server** — import the renderer directly into your Node.js pipeline
 - **Built-in debug UI** — `/debug` and `/editor` for live style preview
 
@@ -72,8 +74,8 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
 | `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
-| `GET` / `POST` | `/camera/{zoom}/{lat}/{lon}/{bearing}/{pitch}/{width}x{height}.{ext}` | Free-form camera shot |
-| `GET` | `/debug`, `/editor` | Debug UI (requires `--debug`) |
+| `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form view (2D: no pitch) |
+| `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) |
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`.
 
@@ -83,23 +85,40 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `url` | — | Style JSON URL (required for `GET`) |
 | `tileSize` | `512` | Tile size in pixels |
-| `quality` | `100` | JPEG / WebP quality |
-| `margin` | `0` | Tile edge margin |
+| `quality` | `100` | JPEG quality (WebP is always lossless) |
+| `margin` | `0` | Extra pixels rendered around the tile (half on each side) and cropped, e.g. to keep labels across tile edges |
 | `bbox` | — | `/clip` bounding box: `minLon,minLat,maxLon,maxLat` |
 | `size` | `1024` | `/clip` longest edge in pixels |
 
 For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
+**Rendering limits** (ml2drender renders 2D only)
+
+- `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.
+- Bidirectional text and Arabic shaping are not supported, and glyphs come only from the style's `glyphs` (no local font fallback).
+- JPEG has no alpha: transparent areas become black. Chroma is subsampled 4:2:0 at every quality (as sharp did by default).
+
 ## Library Usage
 
-Chiitiler is also published to npm. Returns `Buffer` or `Sharp` streams.
+Chiitiler is also published to npm. Renderers return the encoded image as a `Uint8Array`.
+
+```bash
+npm install chiitiler @maplibre/maplibre-gl-style-spec
+# only for s3:// sources (pmtiles://s3:// included) and the S3 cache
+npm install @aws-sdk/client-s3
+# only for gs:// sources and the GCS cache
+npm install @google-cloud/storage
+```
+
+`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs are
+optional ones, loaded when first used.
 
 ```ts
-import { getRenderedTileBuffer, ChiitilerCache } from 'chiitiler';
+import { renderTile, ChiitilerCache } from 'chiitiler';
 
 const cache = ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 });
 
-const png = await getRenderedTileBuffer({
+const png = await renderTile({
     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
     z: 5, x: 27, y: 12,
     tileSize: 512,
@@ -110,22 +129,61 @@ const png = await getRenderedTileBuffer({
 });
 ```
 
-Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`, and their `*Stream` variants (`Sharp` instances for further piping).
+Available renderers: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long
+side) and `renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
 
-For library use, explicitly call `prewarm(cache)` once per rendering process
-during application startup, before accepting requests:
+A renderer is kept per style, cache and protocols (compared by identity): create the cache and the
+protocols object once and pass the same ones to every call, or each call starts a new renderer.
+
+### Your own cache
+
+Any object with `get` and `set` is a cache. Keys are resource URLs, values `Uint8Array`s; return
+`undefined` from `get` for a miss. It holds `http(s)://` sources (including `pmtiles://http(s)://`
+tiles), e.g. in Redis to share them between processes or hosts:
 
 ```ts
-import { prewarm, ChiitilerCache } from 'chiitiler';
+import { renderTile, type Cache } from 'chiitiler';
 
-const cache = ChiitilerCache.noneCache();
-await prewarm(cache);
+const cache: Cache = {
+    get: async (url) => {
+        const hit = await redis.getBuffer(url);
+        return hit === null ? undefined : new Uint8Array(hit);
+    },
+    set: async (url, bytes) => {
+        await redis.set(url, Buffer.from(bytes), 'EX', 3600);
+    },
+};
 ```
 
-The promise resolves after a minimal tile has been rendered and PNG-encoded.
-It rejects if warmup fails; the application decides whether to continue startup.
-Library imports do not automatically run prewarm, and `CHIITILER_PREWARM` only
-controls the CLI server. Style-specific tiles, glyphs, and sprites are not preloaded.
+`ChiitilerCache.withMemoryCache(cache)` puts the short-lived in-process layer described under
+[Cache](#cache) in front of it.
+
+### Custom protocols
+
+`protocols` maps a scheme to a loader of its URLs, for the style URL and every source, sprite and
+glyph URL in it. Custom protocols take precedence over the built-in ones, so `http` / `https` can be
+replaced too (e.g. to add credentials). Return `null` when there is nothing at the URL, like HTTP 404:
+a missing vector tile renders empty, a missing raster tile is replaced by its parent. Throw for other
+failures: the render fails rather than returning a map with holes. Results go through the cache's
+`memory` layer, not the cache itself (cache inside the loader if needed).
+
+```ts
+import { renderTile, type Protocols } from 'chiitiler';
+
+const protocols: Protocols = {
+    db: async (url) => {
+        // db://tiles/{z}/{x}/{y}
+        const [z, x, y] = url.split('/').slice(-3).map(Number);
+        return (await db.tile(z, x, y)) ?? null; // Uint8Array | null
+    },
+};
+
+const png = await renderTile({
+    stylejson: { version: 8, sources: { t: { type: 'vector', tiles: ['db://tiles/{z}/{x}/{y}'] } }, layers: [/* … */] },
+    z: 5, x: 27, y: 12, tileSize: 512, ext: 'png', quality: 100, margin: 0,
+    cache, protocols,
+});
+```
 
 Types are re-exported as well, so you can annotate call sites without depending on
 `@maplibre/maplibre-gl-style-spec` resolution in your own tree:
@@ -133,11 +191,13 @@ Types are re-exported as well, so you can annotate call sites without depending 
 ```ts
 import type {
     StyleSpecification,
-    GetRenderedTileOptions,
-    GetRenderedClipOptions,
-    GetRenderedCameraOptions,
+    RenderTileOptions,
+    RenderBboxOptions,
+    RenderViewOptions,
     SupportedFormat,
     Cache,
+    Protocol,
+    Protocols,
 } from 'chiitiler';
 ```
 
@@ -149,68 +209,113 @@ chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default
 
 ## Configuration
 
-All options can be set via CLI flag or environment variable.
+The server is configured with environment variables only; it takes no command-line arguments
+(not even 1.x's `tile-server` command). Empty values count as unset, and an invalid value stops
+startup with an error naming the variable.
+
+```bash
+docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESSES=0 ghcr.io/kanahiro/chiitiler:latest
+```
 
 ### Server
 
-| Flag | Env | Default |
-| --- | --- | --- |
-| `--port <n>` | `CHIITILER_PORT` | `3000` |
-| `--debug` | `CHIITILER_DEBUG` | `false` |
-| `--user-agent <ua>` | `CHIITILER_USER_AGENT` | (none) |
-| `--prewarm [true\|false]` | `CHIITILER_PREWARM` | `true` |
-| `--processes <n>` | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
+| Variable | Default |
+| --- | --- |
+| `CHIITILER_PORT` | `3000` |
+| `CHIITILER_DEBUG` | `false` |
+| `CHIITILER_USER_AGENT` | (none) |
+| `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
+| `CHIITILER_MAX_SIZE` | `4096` |
+| `CHIITILER_CACHE_CONTROL` | (none) |
+| `CHIITILER_CORS` | (none) |
 
-Prewarm is enabled by default: one tile is rendered at startup **before** the server starts listening, moving shared renderer initialization work into startup. `--prewarm false` or `CHIITILER_PREWARM=false` disables it. `--prewarm` alone enables it. The CLI flag takes precedence over the environment variable. Style-specific tiles, glyphs, and sprites are not preloaded.
+`CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
+Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in
+parallel), so the server keeps answering (e.g. `/health`) while it draws.
 
-`--processes` takes precedence over `CHIITILER_PROCESSES` and accepts non-negative integers; `0` uses all available CPUs.
+`CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/view`
+dimensions); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
+
+`CHIITILER_CACHE_CONTROL` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
+keep them; chiitiler doesn't cache rendered images itself). `GET` images carry an `ETag`, so
+`If-None-Match` revalidations answer `304`. `CHIITILER_CORS` adds CORS headers for `*` or a comma-separated
+list of origins.
+
+On `SIGTERM` / `SIGINT` the server stops accepting connections and exits once the requests in
+progress finish (at most 10 seconds).
 
 ### Cache
 
-Renderer Maps are reused per style and rendering mode without an idle timeout.
-They are released when their pool is evicted from the 10-entry LRU or explicitly
-closed. This avoids repeated initialization after quiet periods, at the cost of
-retaining native renderer memory between requests.
+chiitiler caches the **sources** it fetches (styles, tiles, glyphs, sprites), never the rendered
+images: put a CDN in front for those (`CHIITILER_CACHE_CONTROL`). There are two layers:
 
-| Flag | Env | Default |
+1. **Cache method** — where fetched bytes are kept, chosen with `CHIITILER_CACHE_METHOD`. Each
+   method has its own settings (below).
+2. **Front cache** — a small in-process memory cache that chiitiler puts in front of the `file`,
+   `s3` and `gcs` methods, so that repeated reads skip the disk or the network.
+
+```
+renderer needs a URL → front cache      → cache method   → fetch
+                       (every source)     (http(s) only)
+```
+
+#### 1. Cache method
+
+| `CHIITILER_CACHE_METHOD` | Keeps | Shared between processes |
 | --- | --- | --- |
-| `--cache <none\|memory\|file\|s3\|gcs>` | `CHIITILER_CACHE_METHOD` | `none` |
-| `--cache-ttl <seconds>` | `CHIITILER_CACHE_TTL_SEC` | `3600` |
-| `--memory-cache-max-item-count <n>` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
-| `--front-cache-ttl-sec <seconds>` | `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
-| `--front-cache-max-bytes <bytes>` | `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
-| `--file-cache-dir <dir>` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
-| `--s3-cache-bucket <name>` | `CHIITILER_S3CACHE_BUCKET` | — |
-| `--s3-region <region>` | `CHIITILER_S3_REGION` | `us-east-1` |
-| `--s3-endpoint <url>` | `CHIITILER_S3_ENDPOINT` | — |
-| `--s3-force-path-style` | `CHIITILER_S3_FORCE_PATH_STYLE` | `false` |
-| `--gcs-cache-bucket <name>` | `CHIITILER_GCS_CACHE_BUCKET` | — |
-| `--gcs-project-id <id>` | `CHIITILER_GCS_PROJECT_ID` | — |
-| `--gcs-key-filename <path>` | `CHIITILER_GCS_KEY_FILENAME` | — |
-| `--gcs-cache-prefix <prefix>` | `CHIITILER_GCS_CACHE_PREFIX` | — |
-| `--gcs-api-endpoint <url>` | `CHIITILER_GCS_API_ENDPOINT` | — |
+| `none` (default) | nothing | — |
+| `memory` | an LRU in each process | no |
+| `file` | files in a directory | yes, on one host |
+| `s3` | objects in an S3 bucket | yes |
+| `gcs` | objects in a GCS bucket | yes |
 
-Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final rasters — so cached data is reused across requests. Standard AWS / GCP credentials (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.) are respected.
+`CHIITILER_CACHE_TTL_SEC` (default `3600`) is how long `memory` and `file` entries live (`0` for
+`file`: never expire). S3 and GCS entries do not expire on their own: use a lifecycle rule.
 
-For the `file`, `s3` and `gcs` cache methods, the tile server adds a per-process memory front
-cache (not for `none`, which declines caching, or `memory`, which is already in-process): by default, buffers are retained for 10 seconds from insertion, with an
-LRU limit of 64 MiB of buffer payloads (JavaScript overhead is additional). It applies to
-every source (`http(s)://`, `s3://`, `gs://`, `file://`, `mbtiles://`, `pmtiles://`, `cog://`).
-Only `http(s)://` sources (including `pmtiles://http(s)://` tiles) are also stored in the
-backing cache; reads promote backing-cache hits into memory, and writes populate memory
-immediately and also write to the backing cache.
+Settings of each method:
 
-Set `--front-cache-ttl-sec` / `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
-`--front-cache-max-bytes` / `CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
-these limits. CLI flags take precedence over environment variables. Set either limit to `0`
-(e.g. `CHIITILER_FRONT_CACHE_TTL_SEC=0`) to disable the front cache entirely. Otherwise,
-invalid values stop startup. These settings do not affect library callers.
+| Method | Variable | Default |
+| --- | --- | --- |
+| `memory` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
+| `file` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
+| `s3` | `CHIITILER_S3CACHE_BUCKET` | (required) |
+| | `CHIITILER_S3_REGION` | `us-east-1` |
+| | `CHIITILER_S3_ENDPOINT` | (AWS) |
+| | `CHIITILER_S3_FORCE_PATH_STYLE` | `false` |
+| `gcs` | `CHIITILER_GCS_CACHE_BUCKET` | (required) |
+| | `CHIITILER_GCS_CACHE_PREFIX` | (none) |
+| | `CHIITILER_GCS_PROJECT_ID` | (from credentials) |
+| | `CHIITILER_GCS_KEY_FILENAME` | (default credentials) |
+| | `CHIITILER_GCS_API_ENDPOINT` | (GCS) |
 
-The front-cache TTL does not guarantee source freshness: promotion can retain a
-value for up to the configured TTL beyond its backing-cache expiry, and the S3/GCS cache
-implementations do not check expiry on reads. Each worker has its own memory limit.
-Library callers can opt in and customize the limits (either limit set to `0`
-returns the backing cache unchanged):
+The `CHIITILER_S3_*` settings also apply to `s3://` sources (`CHIITILER_GCS_*` but the bucket and
+prefix to `gs://` sources). Credentials come from the standard AWS / GCP environment
+(`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, …).
+
+A cache method keeps `http(s)://` sources only (`pmtiles://http(s)://` tiles included): local
+files, `s3://`, `gs://`, `mbtiles://` and local `pmtiles://` are as close as the cache would be.
+
+#### 2. Front cache
+
+With `file`, `s3` or `gcs`, each process also keeps what it reads in memory, for every source:
+
+| Variable | Default |
+| --- | --- |
+| `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` |
+| `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB of payloads per process) |
+
+Set either to `0` to turn the front cache off. Entries live for the TTL from when they were read,
+even past their expiry in the cache method. `none` and `memory` have no front cache.
+
+#### Renderers and styles
+
+On top of these, a renderer is kept per style (10 styles, LRU) with the tiles, glyphs and sprites
+it decoded, for 5 minutes. Styles given by URL are fetched again after 60 seconds (through the
+front cache only), so edits upstream show up within a minute.
+
+#### Library
+
+Library callers pass a cache to each call; the server's front cache is opt-in:
 
 ```ts
 const cache = ChiitilerCache.withMemoryCache(
@@ -221,28 +326,76 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Deployment
 
-- **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (entrypoint: `tile-server`)
+- **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables)
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 - **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
 > [!WARNING]
 > **Do not expose chiitiler directly to the public internet.** Chiitiler fetches whatever the request tells it to: the `url` style and every source, glyph, and sprite URL inside the style (`GET` or `POST`). This allows SSRF — requests to internal networks or cloud metadata endpoints — and reads of local files (`file://`, `mbtiles://`) and buckets (`s3://`, `gs://`) with the server's credentials. Accept requests only from trusted clients, e.g. behind an authenticating proxy or a private network.
 
+## Migrating from 1.x
+
+2.0 renders with [ml2drender](./crates) instead of MapLibre Native: no GPU, Xvfb or sharp, and about
+a third of the memory. Images are close to MapLibre's but not pixel-identical (antialiasing and label
+placement differ).
+
+- **Not rendered:** 3D (`fill-extrusion` is drawn as a flat fill), terrain, globe, sky, bidirectional
+  and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
+  `/camera` is renamed `/view` and has no pitch segment:
+  `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
+- **Formats:** WebP is lossless, so `quality` applies to JPEG only; JPEG uses 4:2:0 chroma and
+  flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
+- **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
+  `400` instead of `500`.
+- **Server:** the `tile-server` command and its options are removed: start chiitiler without
+  arguments and set the `CHIITILER_*` environment variable each flag had (see
+  [Configuration](#configuration)); any argument now stops startup with an error.
+  Unknown `CHIITILER_CACHE_METHOD` values and other invalid values stop startup too (1.x fell back to
+  defaults). `CHIITILER_PREWARM` is removed (startup is fast without it). Images are at most 4096 px on a side unless `CHIITILER_MAX_SIZE` says otherwise.
+- **Sources:** `cog://` is removed: serve COGs as raster tiles from another server (e.g. TiTiler).
+- **Caches:** `file`, `s3` and `gcs` caches use new file and object names (SHA-256 of the URL; the
+  old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
+  not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
+- **Library:**
+  - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are renamed
+    `renderTile`, `renderBbox` and `renderView` (which takes no `pitch`; its options type is
+    `RenderViewOptions`, and so on), and resolve to a `Uint8Array`. The `*Stream` variants (Sharp)
+    and `prewarm()` are removed.
+  - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
+  - New `protocols` option for custom URL schemes.
+  - Renderers are reused per style, cache and protocols object: create the cache once, not per call.
+  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
+    `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
+  - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
+    win32-x64; elsewhere, build it from a checkout with `pnpm build:native`.
+
 ## Develop
 
-Requires Node.js 24.22.1+, pnpm (`corepack enable`) and `sharp` system deps (see [Dockerfile](./Dockerfile)).
+Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust.
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
 cd chiitiler
 pnpm install
+pnpm build:native     # build the renderer (native/ml2drender.<platform>-<arch>.node)
 pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
 pnpm test:benchmark   # see bench/BENCHMARK.md
-pnpm build            # bundle to build/main.cjs
+pnpm build            # bundle to build/main.mjs (loads ../native at runtime)
+pnpm test:rust        # cargo test (renderer)
+pnpm fixtures         # once: fetch MapLibre render/expression test fixtures
+pnpm test:render      # MapLibre render tests → target/test-report/render
 ```
+
+The renderer lives in [`crates/`](./crates) (copied from ml2drender; see [`crates/AGENTS.md`](./crates/AGENTS.md)):
+`crates/core` is the sans-IO renderer and `crates/napi` the Node-API addon chiitiler loads.
+`crates/cli` is the test runner, and [`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the
+TypeScript host that drives the `needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
+
+The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
+win32-x64; elsewhere, build it with `pnpm build:native`. x86-64 builds target x86-64-v2 (SSE4.2).
 
 ## Architecture
 

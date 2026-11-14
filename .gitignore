@@ -7,3 +7,9 @@ coverage/
 benchmark-results/
 docs/
 build/
+/target
+/fixtures
+/packages/ml2drender/wasm
+/native
+.venv/
+__pycache__/

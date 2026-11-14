@@ -1,7 +1,10 @@
 # Benchmark
 
-`pnpm test:benchmark` spawns `tile-server`, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
+`pnpm test:benchmark` spawns the server, validates an image and warms up each scenario at its measured concurrency, then runs [autocannon](https://github.com/mcollina/autocannon)
 against each scenario and reports throughput + latency percentiles.
+
+The server is started without arguments, which chiitiler 1.x (needing its `tile-server`
+command) refuses: checkouts from before 2.0 can't be benchmarked by this harness.
 
 ## Setup
 
@@ -42,35 +45,9 @@ Knobs via env:
 - `GITHUB_STEP_SUMMARY` — when set (as in CI), the markdown table is
   also appended to the step summary.
 
-On macOS you can run it directly. On headless Linux (including the CI
-runner), wrap with `xvfb-run -a` because `@maplibre/maplibre-gl-native`
-needs a display.
-
-## First-request prewarm comparison
-
-Run manually from the repository root (not included in package scripts or CI):
-
-```sh
-CHIITILER_BENCH_RUNS=20 \
-CHIITILER_BENCH_OUTPUT=bench/prewarm-results.json \
-CHIITILER_BENCH_MARKDOWN=bench/prewarm-results.md \
-node --import tsx bench/benchmark-prewarm.ts
-```
-
-Recorded results: [summary](./prewarm-results.md) and [raw samples](./prewarm-results.json).
-
-This separate benchmark starts a fresh Node process for every sample and
-alternates the order of prewarm off/on within each pair. It polls only
-`/health` before measuring the first tile response, including its entire
-body. It also records a second request, startup time, and time from process
-launch through the first response, so work moved into startup is visible.
-The fixture, single-process setting, and disabled cache match the throughput
-benchmark. Every response must be a valid 512×512 PNG with identical bytes
-across both modes; failed prewarming aborts the run.
-
-`CHIITILER_BENCH_RUNS` defaults to 20 samples per mode. These are process-cold
-measurements: OS caches remain shared. macOS results do not establish the
-effect of Linux GL initialization or AWS Lambda INIT CPU allocation.
+Build the renderer first with `pnpm build:native`. Checkouts from before the
+ml2drender migration render with `@maplibre/maplibre-gl-native`; on headless
+Linux, wrap those runs with `xvfb-run -a` because it needs a display.
 
 ## Baseline comparison in CI
 
@@ -121,8 +98,9 @@ CHIITILER_BENCH_CURRENT=/absolute/path/to/current \
 node --import tsx tests/run-benchmark-comparison.ts
 ```
 
-Use the same checkout path on both sides for A/A. On Linux, prefix with
-`xvfb-run -a`. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
+Use the same checkout path on both sides for A/A. Run `pnpm build:native` (or, in
+older checkouts, `pnpm build:wasm`) in each checkout that has `Cargo.toml`; when a side still uses maplibre-gl-native, prefix
+with `xvfb-run -a` on Linux. `CHIITILER_BENCH_ROUNDS` defaults to 5 (minimum 2);
 `CHIITILER_BENCH_DURATION` and `CHIITILER_BENCH_WARMUP` apply to every run.
 Optional `CHIITILER_BENCH_BASE_SHA` and `CHIITILER_BENCH_CURRENT_SHA` label local
 results (otherwise `local`). Regenerate a report with:

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["maturin>=1.16,<2"]
+build-backend = "maturin"
+
+[project]
+name = "ml2drender"
+description = "MapLibre style 2D renderer (pure Rust)"
+requires-python = ">=3.9"
+license = { text = "BSD-3-Clause" }
+dynamic = ["version"]
+
+[tool.maturin]
+# Panics unwind into Python exceptions; x86-64 builds target x86-64-v2 (../../.cargo/config.toml).
+profile = "native"
+module-name = "ml2drender"

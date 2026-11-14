@@ -1,0 +1,9 @@
+# WASM SIMD (supported by current browsers, Node, Deno and Cloudflare Workers). Autovectorization alone gains
+# little; the hot per-pixel paths (`Target::blend`, bilinear `Texture::sample`) use explicit f32x4 code.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]
+
+# x86-64-v2 (SSE4.2, 2009 on): SSE4.1 rounds natively where the baseline calls libm, ~15–20% faster
+# renders; v3 (AVX2) measured no faster. Applies to native builds (the Node-API addon, the CLI).
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["-C", "target-cpu=x86-64-v2"]

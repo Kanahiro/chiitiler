@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "es2024",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2024", "dom"],
+    "types": [],
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "tests/api-types.ts"]
+}

@@ -1,8 +1,8 @@
-import { getStorageClient } from '../gcs.js';
+import { getStorage } from '../gcs.js';
 import { loadWithDecodedPathFallback } from './path.js';
 
 async function getGCSSource(uri: string) {
-    const storageClient = getStorageClient({
+    const storageClient = await getStorage({
         projectId: process.env.CHIITILER_GCS_PROJECT_ID,
         keyFilename: process.env.CHIITILER_GCS_KEY_FILENAME,
         apiEndpoint: process.env.CHIITILER_GCS_API_ENDPOINT,

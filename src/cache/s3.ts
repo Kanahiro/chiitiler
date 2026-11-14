@@ -1,7 +1,7 @@
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { createHash } from 'node:crypto';
 
 import type { Cache, Value } from './index.js';
-import { getS3Client } from '../s3.js';
+import { getS3 } from '../s3.js';
 
 type S3CacheOptions = {
     bucket: string;
@@ -10,35 +10,37 @@ type S3CacheOptions = {
     forcePathStyle?: boolean;
 };
 function s3Cache(options: S3CacheOptions): Cache {
-    const s3Client = getS3Client({
-        region: options.region,
-        endpoint: options.endpoint,
-        forcePathStyle: options.forcePathStyle,
-    });
+    const s3 = () =>
+        getS3({
+            region: options.region,
+            endpoint: options.endpoint,
+            forcePathStyle: options.forcePathStyle,
+        });
     return {
         name: 's3',
         set: async (key: string, value: Value) => {
             try {
-                const cmd = new PutObjectCommand({
+                const { client, sdk } = await s3();
+                const cmd = new sdk.PutObjectCommand({
                     Bucket: options.bucket,
-                    Key: escapeFileName(key),
+                    Key: objectName(key),
                     Body: value,
                 });
-                await s3Client.send(cmd);
+                await client.send(cmd);
             } catch (e) {
                 console.log(`[error]: ${e}`);
             }
         },
         get: async (key: string): Promise<Value | undefined> => {
-            const cmd = new GetObjectCommand({
-                Bucket: options.bucket,
-                Key: escapeFileName(key),
-            });
             try {
-                const obj = await s3Client.send(cmd);
+                const { client, sdk } = await s3();
+                const cmd = new sdk.GetObjectCommand({
+                    Bucket: options.bucket,
+                    Key: objectName(key),
+                });
+                const obj = await client.send(cmd);
                 if (obj.Body === undefined) return undefined;
-                const buf = Buffer.from(await obj.Body.transformToByteArray());
-                return buf;
+                return await obj.Body.transformToByteArray();
             } catch {
                 // miss or any error
                 return undefined;
@@ -47,28 +49,12 @@ function s3Cache(options: S3CacheOptions): Cache {
     };
 }
 
-function escapeFileName(url: string) {
-    return url
-        .replace(/\//g, '_') // replace slashes with underscores
-        .replace(/\?/g, '-') // replace question marks with dashes
-        .replace(/&/g, '-') // replace ampersands with dashes
-        .replace(/=/g, '-') // replace equals signs with dashes
-        .replace(/%/g, '-') // replace percent signs with dashes
-        .replace(/#/g, '-') // replace hash signs with dashes
-        .replace(/:/g, '-') // replace colons with dashes
-        .replace(/\+/g, '-') // replace plus signs with dashes
-        .replace(/ /g, '-') // replace spaces with dashes
-        .replace(/</g, '-') // replace less than signs with dashes
-        .replace(/>/g, '-') // replace greater than signs with dashes
-        .replace(/\*/g, '-') // replace asterisks with dashes
-        .replace(/\|/g, '-') // replace vertical bars with dashes
-        .replace(/"/g, '-') // replace double quotes with dashes
-        .replace(/'/g, '-') // replace single quotes with dashes
-        .replace(/\?/g, '-') // replace question marks with dashes
-        .replace(/\./g, '-') // replace dots with dashes
-        .replace(/,/g, '-') // replace commas with dashes
-        .replace(/;/g, '-') // replace semicolons with dashes
-        .replace(/\\/g, '-'); // replace backslashes with dashes
+/**
+ * The object name for a URL: its SHA-256. (Escaping characters mapped distinct URLs, e.g.
+ * `a.pbf?x=1` and `a-pbf-x-1`, to the same object.)
+ */
+function objectName(url: string) {
+    return createHash('sha256').update(url).digest('hex');
 }
 
 export { s3Cache, type S3CacheOptions };

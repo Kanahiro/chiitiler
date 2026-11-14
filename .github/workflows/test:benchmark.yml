@@ -6,6 +6,8 @@ on:
             - main
         paths:
             - "src/**"
+            - "crates/**"
+            - "Cargo.lock"
             - "tests/**"
             - "localdata/**"
             - "package.json"
@@ -41,6 +43,7 @@ jobs:
               with:
                   node-version-file: .node-version
                   cache: pnpm
+            # Only for baselines that still render with maplibre-gl-native
             - name: Install native deps for maplibre-gl-native
               run: |
                   sudo apt-get update
@@ -68,12 +71,19 @@ jobs:
                   mkdir -p "$baseline" "$current"
                   git archive "$base" | tar -x -C "$baseline"
                   git archive "$CURRENT_SHA" | tar -x -C "$current"
+                  rustup target add wasm32-unknown-unknown
                   for dir in "$baseline" "$current"; do
                       # Commits from before the pnpm migration only have package-lock.json.
                       if [ -f "$dir/pnpm-lock.yaml" ]; then
                           pnpm install --frozen-lockfile --dir "$dir"
                       else
                           npm ci --prefix "$dir"
+                      fi
+                      # ml2drender-based checkouts render with the renderer built from their crates
+                      if grep -q '"build:native"' "$dir/package.json"; then
+                          pnpm --dir "$dir" build:native
+                      elif [ -f "$dir/Cargo.toml" ]; then
+                          pnpm --dir "$dir" build:wasm
                       fi
                   done
                   echo "CHIITILER_BENCH_BASELINE=$baseline" >> "$GITHUB_ENV"

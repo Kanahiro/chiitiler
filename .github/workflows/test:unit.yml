@@ -6,6 +6,8 @@ on:
             - main
         paths:
             - "src/**"
+            - "crates/**"
+            - "Cargo.lock"
             - "tests/**"
             - "package.json"
             - "pnpm-lock.yaml"
@@ -24,6 +26,8 @@ jobs:
               with:
                   node-version-file: .node-version
                   cache: pnpm
+            - name: Build the native renderer
+              run: pnpm build:native
             - name: Build App
               run: |
                   pnpm install --frozen-lockfile

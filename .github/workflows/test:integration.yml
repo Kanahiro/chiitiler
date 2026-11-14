@@ -6,6 +6,8 @@ on:
             - main
         paths:
             - "src/**"
+            - "crates/**"
+            - "Cargo.lock"
             - "tests/**"
             - "Dockerfile"
             - "docker-compose.yml"
@@ -37,6 +39,17 @@ jobs:
                     || { docker compose logs app; exit 1; }
             - name: run test
               run: pnpm test:integration
+            # The image releases ship (container.yml): the bundle and the addon, no node_modules.
+            - name: build and run the release image
+              run: |
+                  docker build --target runtime -t chiitiler:release .
+                  docker run -d --name release -p 3100:3000 chiitiler:release
+                  timeout 60 bash -c 'until curl -sf http://localhost:3100/health > /dev/null; do sleep 1; done' \
+                    || { docker logs release; exit 1; }
+                  curl -sf -o tile.png -X POST -H 'Content-Type: application/json' \
+                    -d '{"style":{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#ff0000"}}]}}' \
+                    http://localhost:3100/tiles/0/0/0.png
+                  file tile.png | tee /dev/stderr | grep -q 'PNG image data, 512 x 512'
             - name: dump server logs
               if: failure()
               run: docker compose logs

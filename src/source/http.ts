@@ -7,7 +7,7 @@ import { getUserAgent } from './userAgent.js';
 async function getHttpSource(
     uri: string,
     cache: Cache = noneCache(),
-): Promise<Buffer | null> {
+): Promise<Uint8Array | null> {
     const val = await cache.get(uri);
     if (val !== undefined) return val; // hit
 

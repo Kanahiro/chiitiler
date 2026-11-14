@@ -1,63 +1,80 @@
 {
-  "type": "module",
-  "name": "chiitiler",
-  "version": "1.25.3",
-  "description": "Tiny map rendering server for MapLibre Style Spec",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "engines": {
-    "node": ">=24.22.1"
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "esbuild --bundle src/main.ts --minify --outfile=build/main.cjs --platform=node --external:@maplibre/maplibre-gl-native --external:sharp",
-    "check": "tsc --noEmit",
-    "dev": "tsx watch src/main.ts tile-server -D",
-    "test:unit": "vitest src",
-    "test:coverage": "vitest src --coverage --coverage.provider=v8",
-    "test:integration": "vitest tests/integration.test.ts",
-    "test:benchmark": "tsx tests/benchmark.ts",
-    "docs": "typedoc src/index.ts --out docs --includeVersion",
-    "lint": "biome check .",
-    "format": "biome check --write ."
-  },
-  "keywords": [],
-  "author": "Kanahiro Iguchi",
-  "license": "MIT",
-  "repository": {
-    "url": "https://github.com/Kanahiro/chiitiler"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.6.6",
-    "@tsconfig/node24": "^24.0.5",
-    "@types/autocannon": "^7.12.7",
-    "@types/node": "^25.9.6",
-    "@vitest/coverage-v8": "^4.1.4",
-    "autocannon": "^8.0.0",
-    "esbuild": "^0.28.2",
-    "image-size": "^2.0.2",
-    "tsx": "^4.23.13",
-    "typedoc": "^0.28.20",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1131.0",
-    "@google-cloud/storage": "^7.22.0",
-    "@hono/node-server": "^2.1.1",
-    "@mapbox/tilebelt": "^2.0.3",
-    "@maplibre/maplibre-gl-native": "^6.4.1",
-    "@maplibre/maplibre-gl-style-spec": "^26.4.2",
-    "commander": "^14.0.3",
-    "file-system-cache": "^2.4.7",
-    "higuruma": "^0.1.6",
-    "hono": "^4.13.7",
-    "lightning-pool": "^4.14.0",
-    "lru-cache": "^11.5.2",
-    "pmtiles": "^4.5.0",
-    "sharp": "^0.35.4"
-  },
-  "packageManager": "pnpm@12.18.0"
+    "type": "module",
+    "name": "chiitiler",
+    "version": "2.0.0-pre.5",
+    "description": "Tiny map rendering server for MapLibre Style Spec",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "engines": {
+        "node": ">=24.22.1"
+    },
+    "files": [
+        "dist",
+        "native"
+    ],
+    "scripts": {
+        "build": "esbuild --bundle src/main.ts --minify --format=esm --outfile=build/main.mjs --platform=node --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+        "check": "tsc --noEmit",
+        "dev": "CHIITILER_DEBUG=true tsx watch src/main.ts",
+        "test:unit": "vitest src",
+        "test:coverage": "vitest src --coverage --coverage.provider=v8",
+        "test:integration": "vitest tests/integration.test.ts",
+        "test:benchmark": "tsx tests/benchmark.ts",
+        "docs": "typedoc src/index.ts --out docs --includeVersion",
+        "lint": "biome check .",
+        "format": "biome check --write .",
+        "build:wasm": "cargo build -p ml2drender-wasm --target wasm32-unknown-unknown --profile wasm && mkdir -p packages/ml2drender/wasm && cp target/wasm32-unknown-unknown/wasm/ml2drender_wasm.wasm packages/ml2drender/wasm/",
+        "test:rust": "cargo test --release",
+        "test:render": "cargo run --release -p ml2drender-cli -- render-tests",
+        "test:expression": "cargo run --release -p ml2drender-cli -- expression-tests",
+        "fixtures": "sh scripts/fetch-fixtures.sh",
+        "build:native": "node scripts/build-native.ts",
+        "build:python": "uvx --from 'maturin>=1.16,<2' maturin build -m crates/python/Cargo.toml -o target/python",
+        "test:wasm": "pnpm build:wasm && pnpm --filter ml2drender test",
+        "test:python": "uv run --project crates/python --reinstall-package ml2drender python -m unittest discover crates/python/tests"
+    },
+    "keywords": [],
+    "author": "Kanahiro Iguchi",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Kanahiro/chiitiler.git"
+    },
+    "devDependencies": {
+        "@aws-sdk/client-s3": "^3.1131.0",
+        "@biomejs/biome": "^2.6.6",
+        "@google-cloud/storage": "^7.22.0",
+        "@hono/node-server": "^2.1.1",
+        "@maplibre/maplibre-gl-style-spec": "^26.4.2",
+        "@tsconfig/node24": "^24.0.5",
+        "@types/autocannon": "^7.12.7",
+        "@types/node": "^25.9.6",
+        "@vitest/coverage-v8": "^4.1.4",
+        "autocannon": "^8.0.0",
+        "esbuild": "^0.28.2",
+        "hono": "^4.13.7",
+        "image-size": "^2.0.2",
+        "tsx": "^4.23.13",
+        "typedoc": "^0.28.20",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.4"
+    },
+    "dependencies": {
+        "lru-cache": "^11.5.2",
+        "pmtiles": "^4.5.0"
+    },
+    "peerDependencies": {
+        "@aws-sdk/client-s3": "^3.0.0",
+        "@google-cloud/storage": "^7.0.0",
+        "@maplibre/maplibre-gl-style-spec": "^26.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@aws-sdk/client-s3": {
+            "optional": true
+        },
+        "@google-cloud/storage": {
+            "optional": true
+        }
+    },
+    "packageManager": "pnpm@12.18.0"
 }

@@ -1,10 +1,8 @@
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-
-import { getS3Client } from '../s3.js';
+import { getS3 } from '../s3.js';
 import { loadWithDecodedPathFallback } from './path.js';
 
 async function getS3Source(uri: string) {
-    const s3Client = getS3Client({
+    const { client, sdk } = await getS3({
         region: process.env.CHIITILER_S3_REGION ?? 'us-east-1',
         endpoint: process.env.CHIITILER_S3_ENDPOINT,
         forcePathStyle: process.env.CHIITILER_S3_FORCE_PATH_STYLE === 'true',
@@ -13,14 +11,14 @@ async function getS3Source(uri: string) {
     const key = uri.replace(`s3://${bucket}/`, '');
 
     return loadWithDecodedPathFallback(key, async (candidate) => {
-        const cmd = new GetObjectCommand({
+        const cmd = new sdk.GetObjectCommand({
             Bucket: bucket,
             Key: candidate,
         });
         try {
-            const obj = await s3Client.send(cmd);
+            const obj = await client.send(cmd);
             if (obj.Body === undefined) return null;
-            return Buffer.from(await obj.Body.transformToByteArray());
+            return await obj.Body.transformToByteArray();
         } catch (e: any) {
             // NoSuchKey: オブジェクトが存在しない。空タイルとして扱わせる
             if (e.name === 'NoSuchKey') return null;

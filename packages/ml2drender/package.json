@@ -1,0 +1,24 @@
+{
+  "name": "ml2drender",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./renderer.wasm": {
+      "types": "./src/wasm.d.ts",
+      "default": "./wasm/ml2drender_wasm.wasm"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-transform-types tests/single-flight.ts && node --experimental-transform-types tests/shared-instance.ts"
+  },
+  "peerDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "^26.4.4"
+  },
+  "devDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "26.4.4",
+    "typescript": "7.0.2"
+  }
+}

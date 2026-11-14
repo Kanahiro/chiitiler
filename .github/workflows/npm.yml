@@ -8,7 +8,50 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  native:
+    # The renderer for each platform, named native/ml2drender.<platform>-<arch>.node.
+    strategy:
+      fail-fast: true
+      matrix:
+        runner: [ubuntu-22.04, ubuntu-22.04-arm, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      # Workflow file names contain ':', which Windows paths can't: Git must not reject them
+      # (system config: actions/checkout overrides HOME), and the sparse checkout leaves them out.
+      - if: runner.os == 'Windows'
+        run: git config --system core.protectNTFS false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            /*
+            !/.github/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # Linux links against glibc 2.34 (cargo-zigbuild), so the addon loads on 2.34+ (Amazon Linux 2023,
+      # RHEL 9, Ubuntu 22.04, Debian 12, ...).
+      - if: runner.os == 'Linux'
+        run: |
+          python3 -m pip install --user cargo-zigbuild ziglang
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: node scripts/build-native.ts
+        env:
+          GLIBC: ${{ runner.os == 'Linux' && '2.34' || '' }}
+      - name: Check the addon needs glibc 2.34 at most
+        if: runner.os == 'Linux'
+        run: |
+          max=$(objdump -T native/*.node | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          echo "newest glibc symbol: $max"
+          test "$(printf '%s\n' GLIBC_2.34 "$max" | sort -V | tail -1)" = GLIBC_2.34
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-${{ matrix.runner }}
+          path: native/*.node
+          if-no-files-found: error
+
+  publish:
+    needs: native
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -17,6 +60,19 @@ jobs:
         with:
           node-version-file: .node-version
           registry-url: "https://registry.npmjs.org"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: native
+          pattern: native-*
+          merge-multiple: true
+      - name: Check every platform's addon is there
+        run: |
+          ls -l native
+          for p in linux-x64 linux-arm64 darwin-arm64 win32-x64; do test -f "native/ml2drender.$p.node"; done
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc
-      - run: npm publish
+      # npm requires a dist-tag for prereleases (e.g. 2.0.0-pre.2): publish them as `next`, so
+      # `npm install chiitiler` keeps installing the latest release.
+      - run: |
+          tag=$(node -p "require('./package.json').version.includes('-') ? 'next' : 'latest'")
+          npm publish --tag "$tag"

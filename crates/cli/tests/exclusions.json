@@ -1,0 +1,26 @@
+{
+  "_doc": "Render tests out of scope (CLAUDE.md §2). A test is skipped if any rule matches; the first matching reason is reported. Also hard-coded in the runner: pitch != 0, roll != 0, non-mercator projection, and any metadata.test.operations other than wait/idle/sleep/redraw (runtime changes are out of scope).",
+  "layer_types": {
+    "fill-extrusion": "3D layer"
+  },
+  "source_types": {
+    "video": "video source (browser only)",
+    "canvas": "canvas source (browser only)"
+  },
+  "source_encodings": {
+    "mlt": "MLT tile encoding; only MVT in scope"
+  },
+  "style_properties": {
+    "terrain": "terrain",
+    "sky": "sky",
+    "font-faces": "TTF font-faces; only PBF glyphs in scope"
+  },
+  "test_options": {
+    "collisionDebug": "debug overlay",
+    "debug": "debug overlay",
+    "showOverdrawInspector": "debug overlay",
+    "showPadding": "debug overlay",
+    "localIdeographFontFamily": "browser-side local font rendering",
+    "addFakeCanvas": "canvas source (browser only)"
+  }
+}

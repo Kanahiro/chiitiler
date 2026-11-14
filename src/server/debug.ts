@@ -14,11 +14,10 @@ function getDebugPage(c: Context) {
         <head>
             <meta charset="utf-8" />
             <title>MapLibre GL JS</title>
-            <!-- maplibre gl js-->
-            <script src="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.js"></script>
+            <!-- maplibre gl js (v6 ships ES modules only: imported below) -->
             <link
                 rel="stylesheet"
-                href="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.css"
+                href="https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.css"
             />
             <style>
                 body {
@@ -35,7 +34,8 @@ function getDebugPage(c: Context) {
         </head>
         <body>
             <div id="map" style="height: 100vh"></div>
-            <script>
+            <script type="module">
+                import * as maplibregl from 'https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.mjs';
                 // hostname
                 const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=${quality}&margin=${margin}&tileSize=${tileSize}';
 
@@ -75,11 +75,10 @@ function getEditorPage(c: Context) {
         <head>
             <meta charset="utf-8" />
             <title>MapLibre GL JS</title>
-            <!-- maplibre gl js-->
-            <script src="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.js"></script>
+            <!-- maplibre gl js (v6 ships ES modules only: imported below) -->
             <link
                 rel="stylesheet"
-                href="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.css"
+                href="https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.css"
             />
             <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.css" rel="stylesheet" type="text/css">
             <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.min.js"></script>
@@ -93,7 +92,8 @@ function getEditorPage(c: Context) {
         <body>
             <div id="map" style="height: 50vh"></div>
             <div id="jsoneditor" style="height: 50vh"></div>
-            <script>
+            <script type="module">
+                import * as maplibregl from 'https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.mjs';
                 const container = document.getElementById("jsoneditor")
                 const editor = new JSONEditor(container, {
                     mode: 'code',

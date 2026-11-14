@@ -9,7 +9,7 @@ const { download, file } = vi.hoisted(() => {
 });
 
 vi.mock('../gcs.js', () => ({
-    getStorageClient: () => ({
+    getStorage: async () => ({
         bucket: () => ({ file }),
     }),
 }));
