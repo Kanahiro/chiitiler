@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
-import { getRenderedClip, getRenderedTile } from './index.js';
+import { renderBbox, renderTile } from './index.js';
 import type { Cache } from '../cache/index.js';
 import type { Protocols } from '../source/index.js';
 
@@ -44,7 +44,7 @@ describe('library resources', () => {
                 return tile(url.replace('test://tiles/', ''));
             },
         };
-        const png = await getRenderedTile({
+        const png = await renderTile({
             stylejson: 'test://style.json',
             z: 5,
             x: 28,
@@ -78,7 +78,7 @@ describe('library resources', () => {
         };
         const style = circles('https://tiles.test/{z}/{x}/{y}.pbf');
         const render = (stylejson: StyleSpecification) =>
-            getRenderedTile({
+            renderTile({
                 stylejson,
                 z: 5,
                 x: 28,
@@ -104,7 +104,7 @@ describe('library resources', () => {
 
     it('sizes clips like 1.x: the long side is `size`, the short one rounded up', async () => {
         const size = async (n: number) => {
-            const png = await getRenderedClip({
+            const png = await renderBbox({
                 stylejson: { version: 8, sources: {}, layers: [] },
                 bbox: [100, 30, 150, 60],
                 size: n,

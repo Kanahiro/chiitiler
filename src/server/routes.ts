@@ -6,9 +6,9 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { isSupportedFormat, isValidStylejson } from './utils.js';
 import {
-    getRenderedCamera,
-    getRenderedClip,
-    getRenderedTile,
+    renderView,
+    renderBbox,
+    renderTile,
     type SupportedFormat,
 } from '../render/index.js';
 import type { Cache } from '../cache/index.js';
@@ -142,7 +142,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 margin: Number(c.req.query('margin') ?? 0),
             };
         },
-        getRenderedTile,
+        renderTile,
     );
 
     imageRoute(
@@ -170,7 +170,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 size: Number(c.req.query('size') ?? 1024),
             };
         },
-        getRenderedClip,
+        renderBbox,
     );
 
     imageRoute(
@@ -200,17 +200,18 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 !within(pitch, 0, 180)
             )
                 return c.body('invalid camera', 400);
+            // the path keeps 1.x's pitch, but the renderer is 2D
+            if (pitch !== 0) return c.body('pitch is not supported', 400);
             return {
                 ext,
                 center: [lon, lat] as [number, number],
                 zoom,
                 bearing,
-                pitch,
                 width,
                 height,
             };
         },
-        getRenderedCamera,
+        renderView,
     );
 }
 

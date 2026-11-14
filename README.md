@@ -104,11 +104,11 @@ For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 Chiitiler is also published to npm. Renderers return the encoded image as a `Uint8Array`.
 
 ```ts
-import { getRenderedTile, ChiitilerCache } from 'chiitiler';
+import { renderTile, ChiitilerCache } from 'chiitiler';
 
 const cache = ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 });
 
-const png = await getRenderedTile({
+const png = await renderTile({
     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
     z: 5, x: 27, y: 12,
     tileSize: 512,
@@ -119,7 +119,8 @@ const png = await getRenderedTile({
 });
 ```
 
-Available renderers: `getRenderedTile`, `getRenderedClip`, `getRenderedCamera`.
+Available renderers: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long
+side) and `renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
 
 A renderer is kept per style, cache and protocols (compared by identity): create the cache and the
 protocols object once and pass the same ones to every call, or each call starts a new renderer.
@@ -131,7 +132,7 @@ Any object with `get` and `set` is a cache. Keys are resource URLs, values `Uint
 tiles), e.g. in Redis to share them between processes or hosts:
 
 ```ts
-import { getRenderedTile, type Cache } from 'chiitiler';
+import { renderTile, type Cache } from 'chiitiler';
 
 const cache: Cache = {
     get: async (url) => {
@@ -157,7 +158,7 @@ failures: the render fails rather than returning a map with holes. Results go th
 `memory` layer, not the cache itself (cache inside the loader if needed).
 
 ```ts
-import { getRenderedTile, type Protocols } from 'chiitiler';
+import { renderTile, type Protocols } from 'chiitiler';
 
 const protocols: Protocols = {
     db: async (url) => {
@@ -167,7 +168,7 @@ const protocols: Protocols = {
     },
 };
 
-const png = await getRenderedTile({
+const png = await renderTile({
     stylejson: { version: 8, sources: { t: { type: 'vector', tiles: ['db://tiles/{z}/{x}/{y}'] } }, layers: [/* … */] },
     z: 5, x: 27, y: 12, tileSize: 512, ext: 'png', quality: 100, margin: 0,
     cache, protocols,
@@ -180,9 +181,9 @@ Types are re-exported as well, so you can annotate call sites without depending 
 ```ts
 import type {
     StyleSpecification,
-    GetRenderedTileOptions,
-    GetRenderedClipOptions,
-    GetRenderedCameraOptions,
+    RenderTileOptions,
+    RenderBboxOptions,
+    RenderViewOptions,
     SupportedFormat,
     Cache,
     Protocol,
@@ -319,8 +320,8 @@ placement differ).
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
 - **Library:**
-  - `getRendered*Buffer` are renamed `getRendered*` (`getRenderedTile` etc.) and resolve to a
-    `Uint8Array`; the `*Stream` variants (Sharp) and `prewarm()` are removed.
+  - `renderTileBuffer`, `renderBboxBuffer` and `renderViewBuffer` are renamed
+    `renderTile`, `renderBbox` and `renderView` (which takes no `pitch`), and resolve to a `Uint8Array`; the `*Stream` variants (Sharp) and `prewarm()` are removed.
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
   - New `protocols` option for custom URL schemes.
   - Renderers are reused per style, cache and protocols object: create the cache once, not per call.

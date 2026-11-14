@@ -8,7 +8,7 @@ import { getSource, type Protocols } from '../source/index.js';
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
-type GetRenderedTileOptions = {
+type RenderTileOptions = {
     stylejson: string | StyleSpecification;
     z: number;
     x: number;
@@ -26,7 +26,7 @@ type GetRenderedTileOptions = {
     maxSize?: number;
 };
 
-type GetRenderedClipOptions = {
+type RenderBboxOptions = {
     stylejson: string | StyleSpecification;
     bbox: [number, number, number, number];
     size: number;
@@ -39,7 +39,7 @@ type GetRenderedClipOptions = {
     maxSize?: number;
 };
 
-type GetRenderedCameraOptions = {
+type RenderViewOptions = {
     stylejson: string | StyleSpecification;
     cache: Cache;
     /** Custom protocols by scheme, taking precedence over the built-in ones. */
@@ -47,8 +47,6 @@ type GetRenderedCameraOptions = {
     ext: SupportedFormat;
     quality: number;
     bearing: number;
-    /** Only 0: the renderer is 2D. */
-    pitch: number;
     zoom: number;
     center: [number, number];
     height: number;
@@ -181,7 +179,7 @@ function encode(
 }
 
 /** Render a slippy-map tile and encode it as `ext`. */
-async function getRenderedTile({
+async function renderTile({
     stylejson,
     z,
     x,
@@ -193,7 +191,7 @@ async function getRenderedTile({
     ext,
     quality,
     maxSize,
-}: GetRenderedTileOptions): Promise<Uint8Array<ArrayBuffer>> {
+}: RenderTileOptions): Promise<Uint8Array<ArrayBuffer>> {
     checkSize([tileSize + 2 * Math.floor(margin / 2)], maxSize);
     const renderer = await getRenderer(stylejson, { cache, protocols });
     const image = await renderer.renderTile({
@@ -207,7 +205,7 @@ async function getRenderedTile({
 }
 
 /** Render a lon/lat bounding box and encode it as `ext`. */
-async function getRenderedClip({
+async function renderBbox({
     stylejson,
     bbox,
     size,
@@ -216,18 +214,17 @@ async function getRenderedClip({
     ext,
     quality,
     maxSize,
-}: GetRenderedClipOptions): Promise<Uint8Array<ArrayBuffer>> {
+}: RenderBboxOptions): Promise<Uint8Array<ArrayBuffer>> {
     checkSize([size], maxSize);
     const renderer = await getRenderer(stylejson, { cache, protocols });
     const image = await renderer.render({ bbox, size });
     return encode(image, ext, quality);
 }
 
-/** Render a free camera (pitch 0 only) and encode it as `ext`. */
-async function getRenderedCamera(
-    options: GetRenderedCameraOptions,
+/** Render a 2D camera (center, zoom, bearing; no pitch) and encode it as `ext`. */
+async function renderView(
+    options: RenderViewOptions,
 ): Promise<Uint8Array<ArrayBuffer>> {
-    if (options.pitch !== 0) throw new RangeError('pitch is not supported');
     checkSize([options.width, options.height], options.maxSize);
     const renderer = await getRenderer(options.stylejson, options);
     const image = await renderer.renderView({
@@ -241,11 +238,11 @@ async function getRenderedCamera(
 }
 
 export {
-    getRenderedTile,
-    getRenderedClip,
-    getRenderedCamera,
-    type GetRenderedClipOptions,
-    type GetRenderedTileOptions,
-    type GetRenderedCameraOptions,
+    renderTile,
+    renderBbox,
+    renderView,
+    type RenderBboxOptions,
+    type RenderTileOptions,
+    type RenderViewOptions,
     type SupportedFormat,
 };

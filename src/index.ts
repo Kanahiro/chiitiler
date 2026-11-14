@@ -1,16 +1,16 @@
 export {
-    getRenderedTile,
-    getRenderedClip,
-    getRenderedCamera,
+    renderTile,
+    renderBbox,
+    renderView,
 } from './render/index.js';
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';
 
 export type {
-    GetRenderedClipOptions,
-    GetRenderedTileOptions,
-    GetRenderedCameraOptions,
+    RenderBboxOptions,
+    RenderTileOptions,
+    RenderViewOptions,
     SupportedFormat,
 } from './render/index.js';
 export type { Cache, Value } from './cache/index.js';
