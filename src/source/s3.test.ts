@@ -31,7 +31,7 @@ describe('getS3Source', () => {
             's3://fonts/Noto%20Sans%20Regular%2CArial/0-255.pbf',
         );
 
-        expect(result?.toString()).toBe('glyph');
+        expect(new TextDecoder().decode(result!)).toBe('glyph');
         expect(send).toHaveBeenCalledOnce();
         expect((send.mock.calls[0][0] as GetObjectCommand).input).toEqual({
             Bucket: 'fonts',
@@ -79,8 +79,8 @@ describe('s3 sources use only the memory front cache, not the backing cache', ()
         const a = await getSource('s3://assets/sprite.png', cache);
         const b = await getSource('s3://assets/sprite.png', cache);
 
-        expect(a?.toString()).toBe('sprite');
-        expect(b?.toString()).toBe('sprite');
+        expect(new TextDecoder().decode(a!)).toBe('sprite');
+        expect(new TextDecoder().decode(b!)).toBe('sprite');
         expect(send).toHaveBeenCalledOnce();
     });
 

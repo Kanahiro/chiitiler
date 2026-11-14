@@ -20,7 +20,7 @@ async function getS3Source(uri: string) {
         try {
             const obj = await s3Client.send(cmd);
             if (obj.Body === undefined) return null;
-            return Buffer.from(await obj.Body.transformToByteArray());
+            return await obj.Body.transformToByteArray();
         } catch (e: any) {
             // NoSuchKey: オブジェクトが存在しない。空タイルとして扱わせる
             if (e.name === 'NoSuchKey') return null;

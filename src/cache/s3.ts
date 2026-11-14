@@ -38,8 +38,7 @@ function s3Cache(options: S3CacheOptions): Cache {
             try {
                 const obj = await s3Client.send(cmd);
                 if (obj.Body === undefined) return undefined;
-                const buf = Buffer.from(await obj.Body.transformToByteArray());
-                return buf;
+                return await obj.Body.transformToByteArray();
             } catch {
                 // miss or any error
                 return undefined;

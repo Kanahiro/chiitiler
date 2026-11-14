@@ -49,7 +49,7 @@ function gcsCache(options: GCSCacheOptions): Cache {
 
             try {
                 const [content] = await file.download();
-                return Buffer.from(content);
+                return content;
             } catch {
                 // miss or any error
                 return undefined;

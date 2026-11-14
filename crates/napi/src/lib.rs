@@ -88,10 +88,11 @@ impl Renderer {
         AsyncTask::new(Needs(self.inner.clone()))
     }
 
-    /// The bytes of `url` (copied), or null for a missing resource (HTTP 404).
+    /// The bytes of `url` (read in place, not copied: don't modify them until this resolves), or
+    /// null for a missing resource (HTTP 404).
     #[napi(ts_return_type = "Promise<void>")]
     pub fn provide(&self, url: String, bytes: Option<Uint8Array>) -> AsyncTask<Provide> {
-        AsyncTask::new(Provide { inner: self.inner.clone(), url, bytes: bytes.map(|b| b.to_vec()) })
+        AsyncTask::new(Provide { inner: self.inner.clone(), url, bytes })
     }
 
     /// RGBA8 pixels, keeping the tiles of renders with tickets from `oldest` on.
@@ -119,7 +120,7 @@ impl Task for Needs {
 pub struct Provide {
     inner: Shared,
     url: String,
-    bytes: Option<Vec<u8>>,
+    bytes: Option<Uint8Array>,
 }
 
 impl Task for Provide {
@@ -127,8 +128,7 @@ impl Task for Provide {
     type JsValue = ();
 
     fn compute(&mut self) -> Result<Self::Output> {
-        let bytes = self.bytes.take();
-        with(&self.inner, |r| r.provide(&self.url, bytes.as_deref()))
+        with(&self.inner, |r| r.provide(&self.url, self.bytes.as_deref()))
     }
 
     fn resolve(&mut self, _: Env, _: Self::Output) -> Result<Self::JsValue> {
@@ -162,7 +162,8 @@ enum Format {
 }
 
 pub struct Encode {
-    rgba: Vec<u8>,
+    /// Read in place (not copied): the caller must not modify it until the encode resolves.
+    rgba: Uint8Array,
     width: u32,
     height: u32,
     format: Format,
@@ -173,7 +174,7 @@ impl Task for Encode {
     type JsValue = Uint8Array;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        let (rgba, w, h) = (&self.rgba, self.width, self.height);
+        let (rgba, w, h) = (&*self.rgba, self.width, self.height);
         let format = self.format;
         std::panic::catch_unwind(|| match format {
             Format::Png => ml2drender::encode_png(rgba, w, h),
@@ -190,7 +191,7 @@ impl Task for Encode {
 }
 
 fn encode(rgba: Uint8Array, width: u32, height: u32, format: Format) -> AsyncTask<Encode> {
-    AsyncTask::new(Encode { rgba: rgba.to_vec(), width, height, format })
+    AsyncTask::new(Encode { rgba, width, height, format })
 }
 
 #[napi(ts_return_type = "Promise<Uint8Array>")]
