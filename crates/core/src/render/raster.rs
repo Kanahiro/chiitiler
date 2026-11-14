@@ -23,6 +23,8 @@ pub struct Target {
     /// Triangles only cover pixels in `x0..x1`, `y0..y1` (`[x0, y0, x1, y1]`): the part of the
     /// image that is kept (a margin is cropped off).
     pub clip: [usize; 4],
+    /// The last blend's color bits, destination and result: runs of fragments often repeat both.
+    pub(crate) memo: ([u32; 4], [u8; 4], [u8; 4]),
 }
 
 /// Premultiplied color in 0..1.
@@ -30,37 +32,24 @@ pub type Rgba = [f32; 4];
 
 impl Target {
     pub fn new(w: usize, h: usize) -> Target {
-        Target { w, h, px: vec![[0; 4]; w * h], opaque: Vec::new(), occ: Vec::new(), layer: 0, cull: false, clip: [0, 0, w, h] }
+        let memo = ([0; 4], [0; 4], blend_pixel([0; 4], [0.0; 4]));
+        Target { w, h, px: vec![[0; 4]; w * h], opaque: Vec::new(), occ: Vec::new(), layer: 0, cull: false, clip: [0, 0, w, h], memo }
     }
 
     /// `gl.blendFunc(ONE, ONE_MINUS_SRC_ALPHA)` into a unorm8 target.
     /// Callers check `visible` first (heatmaps, which don't, disable culling).
     #[inline]
     pub fn blend(&mut self, i: usize, c: Rgba) {
-        // The same per-channel operations as below, four lanes at once (exact, not approximated).
-        #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
-        {
-            use core::arch::wasm32::*;
-            let d = &mut self.px[i];
-            let one = f32x4_splat(1.0);
-            let src = f32x4_min(f32x4_max(f32x4(c[0], c[1], c[2], c[3]), f32x4_splat(0.0)), one);
-            let inv = f32x4_splat(1.0 - c[3].clamp(0.0, 1.0));
-            let dst = f32x4_convert_u32x4(u32x4_extend_low_u16x8(u16x8_extend_low_u8x16(u32x4(u32::from_ne_bytes(*d), 0, 0, 0))));
-            let x = f32x4_mul(f32x4_add(src, f32x4_mul(f32x4_div(dst, f32x4_splat(255.0)), inv)), f32x4_splat(255.0));
-            let t = f32x4_trunc(x);
-            let up = f32x4_ge(f32x4_abs(f32x4_sub(x, t)), f32x4_splat(0.5));
-            let r = f32x4_add(t, v128_and(up, v128_bitselect(x, one, f32x4_splat(-0.0))));
-            let v = i32x4_trunc_sat_f32x4(f32x4_min(f32x4_max(r, f32x4_splat(0.0)), f32x4_splat(255.0)));
-            *d = u32x4_extract_lane::<0>(u8x16_narrow_i16x8(i16x8_narrow_i32x4(v, v), v)).to_ne_bytes();
+        let d = self.px[i];
+        let key = c.map(f32::to_bits);
+        // `blend_pixel` is a function of the color bits and the destination.
+        if key == self.memo.0 && d == self.memo.1 {
+            self.px[i] = self.memo.2;
             return;
         }
-        #[allow(unreachable_code)]
-        let d = &mut self.px[i];
-        let inv = 1.0 - c[3].clamp(0.0, 1.0);
-        for k in 0..4 {
-            let v = c[k].clamp(0.0, 1.0) + d[k] as f32 / 255.0 * inv;
-            d[k] = round(v * 255.0).clamp(0.0, 255.0) as u8;
-        }
+        let out = blend_pixel(d, c);
+        self.memo = (key, d, out);
+        self.px[i] = out;
     }
 
     /// Whether pixel `i` survives the opaque layers above the current one.
@@ -81,6 +70,44 @@ impl Target {
         }
     }
 
+    /// `cover` with the pixel `opaque_pixel` made of `c`.
+    #[inline]
+    pub fn cover_pixel(&mut self, i: usize, px: [u8; 4]) {
+        if self.visible(i) {
+            self.px[i] = px;
+            if let Some(o) = self.occ.get_mut(i) {
+                *o = self.layer;
+            }
+            self.mark_opaque(i);
+        }
+    }
+
+    /// `cover_pixel` of every pixel in `range`.
+    pub fn cover_run(&mut self, range: std::ops::Range<usize>, px: [u8; 4]) {
+        let layer = self.layer;
+        let pixels = &mut self.px[range.clone()];
+        match (self.cull, self.occ.is_empty()) {
+            (false, true) => pixels.fill(px),
+            (cull, false) => {
+                for (p, o) in pixels.iter_mut().zip(&mut self.occ[range.clone()]) {
+                    if !cull || *o <= layer {
+                        *p = px;
+                        *o = layer;
+                    }
+                }
+            }
+            (true, true) => unreachable!("culling reads occ"),
+        }
+        if !self.opaque.is_empty() {
+            let covered = |i: usize| !self.cull || self.occ[i] == layer;
+            for i in range.clone() {
+                if covered(i) {
+                    self.opaque[i] = true;
+                }
+            }
+        }
+    }
+
     pub fn mark_opaque(&mut self, i: usize) {
         if let Some(o) = self.opaque.get_mut(i) {
             *o = true;
@@ -91,6 +118,10 @@ impl Target {
     /// each channel divided by alpha and truncated into a `Uint8Array`.
     pub fn into_unpremultiplied(mut self) -> Vec<u8> {
         for p in &mut self.px {
+            // Dividing by an alpha of 1 (or skipping 0) leaves the channels as they are.
+            if p[3] == 255 || p[3] == 0 {
+                continue;
+            }
             let a = p[3] as f64 / 255.0;
             for k in 0..3 {
                 p[k] = if a == 0.0 { p[k] } else { ((p[k] as f64 / a) as u32 & 0xff) as u8 };
@@ -100,6 +131,49 @@ impl Target {
         // allocation for the returned image instead of holding both full-size buffers.
         self.px.into_flattened()
     }
+}
+
+/// `gl.blendFunc(ONE, ONE_MINUS_SRC_ALPHA)` of `c` over the unorm8 pixel `d`.
+#[inline]
+pub fn blend_pixel(d: [u8; 4], c: Rgba) -> [u8; 4] {
+    // The same per-channel operations as below, four lanes at once (exact, not approximated).
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    {
+        use core::arch::wasm32::*;
+        let one = f32x4_splat(1.0);
+        let src = f32x4_min(f32x4_max(f32x4(c[0], c[1], c[2], c[3]), f32x4_splat(0.0)), one);
+        // With alpha 1 the destination term is `dst / 255 * 0`, i.e. 0: skip reading it.
+        let x = if c[3] >= 1.0 {
+            f32x4_mul(src, f32x4_splat(255.0))
+        } else {
+            let inv = f32x4_splat(1.0 - c[3].clamp(0.0, 1.0));
+            let dst = f32x4_convert_u32x4(u32x4_extend_low_u16x8(u16x8_extend_low_u8x16(u32x4(u32::from_ne_bytes(d), 0, 0, 0))));
+            f32x4_mul(f32x4_add(src, f32x4_mul(f32x4_div(dst, f32x4_splat(255.0)), inv)), f32x4_splat(255.0))
+        };
+        let t = f32x4_trunc(x);
+        let up = f32x4_ge(f32x4_abs(f32x4_sub(x, t)), f32x4_splat(0.5));
+        let r = f32x4_add(t, v128_and(up, v128_bitselect(x, one, f32x4_splat(-0.0))));
+        let v = i32x4_trunc_sat_f32x4(f32x4_min(f32x4_max(r, f32x4_splat(0.0)), f32x4_splat(255.0)));
+        return u32x4_extract_lane::<0>(u8x16_narrow_i16x8(i16x8_narrow_i32x4(v, v), v)).to_ne_bytes();
+    }
+    #[allow(unreachable_code)]
+    let mut d = d;
+    let inv = 1.0 - c[3].clamp(0.0, 1.0);
+    let opaque = c[3] >= 1.0;
+    for k in 0..4 {
+        let v = if opaque { c[k].clamp(0.0, 1.0) } else { c[k].clamp(0.0, 1.0) + d[k] as f32 / 255.0 * inv };
+        d[k] = round(v * 255.0).clamp(0.0, 255.0) as u8;
+    }
+    d
+}
+
+/// What `Target::blend` writes for a color of alpha 1 (or more), whatever the pixel held: its
+/// destination term is multiplied by 0, so blending it is a plain store.
+pub fn opaque_pixel(c: Rgba) -> Option<[u8; 4]> {
+    if !(c[3] >= 1.0) {
+        return None;
+    }
+    Some(blend_pixel([0; 4], c))
 }
 
 /// `f32::round` (half away from zero) built from `trunc`, which WASM has natively: the libm
@@ -136,6 +210,15 @@ impl Mask {
     pub fn from_owners(w: usize, h: usize, owners: Vec<u32>, count: usize) -> Vec<Mask> {
         let owners = Rc::new(owners);
         (0..count as u32).map(|i| Mask { w, h, coverage: Coverage::Owner(Rc::clone(&owners), i) }).collect()
+    }
+
+    /// The part of row `y`'s pixels `x0..x1` inside a rectangular mask (`None` for other masks).
+    pub fn rect_run(&self, y: usize, x0: usize, x1: usize) -> Option<std::ops::Range<usize>> {
+        match &self.coverage {
+            Coverage::Rectangle { x: xs, y: ys } if y >= ys[0] && y < ys[1] => Some(x0.max(xs[0])..x1.min(xs[1]).max(x0.max(xs[0]))),
+            Coverage::Rectangle { .. } => Some(x0..x0),
+            _ => None,
+        }
     }
 
     #[inline]
@@ -220,6 +303,13 @@ pub fn for_each_pixel(w: usize, h: usize, p: [[f64; 2]; 3], mut f: impl FnMut(us
             f(x, y, wts);
         }
     });
+}
+
+/// `for_each_pixel` by runs: `f(y, x0, x1)` for the covered pixels `x0..x1` of row `y`.
+pub fn for_each_run(w: usize, h: usize, p: [[f64; 2]; 3], f: impl FnMut(usize, usize, usize)) {
+    if let Some(setup) = Setup::new([0, 0, w, h], p) {
+        setup.runs(f);
+    }
 }
 
 /// An edge from its lexicographically smaller endpoint: (base, dx, dy, sign, include).
@@ -600,6 +690,53 @@ mod tests {
         }
         assert!(count.iter().all(|&c| c <= 1));
         assert!(count.iter().filter(|&&c| c == 1).count() > 100);
+    }
+
+    #[test]
+    fn opaque_pixel_matches_blend_over_any_pixel() {
+        for c in [[0.2, 0.4, 0.6, 1.0], [1.3, -0.1, 0.5, 1.0], [0.0, 0.0, 0.0, 1.5]] {
+            let px = opaque_pixel(c).unwrap();
+            for d in [[0u8; 4], [255; 4], [17, 99, 200, 128]] {
+                let mut t = Target::new(1, 1);
+                t.px[0] = d;
+                t.blend(0, c);
+                assert_eq!(t.px[0], px);
+            }
+        }
+        assert!(opaque_pixel([1.0, 1.0, 1.0, 0.99]).is_none());
+    }
+
+    #[test]
+    fn cover_run_matches_cover_pixel() {
+        for (cull, occ, opaque) in [(false, false, false), (true, true, true), (false, true, true)] {
+            let mut a = Target::new(8, 1);
+            if occ {
+                a.occ = vec![0, 3, 1, 2, 5, 2, 0, 9];
+            }
+            if opaque {
+                a.opaque = vec![false; 8];
+            }
+            a.cull = cull;
+            a.layer = 2;
+            let mut b = Target { px: a.px.clone(), opaque: a.opaque.clone(), occ: a.occ.clone(), ..Target::new(8, 1) };
+            b.cull = cull;
+            b.layer = 2;
+            for i in 1..7 {
+                a.cover_pixel(i, [1, 2, 3, 255]);
+            }
+            b.cover_run(1..7, [1, 2, 3, 255]);
+            assert_eq!((a.px, a.occ, a.opaque), (b.px, b.occ, b.opaque));
+        }
+    }
+
+    #[test]
+    fn runs_match_pixels() {
+        let p = [[3.2, 1.7], [60.9, 9.4], [20.5, 50.5]];
+        let mut a = Vec::new();
+        for_each_pixel(64, 64, p, |x, y, _| a.push((x, y)));
+        let mut b = Vec::new();
+        for_each_run(64, 64, p, |y, x0, x1| b.extend((x0..x1).map(|x| (x, y))));
+        assert_eq!(a, b);
     }
 
     #[test]

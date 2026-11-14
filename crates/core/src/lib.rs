@@ -173,7 +173,9 @@ pub fn encode_webp(rgba: &[u8], width: u32, height: u32) -> Result<Vec<u8>, Erro
     Ok(bytes)
 }
 
-/// Baseline JPEG of row-major RGBA8 pixels at `quality` (1–100), flattened over black.
+/// Baseline JPEG of row-major RGBA8 pixels at `quality` (1–100), flattened over black, with 4:2:0
+/// chroma subsampling at every quality (libjpeg's and sharp's default; the encoder's own keeps full
+/// chroma from quality 90, at about twice the encoding time and 1.5 times the size).
 pub fn encode_jpeg(rgba: &[u8], width: u32, height: u32, quality: u8) -> Result<Vec<u8>, Error> {
     let (Ok(w), Ok(h)) = (u16::try_from(width), u16::try_from(height)) else {
         return Err(Error::ImageEncoding(format!("{width}x{height} exceeds JPEG's 65535 px limit")));
@@ -189,7 +191,9 @@ pub fn encode_jpeg(rgba: &[u8], width: u32, height: u32, quality: u8) -> Result<
         })
         .collect();
     let mut bytes = Vec::new();
-    jpeg_encoder::Encoder::new(&mut bytes, quality.clamp(1, 100))
+    let mut encoder = jpeg_encoder::Encoder::new(&mut bytes, quality.clamp(1, 100));
+    encoder.set_sampling_factor(jpeg_encoder::SamplingFactor::F_2_2);
+    encoder
         .encode(&rgb, w, h, jpeg_encoder::ColorType::Rgb)
         .map_err(|e| Error::ImageEncoding(e.to_string()))?;
     Ok(bytes)

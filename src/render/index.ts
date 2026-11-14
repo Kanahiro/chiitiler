@@ -71,7 +71,11 @@ async function getRenderer(
     cache: Cache,
 ): Promise<MapRenderer> {
     const style = await loadStyle(stylejson, cache);
-    const key = JSON.stringify(style);
+    // a URL is cheaper to key by than the style it points to
+    const key =
+        typeof stylejson === 'string'
+            ? `url:${stylejson}`
+            : `json:${JSON.stringify(style)}`;
     let renderer = rendererCache.get(key);
     if (renderer === undefined) {
         renderer = loadWasmModule().then((wasm) =>

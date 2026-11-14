@@ -97,7 +97,7 @@ For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 - `pitch` must be `0` on `/camera`; other values return `400`.
 - `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.
 - Bidirectional text and Arabic shaping are not supported, and glyphs come only from the style's `glyphs` (no local font fallback).
-- JPEG has no alpha: transparent areas become black.
+- JPEG has no alpha: transparent areas become black. Chroma is subsampled 4:2:0 at every quality (as sharp did by default).
 
 ## Library Usage
 

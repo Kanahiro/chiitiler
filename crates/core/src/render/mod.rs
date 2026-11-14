@@ -497,7 +497,25 @@ pub fn draw_background(target: &mut Target, layer: &Layer, ctx: &Ctx, raw: &serd
             }
             return true;
         }
-        // Drawn over the covering tiles, i.e. only within the world's vertical extent.
+        // Drawn over the covering tiles, i.e. only within the world's vertical extent. The world
+        // position is affine in the pixel, so the corner pixels bound it; a margin absorbs rounding.
+        let corners = [[0.5, 0.5], [target.w as f64 - 0.5, 0.5], [0.5, target.h as f64 - 0.5], [target.w as f64 - 0.5, target.h as f64 - 0.5]];
+        let margin = t.world_size * 1e-9;
+        let inside = corners.iter().all(|&p| {
+            let wy = t.screen_to_world(p)[1];
+            wy >= margin && wy < t.world_size - margin
+        });
+        if inside {
+            match raster::opaque_pixel(c) {
+                Some(px) => target.cover_run(0..target.w * target.h, px),
+                None => (0..target.w * target.h).for_each(|i| {
+                    if target.visible(i) {
+                        target.blend(i, c);
+                    }
+                }),
+            }
+            return true;
+        }
         for y in 0..target.h {
             for x in 0..target.w {
                 let wy = t.screen_to_world([x as f64 + 0.5, y as f64 + 0.5])[1];
@@ -669,12 +687,22 @@ pub fn draw_fill(target: &mut Target, layer: &Layer, ctx: &Ctx, tiles: &[TileFea
                     }
                     if constant_opaque {
                         let w = target.w;
-                        raster::for_each_pixel(target.w, target.h, p, |x, y, _| {
-                            if tf.mask.get(x, y) {
-                                if let Some(c) = covered.get_mut(y * w + x) {
-                                    *c = true;
+                        let px = raster::opaque_pixel(fill_color);
+                        raster::for_each_run(target.w, target.h, p, |y, x0, x1| {
+                            if let (Some(px), Some(run), true) = (px, tf.mask.rect_run(y, x0, x1), covered.is_empty()) {
+                                target.cover_run(y * w + run.start..y * w + run.end, px);
+                                return;
+                            }
+                            for x in x0..x1 {
+                                if tf.mask.get(x, y) {
+                                    if let Some(c) = covered.get_mut(y * w + x) {
+                                        *c = true;
+                                    }
+                                    match px {
+                                        Some(px) => target.cover_pixel(y * w + x, px),
+                                        None => target.cover(y * w + x, fill_color),
+                                    }
                                 }
-                                target.cover(y * w + x, fill_color);
                             }
                         });
                         continue;
@@ -811,6 +839,9 @@ pub fn draw_circle(target: &mut Target, layer: &Layer, ctx: &Ctx, tiles: &[TileF
             let stroke = color(&p("circle-stroke-color"), num(&p("circle-stroke-opacity")));
             let size = (radius + stroke_width) as f64 * dpr;
             let aa_blur = -(1.0 / dpr as f32 / (radius + stroke_width)).max(blur);
+            // The color where `opacity_t` is 1 and `color_t` 0 (see `shade`), with its visibility.
+            let interior: Rgba = std::array::from_fn(|k| 1.0 * (fill[k] + (stroke[k] - fill[k]) * 0.0));
+            let interior = interior.iter().any(|&x| x >= 0.5 / 255.0).then_some(interior);
             for pt in f.geometry.iter().flatten() {
                 if pt[0] < 0.0 || pt[0] >= EXTENT || pt[1] < 0.0 || pt[1] >= EXTENT {
                     continue;
@@ -822,7 +853,16 @@ pub fn draw_circle(target: &mut Target, layer: &Layer, ctx: &Ctx, tiles: &[TileF
                 let pos = q.map(|e| [c[0] + e[0] * size, c[1] + e[1] * size]);
                 let v = q.map(|e| [e[0] as f32, e[1] as f32]);
                 let mut shade = |e: &[f32; 2]| {
-                    let len = (e[0] * e[0] + e[1] * e[1]).sqrt();
+                    let len2 = e[0] * e[0] + e[1] * e[1];
+                    // Outside the unit circle `opacity_t` is 0 (`aa_blur` < 0), so nothing is drawn.
+                    if len2 >= 1.0 {
+                        return None;
+                    }
+                    let len = len2.sqrt();
+                    // `smoothstep(0, aa_blur, x)` is 1 for x <= aa_blur < 0: x / aa_blur >= 1.
+                    if stroke_width < 0.01 && aa_blur.is_finite() && len - 1.0 <= aa_blur {
+                        return interior;
+                    }
                     let opacity_t = raster::smoothstep(0.0, aa_blur, len - 1.0);
                     let color_t = if stroke_width < 0.01 { 0.0 } else { raster::smoothstep(aa_blur, 0.0, len - radius / (radius + stroke_width)) };
                     let c: Rgba = std::array::from_fn(|k| opacity_t * (fill[k] + (stroke[k] - fill[k]) * color_t));
