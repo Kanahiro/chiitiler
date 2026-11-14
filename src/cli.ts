@@ -215,7 +215,9 @@ export function createProgram() {
             };
 
             // none: caching was declined; memory: already in-process
-            if (['file', 's3', 'gcs'].includes(serverOptions.cache.name)) {
+            if (
+                ['file', 's3', 'gcs'].includes(serverOptions.cache.name ?? '')
+            ) {
                 const ttl = options.frontCacheTtlSec;
                 const size = options.frontCacheMaxBytes;
                 serverOptions.cache = caches.withMemoryCache(

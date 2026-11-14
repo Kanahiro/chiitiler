@@ -109,7 +109,7 @@ class S3Source implements Source {
 async function getPmtilesSource(
     uri: string,
     cache: Cache = noneCache(),
-): Promise<Buffer | null> {
+): Promise<Uint8Array | null> {
     const pmtilesUri = uri
         .replace('pmtiles://', '')
         .replace(/\/\d+\/\d+\/\d+$/, '');

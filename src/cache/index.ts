@@ -9,10 +9,18 @@ export type { S3CacheOptions } from './s3.js';
 export type { GCSCacheOptions } from './gcs.js';
 export type { fileCacheOptions } from './file.js';
 
-type Value = Buffer;
+type Value = Uint8Array;
+/**
+ * Where fetched source bytes are kept (implement `get` and `set` to bring your own).
+ * Keys are resource URLs. Only http(s) sources (including `pmtiles://http(s)://` tiles) use it;
+ * `memory` (see `withMemoryCache`) serves every source.
+ */
 type Cache = {
-    name: string;
+    /** A label (built-in caches name their kind). */
+    name?: string;
+    /** The bytes stored under `key`, or undefined for a miss. */
     get: (key: string) => Promise<Value | undefined>;
+    /** Store `value` under `key`. Rejections are logged by the built-in caches; yours may throw. */
     set: (key: string, value: Value) => Promise<void>;
     /** Short-lived in-process layer (set by withMemoryCache), applied to every source. */
     memory?: Cache;

@@ -121,6 +121,59 @@ const png = await getRenderedTileBuffer({
 
 Available renderers: `getRenderedTileBuffer`, `getRenderedClipBuffer`, `getRenderedCameraBuffer`. (The `*Stream` variants returning `Sharp` instances were removed with sharp.)
 
+A renderer is kept per style, cache and protocols (compared by identity): create the cache and the
+protocols object once and pass the same ones to every call, or each call starts a new renderer.
+
+### Your own cache
+
+Any object with `get` and `set` is a cache. Keys are resource URLs, values `Uint8Array`s; return
+`undefined` from `get` for a miss. It holds `http(s)://` sources (including `pmtiles://http(s)://`
+tiles), e.g. in Redis to share them between processes or hosts:
+
+```ts
+import { getRenderedTileBuffer, type Cache } from 'chiitiler';
+
+const cache: Cache = {
+    get: async (url) => {
+        const hit = await redis.getBuffer(url);
+        return hit === null ? undefined : new Uint8Array(hit);
+    },
+    set: async (url, bytes) => {
+        await redis.set(url, Buffer.from(bytes), 'EX', 3600);
+    },
+};
+```
+
+`ChiitilerCache.withMemoryCache(cache)` puts the short-lived in-process layer described under
+[Cache](#cache) in front of it.
+
+### Custom protocols
+
+`protocols` maps a scheme to a loader of its URLs, for the style URL and every source, sprite and
+glyph URL in it. Custom protocols take precedence over the built-in ones, so `http` / `https` can be
+replaced too (e.g. to add credentials). Return `null` when there is nothing at the URL, like HTTP 404:
+a missing vector tile renders empty, a missing raster tile is replaced by its parent. Throw for other
+failures: the render fails rather than returning a map with holes. Results go through the cache's
+`memory` layer, not the cache itself (cache inside the loader if needed).
+
+```ts
+import { getRenderedTileBuffer, type Protocols } from 'chiitiler';
+
+const protocols: Protocols = {
+    db: async (url) => {
+        // db://tiles/{z}/{x}/{y}
+        const [z, x, y] = url.split('/').slice(-3).map(Number);
+        return (await db.tile(z, x, y)) ?? null; // Uint8Array | null
+    },
+};
+
+const png = await getRenderedTileBuffer({
+    stylejson: { version: 8, sources: { t: { type: 'vector', tiles: ['db://tiles/{z}/{x}/{y}'] } }, layers: [/* … */] },
+    z: 5, x: 27, y: 12, tileSize: 512, ext: 'png', quality: 100, margin: 0,
+    cache, protocols,
+});
+```
+
 For library use, explicitly call `prewarm(cache)` once per rendering process
 during application startup, before accepting requests:
 
@@ -147,6 +200,8 @@ import type {
     GetRenderedCameraOptions,
     SupportedFormat,
     Cache,
+    Protocol,
+    Protocols,
 } from 'chiitiler';
 ```
 

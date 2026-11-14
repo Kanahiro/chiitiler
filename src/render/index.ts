@@ -4,7 +4,7 @@ import { LRUCache } from 'lru-cache';
 import { MapRenderer, type RenderedImage } from './ml2drender.js';
 import { loadWasmModule } from '../wasm.js';
 import type { Cache } from '../cache/index.js';
-import { getSource } from '../source/index.js';
+import { getSource, type Protocols } from '../source/index.js';
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
 
@@ -15,6 +15,8 @@ type GetRenderedTileOptions = {
     y: number;
     tileSize: number;
     cache: Cache;
+    /** Custom protocols by scheme, taking precedence over the built-in ones. */
+    protocols?: Protocols;
     /** Extra pixels rendered around the tile (half on each side) and cropped away. */
     margin: number;
     ext: SupportedFormat;
@@ -27,6 +29,8 @@ type GetRenderedClipOptions = {
     bbox: [number, number, number, number];
     size: number;
     cache: Cache;
+    /** Custom protocols by scheme, taking precedence over the built-in ones. */
+    protocols?: Protocols;
     ext: SupportedFormat;
     quality: number;
 };
@@ -34,6 +38,8 @@ type GetRenderedClipOptions = {
 type GetRenderedCameraOptions = {
     stylejson: string | StyleSpecification;
     cache: Cache;
+    /** Custom protocols by scheme, taking precedence over the built-in ones. */
+    protocols?: Protocols;
     ext: SupportedFormat;
     quality: number;
     bearing: number;
@@ -45,19 +51,43 @@ type GetRenderedCameraOptions = {
     width: number;
 };
 
+/** Where resources come from: what a loaded style or renderer is cached for besides the style. */
+type Resources = { cache: Cache; protocols?: Protocols };
+
+const ids = new WeakMap<object, number>();
+let lastId = 0;
+/** A key for the cache and protocols objects (by identity) of `resources`. */
+function resourcesKey({ cache, protocols }: Resources): string {
+    const id = (o: object | undefined) => {
+        if (o === undefined) return 0;
+        let n = ids.get(o);
+        if (n === undefined) ids.set(o, (n = ++lastId));
+        return n;
+    };
+    return `${id(cache)}/${id(protocols)}`;
+}
+
 const styleCache = new LRUCache<string, StyleSpecification>({
     max: 5,
 });
-async function loadStyle(stylejson: string | StyleSpecification, cache: Cache) {
+async function loadStyle(
+    stylejson: string | StyleSpecification,
+    resources: Resources,
+) {
     if (typeof stylejson !== 'string') return stylejson;
-    const cachedStyle = styleCache.get(stylejson);
+    const key = `${resourcesKey(resources)} ${stylejson}`;
+    const cachedStyle = styleCache.get(key);
     if (cachedStyle !== undefined) return cachedStyle;
-    const styleJsonBuf = await getSource(stylejson, cache);
+    const styleJsonBuf = await getSource(
+        stylejson,
+        resources.cache,
+        resources.protocols,
+    );
     if (styleJsonBuf === null) throw new Error('style not found');
     const style: StyleSpecification = JSON.parse(
         new TextDecoder().decode(styleJsonBuf),
     );
-    styleCache.set(stylejson, style);
+    styleCache.set(key, style);
     return style;
 }
 
@@ -68,14 +98,16 @@ const rendererCache = new LRUCache<string, Promise<MapRenderer>>({
 });
 async function getRenderer(
     stylejson: string | StyleSpecification,
-    cache: Cache,
+    resources: Resources,
 ): Promise<MapRenderer> {
-    const style = await loadStyle(stylejson, cache);
-    // a URL is cheaper to key by than the style it points to
-    const key =
+    const style = await loadStyle(stylejson, resources);
+    // A renderer fetches through the cache and protocols it was made with. A URL is cheaper
+    // to key by than the style it points to.
+    const key = `${resourcesKey(resources)} ${
         typeof stylejson === 'string'
             ? `url:${stylejson}`
-            : `json:${JSON.stringify(style)}`;
+            : `json:${JSON.stringify(style)}`
+    }`;
     let renderer = rendererCache.get(key);
     if (renderer === undefined) {
         renderer = loadWasmModule().then((wasm) =>
@@ -83,7 +115,11 @@ async function getRenderer(
                 wasm,
                 // null = 404 (empty vector tile, missing raster); errors fail the render
                 loadResource: async (url) => {
-                    const buf = await getSource(url, cache);
+                    const buf = await getSource(
+                        url,
+                        resources.cache,
+                        resources.protocols,
+                    );
                     return buf === null || buf.length === 0
                         ? null
                         : (buf as Uint8Array<ArrayBuffer>);
@@ -122,11 +158,12 @@ async function getRenderedTile({
     y,
     tileSize,
     cache,
+    protocols,
     margin,
     ext,
     quality,
 }: GetRenderedTileOptions): Promise<Uint8Array<ArrayBuffer>> {
-    const renderer = await getRenderer(stylejson, cache);
+    const renderer = await getRenderer(stylejson, { cache, protocols });
     const image = await renderer.renderTile({
         z,
         x,
@@ -142,10 +179,11 @@ async function getRenderedClip({
     bbox,
     size,
     cache,
+    protocols,
     ext,
     quality,
 }: GetRenderedClipOptions): Promise<Uint8Array<ArrayBuffer>> {
-    const renderer = await getRenderer(stylejson, cache);
+    const renderer = await getRenderer(stylejson, { cache, protocols });
     const image = await renderer.render({ bbox, size });
     return encode(image, ext, quality);
 }
@@ -154,7 +192,7 @@ async function getRenderedCamera(
     options: GetRenderedCameraOptions,
 ): Promise<Uint8Array<ArrayBuffer>> {
     if (options.pitch !== 0) throw new RangeError('pitch is not supported');
-    const renderer = await getRenderer(options.stylejson, options.cache);
+    const renderer = await getRenderer(options.stylejson, options);
     const image = await renderer.renderView({
         center: options.center,
         zoom: options.zoom,

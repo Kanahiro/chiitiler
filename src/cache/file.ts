@@ -17,7 +17,14 @@ const fileCache: (options: fileCacheOptions) => Cache = (options) => {
         name: 'file',
         set: async (key: string, value: Value) => {
             try {
-                await cache.set(key, value.toString('hex'));
+                await cache.set(
+                    key,
+                    Buffer.from(
+                        value.buffer,
+                        value.byteOffset,
+                        value.byteLength,
+                    ).toString('hex'),
+                );
             } catch (e) {
                 console.error(e);
             }

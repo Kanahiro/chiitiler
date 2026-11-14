@@ -21,7 +21,8 @@ export type {
     GetRenderedCameraOptions,
     SupportedFormat,
 } from './render/index.js';
-export type { Cache } from './cache/index.js';
+export type { Cache, Value } from './cache/index.js';
+export type { Protocol, Protocols } from './source/index.js';
 
 // re-exported so consumers can reference exactly the style-spec version
 // chiitiler is built against, without depending on their own resolution
