@@ -102,6 +102,17 @@ For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
 Chiitiler is also published to npm. Renderers return the encoded image as a `Uint8Array`.
 
+```bash
+npm install chiitiler @maplibre/maplibre-gl-style-spec
+# only for s3:// sources (pmtiles://s3:// included) and the S3 cache
+npm install @aws-sdk/client-s3
+# only for gs:// sources and the GCS cache
+npm install @google-cloud/storage
+```
+
+`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs are
+optional ones, loaded when first used.
+
 ```ts
 import { renderTile, ChiitilerCache } from 'chiitiler';
 
@@ -235,50 +246,76 @@ progress finish (at most 10 seconds).
 
 ### Cache
 
-A renderer is kept per style in a 10-entry LRU. It keeps decoded tiles, glyphs and
-sprites for 5 minutes, after which the next request starts from fetched bytes again
-(through the cache below). Styles given by URL are read again after 60 seconds, past the
-backing cache (only the memory layer below applies), so edits upstream show up within a minute.
+chiitiler caches the **sources** it fetches (styles, tiles, glyphs, sprites), never the rendered
+images: put a CDN in front for those (`CHIITILER_CACHE_CONTROL`). There are two layers:
+
+1. **Cache method** — where fetched bytes are kept, chosen with `CHIITILER_CACHE_METHOD`. Each
+   method has its own settings (below).
+2. **Front cache** — a small in-process memory cache that chiitiler puts in front of the `file`,
+   `s3` and `gcs` methods, so that repeated reads skip the disk or the network.
+
+```
+renderer needs a URL → front cache      → cache method   → fetch
+                       (every source)     (http(s) only)
+```
+
+#### 1. Cache method
+
+| `CHIITILER_CACHE_METHOD` | Keeps | Shared between processes |
+| --- | --- | --- |
+| `none` (default) | nothing | — |
+| `memory` | an LRU in each process | no |
+| `file` | files in a directory | yes, on one host |
+| `s3` | objects in an S3 bucket | yes |
+| `gcs` | objects in a GCS bucket | yes |
+
+`CHIITILER_CACHE_TTL_SEC` (default `3600`) is how long `memory` and `file` entries live (`0` for
+`file`: never expire). S3 and GCS entries do not expire on their own: use a lifecycle rule.
+
+Settings of each method:
+
+| Method | Variable | Default |
+| --- | --- | --- |
+| `memory` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
+| `file` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
+| `s3` | `CHIITILER_S3CACHE_BUCKET` | (required) |
+| | `CHIITILER_S3_REGION` | `us-east-1` |
+| | `CHIITILER_S3_ENDPOINT` | (AWS) |
+| | `CHIITILER_S3_FORCE_PATH_STYLE` | `false` |
+| `gcs` | `CHIITILER_GCS_CACHE_BUCKET` | (required) |
+| | `CHIITILER_GCS_CACHE_PREFIX` | (none) |
+| | `CHIITILER_GCS_PROJECT_ID` | (from credentials) |
+| | `CHIITILER_GCS_KEY_FILENAME` | (default credentials) |
+| | `CHIITILER_GCS_API_ENDPOINT` | (GCS) |
+
+The `CHIITILER_S3_*` settings also apply to `s3://` sources (`CHIITILER_GCS_*` but the bucket and
+prefix to `gs://` sources). Credentials come from the standard AWS / GCP environment
+(`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, …).
+
+A cache method keeps `http(s)://` sources only (`pmtiles://http(s)://` tiles included): local
+files, `s3://`, `gs://`, `mbtiles://` and local `pmtiles://` are as close as the cache would be.
+
+#### 2. Front cache
+
+With `file`, `s3` or `gcs`, each process also keeps what it reads in memory, for every source:
 
 | Variable | Default |
 | --- | --- |
-| `CHIITILER_CACHE_METHOD` | `none` |
-| `CHIITILER_CACHE_TTL_SEC` | `3600` |
-| `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
-| `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` (seconds) |
-| `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB) |
-| `CHIITILER_FILECACHE_DIR` | `./.cache` |
-| `CHIITILER_S3CACHE_BUCKET` | — |
-| `CHIITILER_S3_REGION` | `us-east-1` |
-| `CHIITILER_S3_ENDPOINT` | — |
-| `CHIITILER_S3_FORCE_PATH_STYLE` | `false` |
-| `CHIITILER_GCS_CACHE_BUCKET` | — |
-| `CHIITILER_GCS_PROJECT_ID` | — |
-| `CHIITILER_GCS_KEY_FILENAME` | — |
-| `CHIITILER_GCS_CACHE_PREFIX` | — |
-| `CHIITILER_GCS_API_ENDPOINT` | — |
+| `CHIITILER_FRONT_CACHE_TTL_SEC` | `10` |
+| `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB of payloads per process) |
 
-Chiitiler caches *source assets* (vector tiles, glyphs, sprites) — not final rasters — so cached data is reused across requests. Standard AWS / GCP credentials (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, etc.) are respected.
+Set either to `0` to turn the front cache off. Entries live for the TTL from when they were read,
+even past their expiry in the cache method. `none` and `memory` have no front cache.
 
-For the `file`, `s3` and `gcs` cache methods, the tile server adds a per-process memory front
-cache (not for `none`, which declines caching, or `memory`, which is already in-process): by default, buffers are retained for 10 seconds from insertion, with an
-LRU limit of 64 MiB of buffer payloads (JavaScript overhead is additional). It applies to
-every source (`http(s)://`, `s3://`, `gs://`, `file://`, `mbtiles://`, `pmtiles://`).
-Only `http(s)://` sources (including `pmtiles://http(s)://` tiles) are also stored in the
-backing cache; reads promote backing-cache hits into memory, and writes populate memory
-immediately and also write to the backing cache.
+#### Renderers and styles
 
-Set `CHIITILER_FRONT_CACHE_TTL_SEC` to a positive, finite number of seconds and
-`CHIITILER_FRONT_CACHE_MAX_BYTES` to a positive integer number of bytes to override
-these limits. Set either limit to `0`
-(e.g. `CHIITILER_FRONT_CACHE_TTL_SEC=0`) to disable the front cache entirely. Otherwise,
-invalid values stop startup. These settings do not affect library callers.
+On top of these, a renderer is kept per style (10 styles, LRU) with the tiles, glyphs and sprites
+it decoded, for 5 minutes. Styles given by URL are fetched again after 60 seconds (through the
+front cache only), so edits upstream show up within a minute.
 
-The front-cache TTL does not guarantee source freshness: promotion can retain a
-value for up to the configured TTL beyond its backing-cache expiry, and the S3/GCS cache
-implementations do not check expiry on reads. Each worker has its own memory limit.
-Library callers can opt in and customize the limits (either limit set to `0`
-returns the backing cache unchanged):
+#### Library
+
+Library callers pass a cache to each call; the server's front cache is opt-in:
 
 ```ts
 const cache = ChiitilerCache.withMemoryCache(
@@ -327,12 +364,14 @@ placement differ).
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
   - New `protocols` option for custom URL schemes.
   - Renderers are reused per style, cache and protocols object: create the cache once, not per call.
+  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
+    `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
   - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
     win32-x64; elsewhere, build it from a checkout with `pnpm build:native`.
 
 ## Develop
 
-Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust; [uv](https://docs.astral.sh/uv/) for the Python build.
+Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust.
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
@@ -351,38 +390,12 @@ pnpm test:render      # MapLibre render tests → target/test-report/render
 ```
 
 The renderer lives in [`crates/`](./crates) (copied from ml2drender; see [`crates/AGENTS.md`](./crates/AGENTS.md)):
-`crates/core` is the sans-IO renderer, independent of its bindings: `crates/napi` (the Node-API addon
-chiitiler uses) and `crates/wasm` (WebAssembly exports, for runtimes without native addons).
+`crates/core` is the sans-IO renderer and `crates/napi` the Node-API addon chiitiler loads.
 `crates/cli` is the test runner, and [`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the
 TypeScript host that drives the `needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
 
 The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
 win32-x64; elsewhere, build it with `pnpm build:native`. x86-64 builds target x86-64-v2 (SSE4.2).
-
-The same renderer builds for other hosts:
-
-| Target | Binding | Build | Test |
-| --- | --- | --- | --- |
-| Node.js (chiitiler) | `crates/napi` | `pnpm build:native` → `native/ml2drender.<platform>-<arch>.node` | `pnpm test:unit` |
-| Browsers, Deno, Workers (WASM) | `crates/wasm` + [`packages/ml2drender`](./packages/ml2drender) (TypeScript API) | `pnpm build:wasm` → `packages/ml2drender/wasm/` | `pnpm test:wasm` |
-| Python ≥ 3.9 | `crates/python` (PyO3, abi3) | `pnpm build:python` → `target/python/*.whl` | `pnpm test:python` |
-
-```python
-import ml2drender, urllib.request
-
-def load(url):  # bytes, or None when missing (like HTTP 404)
-    try:
-        return urllib.request.urlopen(url).read()
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
-
-style = urllib.request.urlopen('https://tile.openstreetmap.jp/styles/osm-bright/style.json').read().decode()
-view = ml2drender.View.tile(5, 27, 12, 512)
-rgba = ml2drender.render(style, view, load)
-png = ml2drender.encode_png(rgba, *view.size)
-```
 
 ## Architecture
 
