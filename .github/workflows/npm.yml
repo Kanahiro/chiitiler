@@ -13,7 +13,6 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # Linux on 22.04 (glibc 2.35), so the addon loads on older distributions too.
         runner: [ubuntu-22.04, ubuntu-22.04-arm, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     steps:
@@ -30,7 +29,21 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
+      # Linux links against glibc 2.34 (cargo-zigbuild), so the addon loads on 2.34+ (Amazon Linux 2023,
+      # RHEL 9, Ubuntu 22.04, Debian 12, ...).
+      - if: runner.os == 'Linux'
+        run: |
+          python3 -m pip install --user cargo-zigbuild ziglang
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: node scripts/build-native.ts
+        env:
+          GLIBC: ${{ runner.os == 'Linux' && '2.34' || '' }}
+      - name: Check the addon needs glibc 2.34 at most
+        if: runner.os == 'Linux'
+        run: |
+          max=$(objdump -T native/*.node | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          echo "newest glibc symbol: $max"
+          test "$(printf '%s\n' GLIBC_2.34 "$max" | sort -V | tail -1)" = GLIBC_2.34
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-${{ matrix.runner }}

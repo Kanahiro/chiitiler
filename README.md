@@ -324,7 +324,7 @@ placement differ).
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
   - New `protocols` option for custom URL schemes.
   - Renderers are reused per style, cache and protocols object: create the cache once, not per call.
-  - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.35+), darwin-arm64 and
+  - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
     win32-x64; elsewhere, build it from a checkout with `pnpm build:native`.
 
 ## Develop
@@ -353,7 +353,7 @@ chiitiler uses) and `crates/wasm` (WebAssembly exports, for runtimes without nat
 `crates/cli` is the test runner, and [`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the
 TypeScript host that drives the `needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
 
-The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.35+), darwin-arm64 and
+The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
 win32-x64; elsewhere, build it with `pnpm build:native`. x86-64 builds target x86-64-v2 (SSE4.2).
 
 The same renderer builds for other hosts:

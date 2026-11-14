@@ -39,5 +39,19 @@ jobs:
             - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version-file: .node-version
+            # Linux links against glibc 2.34 (cargo-zigbuild), so the addon loads on 2.34+ (Amazon Linux 2023,
+            # RHEL 9, Ubuntu 22.04, Debian 12, ...).
+            - if: runner.os == 'Linux'
+              run: |
+                  python3 -m pip install --user cargo-zigbuild ziglang
+                  echo "$HOME/.local/bin" >> "$GITHUB_PATH"
             - run: node scripts/build-native.ts
+              env:
+                  GLIBC: ${{ runner.os == 'Linux' && '2.34' || '' }}
+            - name: Check the addon needs glibc 2.34 at most
+              if: runner.os == 'Linux'
+              run: |
+                  max=$(objdump -T native/*.node | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+                  echo "newest glibc symbol: $max"
+                  test "$(printf '%s\n' GLIBC_2.34 "$max" | sort -V | tail -1)" = GLIBC_2.34
             - run: node scripts/smoke-native.ts
