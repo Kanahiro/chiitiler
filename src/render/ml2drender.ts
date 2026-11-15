@@ -5,7 +5,14 @@ import type {
     StyleSpecification,
 } from '@maplibre/maplibre-gl-style-spec';
 
-import { native, type NativeRenderer, type NativeView } from '../native.js';
+import {
+    encodeJpeg,
+    encodePng,
+    encodeWebp,
+    type Renderer as NativeRenderer,
+    Renderer,
+    type View as NativeView,
+} from '@ml2drender/node';
 
 /** A Web Mercator camera. */
 export interface View {
@@ -335,7 +342,9 @@ export class MapRenderer {
                     if (urls.length > 0) return { urls };
                     // Tickets increase, so the first in the set is the oldest in progress.
                     const oldest = core.tickets.values().next().value as number;
-                    return { data: await core.renderer.render(oldest) };
+                    return {
+                        data: (await core.renderer.render(oldest)) as Bytes,
+                    };
                 });
                 if (step.data) return image(step.data, args);
                 if (round >= 32)
@@ -415,7 +424,7 @@ export class MapRenderer {
             !core ||
             (core.active > 0 && this.cores.length < this.concurrency)
         ) {
-            const renderer = new (native().Renderer)(this.style, view);
+            const renderer = new Renderer(this.style, view);
             // A core that is not reused drops buckets as soon as they are drawn.
             if (this.ttlMs === 0) renderer.setKeepBuckets(false);
             core = {
@@ -440,21 +449,23 @@ export class MapRenderer {
     }
 }
 
-function image(data: Uint8Array<ArrayBuffer>, view: NativeView): RenderedImage {
+// The addon returns ArrayBuffer-backed bytes; its types only say Uint8Array.
+type Bytes = Uint8Array<ArrayBuffer>;
+
+function image(data: Bytes, view: NativeView): RenderedImage {
     const width = Math.round(view.width * view.pixelRatio);
     const height = Math.round(view.height * view.pixelRatio);
-    const n = native();
     return {
         width,
         height,
         data,
-        toPng: () => n.encodePng(data, width, height),
-        toWebp: () => n.encodeWebp(data, width, height),
+        toPng: () => encodePng(data, width, height) as Promise<Bytes>,
+        toWebp: () => encodeWebp(data, width, height) as Promise<Bytes>,
         toJpeg: async (quality) => {
             if (!Number.isFinite(quality))
                 throw new RangeError('quality must be finite');
             const q = Math.min(100, Math.max(1, Math.round(quality)));
-            return n.encodeJpeg(data, width, height, q);
+            return encodeJpeg(data, width, height, q) as Promise<Bytes>;
         },
     };
 }

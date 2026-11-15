@@ -9,11 +9,10 @@
         "node": ">=24.22.1"
     },
     "files": [
-        "dist",
-        "native"
+        "dist"
     ],
     "scripts": {
-        "build": "esbuild --bundle src/main.ts --minify --format=esm --outfile=build/main.mjs --platform=node --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+        "build": "esbuild --bundle src/main.ts --minify --format=esm --outfile=build/main.mjs --platform=node --external:@ml2drender/node --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
         "check": "tsc --noEmit",
         "dev": "CHIITILER_DEBUG=true tsx watch src/main.ts",
         "test:unit": "vitest src",
@@ -22,16 +21,7 @@
         "test:benchmark": "tsx tests/benchmark.ts",
         "docs": "typedoc src/index.ts --out docs --includeVersion",
         "lint": "biome check .",
-        "format": "biome check --write .",
-        "build:wasm": "cargo build -p ml2drender-wasm --target wasm32-unknown-unknown --profile wasm && mkdir -p packages/ml2drender/wasm && cp target/wasm32-unknown-unknown/wasm/ml2drender_wasm.wasm packages/ml2drender/wasm/",
-        "test:rust": "cargo test --release",
-        "test:render": "cargo run --release -p ml2drender-cli -- render-tests",
-        "test:expression": "cargo run --release -p ml2drender-cli -- expression-tests",
-        "fixtures": "sh scripts/fetch-fixtures.sh",
-        "build:native": "node scripts/build-native.ts",
-        "build:python": "uvx --from 'maturin>=1.16,<2' maturin build -m crates/python/Cargo.toml -o target/python",
-        "test:wasm": "pnpm build:wasm && pnpm --filter ml2drender test",
-        "test:python": "uv run --project crates/python --reinstall-package ml2drender python -m unittest discover crates/python/tests"
+        "format": "biome check --write ."
     },
     "keywords": [],
     "author": "Kanahiro Iguchi",
@@ -60,6 +50,7 @@
         "vitest": "^4.1.4"
     },
     "dependencies": {
+        "@ml2drender/node": "^0.1.0",
         "lru-cache": "^11.5.2",
         "pmtiles": "^4.5.0"
     },

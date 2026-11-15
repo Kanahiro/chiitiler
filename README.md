@@ -36,10 +36,9 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** Run it from source with [pnpm](https://pnpm.io) and a Rust toolchain:
+> **No Docker?** Run it from source with [pnpm](https://pnpm.io):
 > ```bash
 > git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
-> pnpm build:native
 > CHIITILER_DEBUG=true pnpm tsx src/main.ts
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
@@ -47,7 +46,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 ## Features
 
 - **Zero-config** — no config file, no YAML, no database. Just a style URL.
-- **No GPU, no system libraries** — rendered by [ml2drender](./crates), a pure-Rust 2D MapLibre renderer, as a Node-API addon
+- **No GPU, no system libraries** — rendered by [ml2drender](https://github.com/Kanahiro/ml2drender) (`@ml2drender/node`), a pure-Rust 2D MapLibre renderer, as a Node-API addon
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form views (`/view`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
@@ -340,7 +339,7 @@ const cache = ChiitilerCache.withMemoryCache(
 
 ## Migrating from 1.x
 
-2.0 renders with [ml2drender](./crates) instead of MapLibre Native: no GPU, Xvfb or sharp, and about
+2.0 renders with [ml2drender](https://github.com/Kanahiro/ml2drender) instead of MapLibre Native: no GPU, Xvfb or sharp, and about
 a third of the memory. Images are close to MapLibre's but not pixel-identical (antialiasing and label
 placement differ).
 
@@ -372,36 +371,28 @@ placement differ).
   - New `protocols` option for custom URL schemes.
   - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
     `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
-  - The package ships the renderer for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
-    win32-x64; elsewhere, build it from a checkout with `pnpm build:native`.
+  - The renderer comes from `@ml2drender/node`, which has prebuilt addons for linux-x64 and
+    linux-arm64 (glibc), darwin-x64, darwin-arm64 and win32-x64.
 
 ## Develop
 
-Requires Node.js 24.22.1+, pnpm (`corepack enable`) and Rust.
+Requires Node.js 24.22.1+ and pnpm (`corepack enable`).
 
 ```bash
 git clone https://github.com/Kanahiro/chiitiler.git
 cd chiitiler
 pnpm install
-pnpm build:native     # build the renderer (native/ml2drender.<platform>-<arch>.node)
 pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
 pnpm test:benchmark   # see bench/BENCHMARK.md
-pnpm build            # bundle to build/main.mjs (loads ../native at runtime)
-pnpm test:rust        # cargo test (renderer)
-pnpm fixtures         # once: fetch MapLibre render/expression test fixtures
-pnpm test:render      # MapLibre render tests → target/test-report/render
+pnpm build            # bundle to build/main.mjs (loads @ml2drender/node from node_modules)
 ```
 
-The renderer lives in [`crates/`](./crates) (copied from ml2drender; see [`crates/AGENTS.md`](./crates/AGENTS.md)):
-`crates/core` is the sans-IO renderer and `crates/napi` the Node-API addon chiitiler loads.
-`crates/cli` is the test runner, and [`src/render/ml2drender.ts`](./src/render/ml2drender.ts) the
-TypeScript host that drives the `needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
-
-The npm package ships the addon for linux-x64, linux-arm64 (glibc 2.34+), darwin-arm64 and
-win32-x64; elsewhere, build it with `pnpm build:native`. x86-64 builds target x86-64-v2 (SSE4.2).
+The renderer is [ml2drender](https://github.com/Kanahiro/ml2drender)'s Node-API addon (`@ml2drender/node`);
+[`src/render/ml2drender.ts`](./src/render/ml2drender.ts) is the TypeScript host that drives its
+`needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
 
 ## Architecture
 

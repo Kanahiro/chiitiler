@@ -1,15 +1,3 @@
-FROM rust:1.97-slim-bookworm AS native
-
-WORKDIR /app
-COPY Cargo.toml Cargo.lock ./
-COPY .cargo ./.cargo
-COPY crates ./crates
-# The Node-API renderer for this image's platform, named like scripts/build-native.ts names it.
-RUN cargo build -p ml2drender-napi --profile native \
-  && mkdir -p native \
-  && arch=$(uname -m | sed 's/x86_64/x64/; s/aarch64/arm64/') \
-  && cp target/native/libml2drender_napi.so "native/ml2drender.linux-$arch.node"
-
 FROM node:24.22.3-bookworm-slim AS builder
 
 WORKDIR /app
@@ -22,7 +10,10 @@ RUN pnpm build
 
 # Dev image for docker-compose: dependencies installed at build time, src from a bind mount.
 FROM builder AS dev
-COPY --from=native /app/native ./native
+
+# Runtime dependencies the bundle leaves external: the renderer addon (@ml2drender/node).
+FROM builder AS deps
+RUN rm -rf node_modules && pnpm install --frozen-lockfile --prod
 
 FROM node:24.22.3-bookworm-slim AS runtime
 
@@ -31,8 +22,7 @@ ENV AWS_LWA_PORT=3000
 ENV AWS_LWA_READINESS_CHECK_PATH=/health
 
 WORKDIR /app
-# The bundle includes every dependency but the renderer, which it loads from ../native.
 COPY --from=builder /app/build ./build
-COPY --from=native /app/native ./native
+COPY --from=deps /app/node_modules ./node_modules
 
 CMD ["node", "/app/build/main.mjs"]

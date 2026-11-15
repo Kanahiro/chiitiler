@@ -6,8 +6,6 @@ on:
             - main
         paths:
             - "src/**"
-            - "crates/**"
-            - "Cargo.lock"
             - "tests/**"
             - "Dockerfile"
             - "docker-compose.yml"
@@ -39,7 +37,7 @@ jobs:
                     || { docker compose logs app; exit 1; }
             - name: run test
               run: pnpm test:integration
-            # The image releases ship (container.yml): the bundle and the addon, no node_modules.
+            # The image releases ship (container.yml): the bundle and its runtime dependencies (the renderer addon).
             - name: build and run the release image
               run: |
                   docker build --target runtime -t chiitiler:release .
