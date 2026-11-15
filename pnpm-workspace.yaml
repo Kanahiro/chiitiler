@@ -1,6 +1,6 @@
-packages:
-  - packages/*
 minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  - '@ml2drender/*'
 allowBuilds:
   esbuild: true
