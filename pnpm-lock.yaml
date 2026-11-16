@@ -167,8 +167,8 @@ importers:
   .:
     dependencies:
       '@ml2drender/node':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0(@maplibre/maplibre-gl-style-spec@26.5.1)
       lru-cache:
         specifier: ^11.5.2
         version: 11.5.2
@@ -189,8 +189,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.6(hono@4.13.16)
       '@maplibre/maplibre-gl-style-spec':
-        specifier: ^26.4.2
-        version: 26.4.2
+        specifier: ^26.4.4
+        version: 26.5.1
       '@tsconfig/node24':
         specifier: ^24.0.5
         version: 24.0.5
@@ -597,38 +597,45 @@ packages:
   '@mapbox/unitbezier@1.0.0':
     resolution: {integrity: sha512-fqd515fjBmANKGGsQ286E2Wvj/XvDFpGzwJxq4CI6jMQue6Oy04uCKp+JWKF00xRTmk6cEu1jPJ9p3xqH8YWqQ==}
 
-  '@maplibre/maplibre-gl-style-spec@26.4.2':
-    resolution: {integrity: sha512-6J0vZqMZvRAJKtdWJdDGHEh1YJ2ZHG08/GOur8gCArYhO8ZkM//OXqtI2AAEz4jc2G+Wq4MfcePg8qNK5TZ4Kg==}
+  '@maplibre/maplibre-gl-style-spec@26.5.1':
+    resolution: {integrity: sha512-9ufQ5LR+Ldn87SILPVyRNz4wVm/sBrM2ZRv9VfjLRKYKIGAcvC1VFw/DEkJLAHqfMV8m03zDz1DUNTIUj/GvdA==}
     hasBin: true
 
   '@minimistjs/subarg@1.0.0':
     resolution: {integrity: sha512-Q/ONBiM2zNeYUy0mVSO44mWWKYM3UHuEK43PKIOzJCbvUnPoMH1K+gk3cf1kgnCVJFlWmddahQQCmrmBGlk9jQ==}
 
-  '@ml2drender/node-darwin-x64@0.1.0':
-    resolution: {integrity: sha512-RNHM/KQY6F5LVMvwRanEL7JBGmwpdlBmVlEFyKoctz4llX1gjxH2ginn56jTIFk8jlmZF/cJMlPVvdCYy7IoVg==}
+  '@ml2drender/node-darwin-arm64@0.2.0':
+    resolution: {integrity: sha512-wkaOGONnDKZ53CvVEG0+GjbM8N2j3RUV1jh8dk8qOEgO8kUgrwMzgOqOFdMhNVOmS6iWQ9vhgc/8trKqwH2zvw==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@ml2drender/node-darwin-x64@0.2.0':
+    resolution: {integrity: sha512-iC4z72xI0qJuHE+bpy6tiHx5G/fftXb0JfISdcAMEOQraF8qgeihnz+sv/j2bGSlTEnBv4Qi0/zS7MugD4NNTA==}
     cpu: [x64]
     os: [darwin]
 
-  '@ml2drender/node-linux-arm64-gnu@0.1.0':
-    resolution: {integrity: sha512-xj+Rz236ZDFys2eMHRde4gKow+JudGI7fpJqWYifep7AmKY1+aVADKBGXpNEvbTW7rG34Yx/wwm5oS0aNgF8QA==}
+  '@ml2drender/node-linux-arm64-gnu@0.2.0':
+    resolution: {integrity: sha512-m7bjYCf2PQ2D2b9QxVsDc+I2g2DPIFhqIRLnVugEYMw9Ir8VYzY8WRQdTV5BRxcEvZCVgGB3s7ADiDyUYgtRQw==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@ml2drender/node-linux-x64-gnu@0.1.0':
-    resolution: {integrity: sha512-7F2JFagSQv10qrHKstnl0JIpVzDmoBmzCf+t7F3uKytLYLyJBHsDXK3jAuHbjWcFt/M03BylmM7thZKNE6ph9g==}
+  '@ml2drender/node-linux-x64-gnu@0.2.0':
+    resolution: {integrity: sha512-/4Ywh3Z2xN2wAFh5Ps6qkhhETHYnamKKGdzksIiafhnO71gZVOB6pSq+0CQXuP2uYjS+qw8cz7IXbWAHjQOK4w==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@ml2drender/node-win32-x64@0.1.0':
-    resolution: {integrity: sha512-E/+60VKTNoxu7MAkmP/T8AnOjqisIVG3l6VU9IajA75dmyZaoo8a6TRZaE2NjNTYocfG6BARtGqc3cynlPA+WA==}
+  '@ml2drender/node-win32-x64@0.2.0':
+    resolution: {integrity: sha512-VxbYpSpXzmw9YY0bSti/dO4jRGbu3tcazGeL9ht2eD4wAowyhARELkmHiPZtaEWu09wWJRU2zhHGW13uOs++3Q==}
     cpu: [x64]
     os: [win32]
 
-  '@ml2drender/node@0.1.0':
-    resolution: {integrity: sha512-gPar9PU6uYcIu7IvPQImUVZ/d5eKM5vDzDwouSYGqD36PEcSjrdQQoV1mCvqypLdUu5z73cKPn0GTF/O4ebcRA==}
+  '@ml2drender/node@0.2.0':
+    resolution: {integrity: sha512-d/iRbQTVorkc0gGIAhMbQ6sFyQJlT8Ka1VqoKDfj5Odk0rX1n9XZDkTAm5AUgrSZiRv2xSlQHkUG1DNk7MR2ZQ==}
     engines: {node: ^22.23.4 || ^24.22.1 || >=26.12.1}
+    peerDependencies:
+      '@maplibre/maplibre-gl-style-spec': ^26.4.4
 
   '@nodable/entities@3.1.0':
     resolution: {integrity: sha512-LsS/DjHr+uDM647Gru/cA8+J3a3HfhttwCKLyuoyN7yXTFCxKBtSgMQBvrW9yNPa2/zDRUNuGPaH5QUFoa4arQ==}
@@ -2034,7 +2041,7 @@ snapshots:
 
   '@mapbox/unitbezier@1.0.0': {}
 
-  '@maplibre/maplibre-gl-style-spec@26.4.2':
+  '@maplibre/maplibre-gl-style-spec@26.5.1':
     dependencies:
       '@mapbox/jsonlint-lines-primitives': 2.0.3
       '@mapbox/unitbezier': 1.0.0
@@ -2047,24 +2054,30 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  '@ml2drender/node-darwin-x64@0.1.0':
+  '@ml2drender/node-darwin-arm64@0.2.0':
     optional: true
 
-  '@ml2drender/node-linux-arm64-gnu@0.1.0':
+  '@ml2drender/node-darwin-x64@0.2.0':
     optional: true
 
-  '@ml2drender/node-linux-x64-gnu@0.1.0':
+  '@ml2drender/node-linux-arm64-gnu@0.2.0':
     optional: true
 
-  '@ml2drender/node-win32-x64@0.1.0':
+  '@ml2drender/node-linux-x64-gnu@0.2.0':
     optional: true
 
-  '@ml2drender/node@0.1.0':
+  '@ml2drender/node-win32-x64@0.2.0':
+    optional: true
+
+  '@ml2drender/node@0.2.0(@maplibre/maplibre-gl-style-spec@26.5.1)':
+    dependencies:
+      '@maplibre/maplibre-gl-style-spec': 26.5.1
     optionalDependencies:
-      '@ml2drender/node-darwin-x64': 0.1.0
-      '@ml2drender/node-linux-arm64-gnu': 0.1.0
-      '@ml2drender/node-linux-x64-gnu': 0.1.0
-      '@ml2drender/node-win32-x64': 0.1.0
+      '@ml2drender/node-darwin-arm64': 0.2.0
+      '@ml2drender/node-darwin-x64': 0.2.0
+      '@ml2drender/node-linux-arm64-gnu': 0.2.0
+      '@ml2drender/node-linux-x64-gnu': 0.2.0
+      '@ml2drender/node-win32-x64': 0.2.0
 
   '@nodable/entities@3.1.0': {}
 
