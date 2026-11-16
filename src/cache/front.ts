@@ -7,7 +7,7 @@ import type { Cache, Value } from './index.js';
  * by up to ttlSeconds. maxBytes bounds buffer payloads, not total process memory.
  * Either limit set to zero disables the front cache and returns backing unchanged.
  */
-export function withMemoryCache(
+export function withFrontCache(
     backing: Cache,
     { ttlSeconds = 10, maxBytes = 64 * 1024 * 1024 } = {},
 ): Cache {
@@ -29,8 +29,8 @@ export function withMemoryCache(
 
     return {
         name: backing.name,
-        memory: {
-            name: 'memory',
+        front: {
+            name: 'front',
             get: async (key) => memory.get(key),
             set: async (key, value) => {
                 memory.set(key, value);

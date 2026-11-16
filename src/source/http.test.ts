@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { getHttpSource } from './http.js';
 import { setUserAgent } from './userAgent.js';
-import { memoryCache } from '../cache/memory.js';
+import { noneCache, withFrontCache } from '../cache/index.js';
 
 function mockFetch(response: Response) {
     return vi
@@ -16,7 +16,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns null for 204 No Content without caching', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
         mockFetch(new Response(null, { status: 204 }));
 
@@ -29,7 +29,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns null for empty-body 200 without caching', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
         mockFetch(new Response(new ArrayBuffer(0), { status: 200 }));
 
@@ -41,7 +41,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns null for 404', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         mockFetch(new Response('not found', { status: 404 }));
 
         const data = await getHttpSource(
@@ -53,7 +53,7 @@ describe('getHttpSource', () => {
     });
 
     it('throws for 5xx to fail rendering instead of drawing an empty tile', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
         mockFetch(new Response('internal server error', { status: 500 }));
 
@@ -65,7 +65,7 @@ describe('getHttpSource', () => {
     });
 
     it('throws when fetch fails (server unreachable)', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         vi.spyOn(globalThis, 'fetch').mockRejectedValue(
             new TypeError('fetch failed'),
         );
@@ -104,7 +104,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns and caches a non-empty body', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const body = new Uint8Array([1, 2, 3, 4]);
         mockFetch(new Response(body, { status: 200 }));
 

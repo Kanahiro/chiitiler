@@ -180,13 +180,13 @@ class Chiitiler {
         if (cached !== undefined && now - cached.loadedAt < STYLE_TTL_MS)
             return cached.style;
         // Styles change upstream: read them past the backing cache (which may never expire them),
-        // through the short-lived memory layer only.
-        const memoryOnly: Cache = {
+        // through the short-lived front cache only.
+        const frontOnly: Cache = {
             get: async () => undefined,
             set: async () => {},
-            memory: this.cache.memory,
+            front: this.cache.front,
         };
-        const bytes = await getSource(stylejson, memoryOnly, this.protocols);
+        const bytes = await getSource(stylejson, frontOnly, this.protocols);
         if (bytes === null) throw new Error('style not found');
         const text = new TextDecoder().decode(bytes);
         // An unchanged style keeps its object, and with it its renderer and their decoded resources.

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 
 import { getSource } from './index.js';
-import { noneCache, withMemoryCache } from '../cache/index.js';
+import { noneCache, withFrontCache } from '../cache/index.js';
 
 describe('getSource', () => {
     it('file://', async () => {
@@ -14,12 +14,12 @@ describe('getSource', () => {
         expect(data).not.toBeNull();
     });
 
-    it('file:// is served from the memory front cache, even over none', async () => {
+    it('file:// is served from the front cache, even over none', async () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chiitiler-'));
         const file = path.join(dir, 'a.json');
         fs.writeFileSync(file, 'old');
         try {
-            const cache = withMemoryCache(noneCache());
+            const cache = withFrontCache(noneCache());
             expect((await getSource(`file://${file}`, cache))?.toString()).toBe(
                 'old',
             );
