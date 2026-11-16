@@ -30,11 +30,4 @@ const noneCache: () => Cache = () => ({
     set: async () => undefined,
 });
 
-export {
-    noneCache,
-    s3Cache,
-    gcsCache,
-    fileCache,
-    type Value,
-    type Cache,
-};
+export { noneCache, s3Cache, gcsCache, fileCache, type Value, type Cache };
