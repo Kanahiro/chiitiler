@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { withMemoryCache } from './front.js';
+import { withFrontCache } from './front.js';
 import type { Cache, Value } from './index.js';
 
 function backingCache() {
@@ -12,14 +12,14 @@ function backingCache() {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('withMemoryCache', () => {
+describe('withFrontCache', () => {
     it('promotes backing hits and expires from insertion, not last access', async () => {
         // lru-cache retains the performance object at module load time.
         let now = 1;
         vi.spyOn(performance, 'now').mockImplementation(() => now);
         const backing = backingCache();
         backing.get.mockResolvedValue(Buffer.from('old'));
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         expect(await cache.get('key')).toEqual(Buffer.from('old'));
         now += 9000;
         expect(await cache.get('key')).toEqual(Buffer.from('old'));
@@ -32,7 +32,7 @@ describe('withMemoryCache', () => {
 
     it('shares concurrent reads and does not retain misses or errors', async () => {
         const backing = backingCache();
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         expect(await Promise.all([cache.get('key'), cache.get('key')])).toEqual(
             [undefined, undefined],
         );
@@ -53,7 +53,7 @@ describe('withMemoryCache', () => {
                     finish = resolve;
                 }),
         );
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         const value = Buffer.from('value');
         const writing = cache.set('key', value);
         expect(await cache.get('key')).toBe(value);
@@ -72,7 +72,7 @@ describe('withMemoryCache', () => {
                     finish = resolve;
                 }),
         );
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         const reading = cache.get('key');
         await cache.set('key', Buffer.from('new'));
         finish(Buffer.from('old'));
@@ -82,7 +82,7 @@ describe('withMemoryCache', () => {
 
     it('evicts the least recently used payload to stay within the byte limit', async () => {
         const backing = backingCache();
-        const cache = withMemoryCache(backing, { maxBytes: 6 });
+        const cache = withFrontCache(backing, { maxBytes: 6 });
         await cache.set('a', Buffer.from('aaa'));
         await cache.set('b', Buffer.from('bbb'));
         await cache.get('a');
@@ -95,7 +95,7 @@ describe('withMemoryCache', () => {
 
     it('persists oversized values without retaining an older cached value', async () => {
         const backing = backingCache();
-        const cache = withMemoryCache(backing, { maxBytes: 3 });
+        const cache = withFrontCache(backing, { maxBytes: 3 });
         await cache.set('key', Buffer.from('old'));
         const large = Buffer.from('large');
         await cache.set('key', large);
@@ -109,7 +109,7 @@ describe('withMemoryCache', () => {
     it('propagates persistence failures while retaining the fetched buffer', async () => {
         const backing = backingCache();
         backing.set.mockRejectedValue(new Error('write failed'));
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         await expect(cache.set('key', Buffer.from('value'))).rejects.toThrow(
             'write failed',
         );
@@ -122,7 +122,7 @@ describe('withMemoryCache', () => {
         { ttlSeconds: 0, maxBytes: 0 },
     ])('returns the backing cache unchanged when disabled: %j', (options) => {
         const backing = backingCache();
-        expect(withMemoryCache(backing, options)).toBe(backing);
+        expect(withFrontCache(backing, options)).toBe(backing);
     });
 
     it.each([
@@ -131,6 +131,6 @@ describe('withMemoryCache', () => {
         { maxBytes: -1 },
         { maxBytes: 1.5 },
     ])('rejects invalid limits %j', (options) => {
-        expect(() => withMemoryCache(backingCache(), options)).toThrow();
+        expect(() => withFrontCache(backingCache(), options)).toThrow();
     });
 });

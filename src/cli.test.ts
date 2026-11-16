@@ -55,7 +55,7 @@ describe('configuration', () => {
 
     it('reads every option from the environment', () => {
         const config = readConfig({
-            CHIITILER_CACHE_METHOD: 'memory',
+            CHIITILER_CACHE_METHOD: 'file',
             CHIITILER_PORT: '8989',
             CHIITILER_DEBUG: 'true',
             CHIITILER_PROCESSES: '2',
@@ -63,7 +63,7 @@ describe('configuration', () => {
             CHIITILER_CACHE_CONTROL: 'public, max-age=60',
             CHIITILER_CORS: 'https://a.example, https://b.example',
         });
-        expect(config.cache.name).toBe('memory');
+        expect(config.cache.name).toBe('file');
         expect(config.port).toBe(8989);
         expect(config.debug).toBe(true);
         expect(config.processes).toBe(2);
@@ -172,15 +172,9 @@ describe('run chiitiler', () => {
         expect(options!.cache).toBe(file);
     });
 
-    it.each([
-        ['file', 1],
-        ['s3', 1],
-        ['gcs', 1],
-        ['none', 2],
-        ['memory', 2],
-    ] as const)(
-        'front cache for %s: backing reads=%i',
-        async (method, reads) => {
+    it.each(['file', 's3', 'gcs', 'none'] as const)(
+        'front cache for %s',
+        async (method) => {
             const factory =
                 method === 'none' ? 'noneCache' : (`${method}Cache` as const);
             const cache = backing(method);
@@ -193,7 +187,7 @@ describe('run chiitiler', () => {
             });
             await options!.cache.get('key');
             await options!.cache.get('key');
-            expect(cache.get).toHaveBeenCalledTimes(reads);
+            expect(cache.get).toHaveBeenCalledTimes(1);
         },
     );
 

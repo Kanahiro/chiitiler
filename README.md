@@ -50,7 +50,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form views (`/view`)
 - **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
-- **Pluggable caching** — `memory` · `file` · `s3` · `gcs` backends for shared source assets
+- **Pluggable caching** — `file` · `s3` · `gcs` backends for shared source assets, plus an in-process front cache
 - **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles`
 - **Library or server** — import the renderer directly into your Node.js pipeline
 - **Built-in debug UI** — `/debug` and `/editor` for live style preview
@@ -158,7 +158,7 @@ const cache: Cache = {
 };
 ```
 
-`ChiitilerCache.withMemoryCache(cache)` puts the short-lived in-process layer described under
+`ChiitilerCache.withFrontCache(cache)` puts the short-lived in-process layer described under
 [Cache](#cache) in front of it.
 
 ### Custom protocols
@@ -168,7 +168,7 @@ glyph URL in it. Custom protocols take precedence over the built-in ones, so `ht
 replaced too (e.g. to add credentials). Return `null` when there is nothing at the URL, like HTTP 404:
 a missing vector tile renders empty, a missing raster tile is replaced by its parent. Throw for other
 failures: the render fails rather than returning a map with holes. Results go through the cache's
-`memory` layer, not the cache itself (cache inside the loader if needed).
+front cache, not the cache itself (cache inside the loader if needed).
 
 ```ts
 import { Chiitiler, type Protocols } from 'chiitiler';
@@ -255,8 +255,8 @@ images: put a CDN in front for those (`CHIITILER_CACHE_CONTROL`). There are two 
 
 1. **Cache method** — where fetched bytes are kept, chosen with `CHIITILER_CACHE_METHOD`. Each
    method has its own settings (below).
-2. **Front cache** — a small in-process memory cache that chiitiler puts in front of the `file`,
-   `s3` and `gcs` methods, so that repeated reads skip the disk or the network.
+2. **Front cache** — a small in-process memory cache that chiitiler puts in front of every
+   method, so that repeated reads skip the disk or the network.
 
 ```
 renderer needs a URL → front cache      → cache method   → fetch
@@ -268,19 +268,16 @@ renderer needs a URL → front cache      → cache method   → fetch
 | `CHIITILER_CACHE_METHOD` | Keeps | Shared between processes |
 | --- | --- | --- |
 | `none` (default) | nothing | — |
-| `memory` | an LRU in each process | no |
 | `file` | files in a directory | yes, on one host |
 | `s3` | objects in an S3 bucket | yes |
 | `gcs` | objects in a GCS bucket | yes |
 
-`CHIITILER_CACHE_TTL_SEC` (default `3600`) is how long `memory` and `file` entries live (`0` for
-`file`: never expire). S3 and GCS entries do not expire on their own: use a lifecycle rule.
+`CHIITILER_CACHE_TTL_SEC` (default `3600`) is how long `file` entries live (`0`: never expire). S3 and GCS entries do not expire on their own: use a lifecycle rule.
 
 Settings of each method:
 
 | Method | Variable | Default |
 | --- | --- | --- |
-| `memory` | `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` | `1000` |
 | `file` | `CHIITILER_FILECACHE_DIR` | `./.cache` |
 | `s3` | `CHIITILER_S3CACHE_BUCKET` | (required) |
 | | `CHIITILER_S3_REGION` | `us-east-1` |
@@ -301,7 +298,7 @@ files, `s3://`, `gs://`, `mbtiles://` and local `pmtiles://` are as close as the
 
 #### 2. Front cache
 
-With `file`, `s3` or `gcs`, each process also keeps what it reads in memory, for every source:
+Whatever the method, each process also keeps what it reads in memory, for every source:
 
 | Variable | Default |
 | --- | --- |
@@ -309,7 +306,7 @@ With `file`, `s3` or `gcs`, each process also keeps what it reads in memory, for
 | `CHIITILER_FRONT_CACHE_MAX_BYTES` | `67108864` (64 MiB of payloads per process) |
 
 Set either to `0` to turn the front cache off. Entries live for the TTL from when they were read,
-even past their expiry in the cache method. `none` and `memory` have no front cache.
+even past their expiry in the cache method. With `none`, the front cache is the only cache.
 
 #### Renderers and styles
 
@@ -322,7 +319,7 @@ front cache only), so edits upstream show up within a minute.
 Library callers pass a cache to each call; the server's front cache is opt-in:
 
 ```ts
-const cache = ChiitilerCache.withMemoryCache(
+const cache = ChiitilerCache.withFrontCache(
     ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 }),
     { ttlSeconds: 10, maxBytes: 64 * 1024 * 1024 },
 );
@@ -359,7 +356,9 @@ placement differ).
 - **Sources:** `cog://` is removed: serve COGs as raster tiles from another server (e.g. TiTiler).
 - **Caches:** `file`, `s3` and `gcs` caches use new file and object names (SHA-256 of the URL; the
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
-  not read, and can be deleted. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
+  not read, and can be deleted. The `memory` method and `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` are
+  removed: the front cache now also sits in front of `none`, so use `none` and raise
+  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
 - **Library:**
   - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are replaced by
     the `renderTile`, `renderBbox` and `renderView` methods of a `Chiitiler` (`renderView` takes no
@@ -368,6 +367,8 @@ placement differ).
     call. The `*Stream` variants (Sharp)
     and `prewarm()` are removed.
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
+  - `memoryCache` is removed (use `withFrontCache(noneCache(), …)`), `withMemoryCache` is renamed
+    `withFrontCache`, and `Cache.memory` is renamed `Cache.front`.
   - New `protocols` option for custom URL schemes.
   - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
     `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
@@ -414,7 +415,7 @@ graph LR
     end
 
     sources --> cache --> render --> server --/tiles/z/x/y--> png/webp/jpg
-    cache <--get/set--> memory/file/s3/gcs
+    cache <--get/set--> file/s3/gcs
 ```
 
 ## Credits

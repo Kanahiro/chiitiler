@@ -16,13 +16,13 @@ type Protocol = (url: string) => Promise<Uint8Array | null>;
 type Protocols = Record<string, Protocol>;
 
 /**
- * Every source reads through the short-lived in-process memory layer.
+ * Every source reads through the short-lived in-process front cache.
  * Only http(s) sources also persist to the backing cache (in fetchSource).
  * Empty results are not cached.
  */
 async function cached(
     uri: string,
-    { memory: cache = noneCache() }: Cache,
+    { front: cache = noneCache() }: Cache,
     load: () => Promise<Uint8Array | null>,
 ): Promise<Uint8Array | null> {
     const val = await cache.get(uri);
@@ -59,7 +59,7 @@ const BUILT_IN = {};
  * Concurrent requests for the same uri share a single in-flight fetch
  * (single-flight) to avoid duplicate downloads.
  * @param uri
- * @param cache {Cache} - Cache Strategy. Its memory layer applies to every source; the backing cache only to http(s).
+ * @param cache {Cache} - Cache Strategy. Its front cache applies to every source; the backing cache only to http(s).
  * @param protocols - Custom protocols, before the built-in ones.
  * @returns
  */

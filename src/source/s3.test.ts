@@ -15,7 +15,7 @@ vi.mock('../s3.js', () => ({
 
 import { getS3Source } from './s3.js';
 import { getSource } from './index.js';
-import { type Cache, withMemoryCache } from '../cache/index.js';
+import { type Cache, withFrontCache } from '../cache/index.js';
 
 describe('getS3Source', () => {
     beforeEach(() => {
@@ -51,7 +51,7 @@ describe('getS3Source', () => {
     });
 });
 
-describe('s3 sources use only the memory front cache, not the backing cache', () => {
+describe('s3 sources use only the front cache, not the backing cache', () => {
     const backing = {
         name: 'spy',
         get: vi.fn(async () => undefined),
@@ -77,7 +77,7 @@ describe('s3 sources use only the memory front cache, not the backing cache', ()
                     Uint8Array.from(Buffer.from('sprite')),
             },
         });
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
 
         const a = await getSource('s3://assets/sprite.png', cache);
         const b = await getSource('s3://assets/sprite.png', cache);
@@ -103,7 +103,7 @@ describe('s3 sources use only the memory front cache, not the backing cache', ()
                 },
             };
         });
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         const uri = 'pmtiles://s3://tiles/school.pmtiles/0/0/0';
 
         const a = await getSource(uri, cache);

@@ -52,18 +52,8 @@ function readCache(env: Env): caches.Cache {
     let cache: caches.Cache;
     switch (method) {
         case 'none':
-            return caches.noneCache();
-        case 'memory':
-            // already in-process: no memory layer in front of it
-            return caches.memoryCache({
-                ttl,
-                maxItemCount: integer(
-                    env,
-                    'CHIITILER_MEMORYCACHE_MAXITEMCOUNT',
-                    1000,
-                    1,
-                ),
-            });
+            cache = caches.noneCache();
+            break;
         case 'file':
             cache = caches.fileCache({
                 dir: read(env, 'CHIITILER_FILECACHE_DIR') ?? './.cache',
@@ -89,10 +79,10 @@ function readCache(env: Env): caches.Cache {
             break;
         default:
             throw new Error(
-                `CHIITILER_CACHE_METHOD must be none, memory, file, s3 or gcs (got ${method})`,
+                `CHIITILER_CACHE_METHOD must be none, file, s3 or gcs (got ${method})`,
             );
     }
-    return caches.withMemoryCache(cache, {
+    return caches.withFrontCache(cache, {
         ttlSeconds: number(env, 'CHIITILER_FRONT_CACHE_TTL_SEC'),
         maxBytes: number(env, 'CHIITILER_FRONT_CACHE_MAX_BYTES'),
     });
