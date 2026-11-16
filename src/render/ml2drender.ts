@@ -9,7 +9,6 @@ import {
     encodeJpeg,
     encodePng,
     encodeWebp,
-    type Renderer as NativeRenderer,
     Renderer,
     type View as NativeView,
 } from '@ml2drender/node';
@@ -78,8 +77,7 @@ export interface InitOptions {
     /**
      * Decoded resources (tiles and their layer geometry, sprites, glyphs) are kept inside the
      * renderer and reused by later renders; the first render ttlMs or more after they started
-     * being kept drops them. 0 disables reuse (and drops each layer's buckets once drawn, for a
-     * lower peak), Infinity never expires. Default: 5 minutes.
+     * being kept drops them. 0 disables reuse, Infinity never expires. Default: 5 minutes.
      */
     cache?: { ttlMs?: number };
     /**
@@ -91,18 +89,11 @@ export interface InitOptions {
     transformFillExtrusion?: (layer: FillExtrusionLayer) => StyleLayer;
 }
 
-/** A native renderer shared by overlapping renders; dropped once retired and idle. */
+/** A renderer shared by overlapping renders (they take turns on it); dropped once retired and idle. */
 interface Core {
-    renderer: NativeRenderer;
+    renderer: Renderer;
     createdAt: number;
     active: number;
-    retired: boolean;
-    /** The end of the last operation queued: calls on a renderer must not overlap. */
-    queue: Promise<unknown>;
-    /** Fetches in flight, shared by overlapping renders, with the newest ticket that awaits each. */
-    pending: Map<string, { request: Promise<void>; ticket: number }>;
-    /** Tickets of the renders in progress: the renderer keeps the tiles they need. */
-    tickets: Set<number>;
 }
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
@@ -258,7 +249,7 @@ function prepareStyle(
     transform: NonNullable<
         InitOptions['transformFillExtrusion']
     > = flattenFillExtrusion,
-): string {
+): StyleSpecification {
     if (!style || typeof style !== 'object' || !Array.isArray(style.layers)) {
         throw new Error('Style must contain a layers array');
     }
@@ -282,17 +273,16 @@ function prepareStyle(
         }
         return replacement;
     });
-    return JSON.stringify({ ...style, layers });
+    return { ...style, layers } as StyleSpecification;
 }
 
 /** Render a MapLibre Style as a static 2D RGBA image with the Node-API renderer. */
 export class MapRenderer {
-    /** Cores in use, at most `concurrency` (none kept with a TTL of 0). */
+    /** Renderers in use, at most `concurrency` (none kept with a TTL of 0). */
     private cores: Core[] = [];
-    private lastTicket = 0;
 
     private constructor(
-        private readonly style: string,
+        private readonly style: StyleSpecification,
         private readonly loadResource: InitOptions['loadResource'],
         private readonly ttlMs: number,
         private readonly concurrency: number,
@@ -311,50 +301,25 @@ export class MapRenderer {
         const concurrency = options.concurrency ?? 1;
         if (!Number.isInteger(concurrency) || concurrency < 1)
             throw new RangeError('concurrency must be a positive integer');
-        const renderer = new MapRenderer(
+        return new MapRenderer(
             prepareStyle(style, options.transformFillExtrusion),
             options.loadResource,
             ttlMs,
             concurrency,
         );
-        // Parse the style now: errors surface here, not at the first render.
-        const core = renderer.acquire(
-            nativeView(tileView({ z: 0, x: 0, y: 0 })),
-        );
-        core.active--;
-        return renderer;
     }
 
     /** Fetch required resources and return a new RGBA image of a Web Mercator camera. */
     async renderView(view: View): Promise<RenderedImage> {
         const args = nativeView(view);
-        const core = this.acquire(args);
-        const ticket = ++this.lastTicket;
-        core.tickets.add(ticket);
+        const core = this.acquire();
         try {
-            for (let round = 0; ; round++) {
-                // Other renders may move the camera while this one awaits resources: point it back
-                // and ask what is missing in one operation, and draw in the same one if nothing is.
-                const step = await this.exec(core, async () => {
-                    core.renderer.setView(args);
-                    core.renderer.setTicket(ticket);
-                    const urls = await core.renderer.needs();
-                    if (urls.length > 0) return { urls };
-                    // Tickets increase, so the first in the set is the oldest in progress.
-                    const oldest = core.tickets.values().next().value as number;
-                    return {
-                        data: (await core.renderer.render(oldest)) as Bytes,
-                    };
-                });
-                if (step.data) return image(step.data, args);
-                if (round >= 32)
-                    throw new Error('Resource requests did not settle');
-                await Promise.all(
-                    step.urls.map((url) => this.fetch(core, url, ticket)),
-                );
-            }
+            return image((await core.renderer.renderView(args)) as Bytes, args);
+        } catch (error) {
+            // A failed render may leave the renderer inconsistent: later renders use a new one.
+            this.retire(core);
+            throw error;
         } finally {
-            core.tickets.delete(ticket);
             core.active--;
         }
     }
@@ -370,47 +335,10 @@ export class MapRenderer {
     }
 
     /**
-     * Run `op` on `core` after the operations queued before it. A failed operation may leave the
-     * renderer inconsistent: later renders use a new core.
+     * The least busy renderer, a new one while all are busy and fewer than `concurrency` exist.
+     * Renderers older than the cache TTL are replaced. With a TTL of 0, each render gets its own.
      */
-    private exec<T>(core: Core, op: () => Promise<T>): Promise<T> {
-        const result = core.queue.then(op).catch((error) => {
-            this.retire(core);
-            throw error;
-        });
-        core.queue = result.catch(() => {});
-        return result;
-    }
-
-    /**
-     * Fetch `url` once per core and provide it to `core`, which requested it, before it leaves
-     * `pending`. It is kept for the newest render awaiting it: while any of them is in progress,
-     * the oldest ticket in progress is at most that one.
-     */
-    private fetch(core: Core, url: string, ticket: number): Promise<void> {
-        const shared = core.pending.get(url);
-        if (shared) {
-            shared.ticket = Math.max(shared.ticket, ticket);
-            return shared.request;
-        }
-        const entry = { ticket, request: Promise.resolve() };
-        entry.request = this.loadResource(url)
-            .then((bytes) =>
-                this.exec(core, async () => {
-                    core.renderer.setTicket(entry.ticket);
-                    await core.renderer.provide(url, bytes);
-                }),
-            )
-            .finally(() => core.pending.delete(url));
-        core.pending.set(url, entry);
-        return entry.request;
-    }
-
-    /**
-     * The least busy core, a new one while all are busy and fewer than `concurrency` exist. Cores
-     * older than the cache TTL are replaced. With a TTL of 0, each render gets its own.
-     */
-    private acquire(view: NativeView): Core {
+    private acquire(): Core {
         const now = performance.now();
         for (const core of this.cores) {
             if (now - core.createdAt >= this.ttlMs) this.retire(core);
@@ -424,19 +352,14 @@ export class MapRenderer {
             !core ||
             (core.active > 0 && this.cores.length < this.concurrency)
         ) {
-            const renderer = new Renderer(this.style, view);
-            // A core that is not reused drops buckets as soon as they are drawn.
-            if (this.ttlMs === 0) renderer.setKeepBuckets(false);
             core = {
-                renderer,
+                renderer: new Renderer(this.style, {
+                    loadResource: this.loadResource,
+                }),
                 createdAt: now,
                 active: 0,
-                retired: this.ttlMs === 0,
-                queue: Promise.resolve(),
-                pending: new Map(),
-                tickets: new Set(),
             };
-            if (!core.retired) this.cores.push(core);
+            if (this.ttlMs !== 0) this.cores.push(core);
         }
         core.active++;
         return core;
@@ -444,7 +367,6 @@ export class MapRenderer {
 
     /** Stop handing `core` to new renders; it is dropped once its renders end. */
     private retire(core: Core) {
-        core.retired = true;
         this.cores = this.cores.filter((c) => c !== core);
     }
 }

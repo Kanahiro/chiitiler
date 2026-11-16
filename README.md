@@ -391,8 +391,8 @@ pnpm build            # bundle to build/main.mjs (loads @ml2drender/node from no
 ```
 
 The renderer is [ml2drender](https://github.com/Kanahiro/ml2drender)'s Node-API addon (`@ml2drender/node`);
-[`src/render/ml2drender.ts`](./src/render/ml2drender.ts) is the TypeScript host that drives its
-`needs()` → fetch → `provide()` loop through chiitiler's sources and cache.
+[`src/render/ml2drender.ts`](./src/render/ml2drender.ts) pools its renderers per style and loads
+their resources (`loadResource`) through chiitiler's sources and cache.
 
 ## Architecture
 

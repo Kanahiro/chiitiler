@@ -35,7 +35,7 @@
         "@biomejs/biome": "^2.6.6",
         "@google-cloud/storage": "^7.22.0",
         "@hono/node-server": "^2.1.1",
-        "@maplibre/maplibre-gl-style-spec": "^26.4.2",
+        "@maplibre/maplibre-gl-style-spec": "^26.4.4",
         "@tsconfig/node24": "^24.0.5",
         "@types/autocannon": "^7.12.7",
         "@types/node": "^25.9.6",
@@ -50,14 +50,14 @@
         "vitest": "^4.1.4"
     },
     "dependencies": {
-        "@ml2drender/node": "^0.1.0",
+        "@ml2drender/node": "^0.2.0",
         "lru-cache": "^11.5.2",
         "pmtiles": "^4.5.0"
     },
     "peerDependencies": {
         "@aws-sdk/client-s3": "^3.0.0",
         "@google-cloud/storage": "^7.0.0",
-        "@maplibre/maplibre-gl-style-spec": "^26.0.0"
+        "@maplibre/maplibre-gl-style-spec": "^26.4.4"
     },
     "peerDependenciesMeta": {
         "@aws-sdk/client-s3": {
