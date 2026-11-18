@@ -24,5 +24,7 @@ ENV AWS_LWA_READINESS_CHECK_PATH=/health
 WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=deps /app/node_modules ./node_modules
+COPY crs ./crs
+ENV CHIITILER_CRS_DIR=/app/crs
 
 CMD ["node", "/app/build/main.mjs"]

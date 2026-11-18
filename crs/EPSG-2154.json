@@ -1,0 +1,144 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "RGF93 v1 / Lambert-93",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "RGF93 v1",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Reseau Geodesique Francais 1993 v1",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4171
+            },
+            "remarks": "See CRS code 7084 for alternate system with axes reversed used by IGN for GIS purposes. Replaced by RGF93 v2 (CRS code 9777) from 2010-06-18."
+        },
+        "conversion": {
+            "name": "Lambert-93",
+            "method": {
+                "name": "Lambert Conic Conformal (2SP)",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9802
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of false origin",
+                    "value": 46.5,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8821
+                    }
+                },
+                {
+                    "name": "Longitude of false origin",
+                    "value": 3,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8822
+                    }
+                },
+                {
+                    "name": "Latitude of 1st standard parallel",
+                    "value": 49,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8823
+                    }
+                },
+                {
+                    "name": "Latitude of 2nd standard parallel",
+                    "value": 44,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8824
+                    }
+                },
+                {
+                    "name": "Easting at false origin",
+                    "value": 700000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8826
+                    }
+                },
+                {
+                    "name": "Northing at false origin",
+                    "value": 6600000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8827
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "X",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "Y",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Engineering survey, topographic mapping.",
+        "area": "France - onshore and offshore, mainland and Corsica (France m\u00e9tropolitaine including Corsica).",
+        "bbox": {
+            "south_latitude": 41.15,
+            "west_longitude": -9.86,
+            "north_latitude": 51.56,
+            "east_longitude": 10.38
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 2154
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -378305.8099675197,
+            7235612.724773035
+        ],
+        "extentAtZoom0": 1698955.3812011718
+    }
+}

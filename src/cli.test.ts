@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import cluster from 'node:cluster';
-import { availableParallelism } from 'node:os';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { availableParallelism, tmpdir } from 'node:os';
 
 import { readConfig, run } from './cli.js';
 import * as server from './server/index.js';
@@ -97,6 +99,30 @@ describe('configuration', () => {
         ['CHIITILER_CACHE_TTL_SEC', 'x', 'CHIITILER_CACHE_TTL_SEC must be'],
     ])('rejects %s=%s', (name, value, error) => {
         expect(() => readConfig({ [name]: value })).toThrow(error);
+    });
+
+    it('reads CRSs from CHIITILER_CRS_DIR when requested', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'chiitiler-crs-'));
+        try {
+            const utm = {
+                projjson: { type: 'ProjectedCRS' },
+                tileMatrixSet: { origin: [0, 0], extentAtZoom0: 1 },
+            };
+            writeFileSync(join(dir, 'EPSG-32654.json'), JSON.stringify(utm));
+            writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
+            writeFileSync(join(dir, 'README.md'), 'not a CRS');
+            const crs = readConfig({ CHIITILER_CRS_DIR: dir }).crs;
+            expect(crs?.ids).toEqual(['EPSG-32654', 'bad']);
+            expect(await crs?.get('EPSG-32654')).toEqual(utm);
+            for (const id of ['README', 'missing', '../EPSG-32654', 'toString'])
+                expect(await crs?.get(id), id).toBeUndefined();
+            await expect(crs?.get('bad')).rejects.toThrow(
+                'bad.json has no projjson',
+            );
+            expect(readConfig({}).crs).toBeUndefined();
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it.each([

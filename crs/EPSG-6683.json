@@ -1,0 +1,135 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "JGD2011 / Japan Plane Rectangular CS XV",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "JGD2011",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Japanese Geodetic Datum 2011",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 6668
+            },
+            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+        },
+        "conversion": {
+            "name": "Japan Plane Rectangular CS zone XV",
+            "method": {
+                "name": "Transverse Mercator",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9807
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of natural origin",
+                    "value": 26,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8801
+                    }
+                },
+                {
+                    "name": "Longitude of natural origin",
+                    "value": 127.5,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8802
+                    }
+                },
+                {
+                    "name": "Scale factor at natural origin",
+                    "value": 0.9999,
+                    "unit": "unity",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8805
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Northing",
+                    "abbreviation": "X",
+                    "direction": "north",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Easting",
+                    "abbreviation": "Y",
+                    "direction": "east",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
+        "area": "Japan - onshore - Okinawa-ken between 126\u00b0E and 130\u00b0E.",
+        "bbox": {
+            "south_latitude": 26.02,
+            "west_longitude": 126.63,
+            "north_latitude": 26.91,
+            "east_longitude": 128.4
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 6683
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -87081.0218032431,
+            101131.1656057617
+        ],
+        "extentAtZoom0": 177164.98791051077
+    }
+}

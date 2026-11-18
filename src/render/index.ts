@@ -2,7 +2,7 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { availableParallelism } from 'node:os';
 import { LRUCache } from 'lru-cache';
 
-import { MapRenderer, type RenderedImage } from './ml2drender.js';
+import { type Crs, MapRenderer, type RenderedImage } from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
 import { getSource, type Protocols } from '../source/index.js';
 
@@ -111,55 +111,107 @@ class Chiitiler {
     }
 
     /** Render a slippy-map tile and encode it as `ext`. */
-    async renderTile({
-        stylejson,
-        z,
-        x,
-        y,
-        tileSize,
-        margin,
-        ext,
-        quality,
-    }: RenderTileOptions): Promise<Uint8Array<ArrayBuffer>> {
-        this.checkSize([tileSize + 2 * Math.floor(margin / 2)]);
-        const renderer = await this.renderer(stylejson);
-        const image = await renderer.renderTile({
+    renderTile(options: RenderTileOptions): Promise<Uint8Array<ArrayBuffer>> {
+        return this.tile(options);
+    }
+
+    /** Render tile `z/x/y` of `crs`'s grid (`tileSize` its width) and encode it as `ext`. */
+    renderProjectedTile(
+        options: RenderTileOptions & { crs: Crs },
+    ): Promise<Uint8Array<ArrayBuffer>> {
+        return this.tile(options, options.crs);
+    }
+
+    /** Render a lon/lat bounding box and encode it as `ext`. */
+    renderBbox(options: RenderBboxOptions): Promise<Uint8Array<ArrayBuffer>> {
+        return this.bbox(options);
+    }
+
+    /**
+     * Render a box of `crs` (`bbox` in its units, easting first, y up) and encode it as `ext`.
+     * `crs` needs no grid.
+     */
+    renderProjectedBbox(
+        options: RenderBboxOptions & { crs: Crs },
+    ): Promise<Uint8Array<ArrayBuffer>> {
+        return this.bbox(options, options.crs);
+    }
+
+    /** Render a 2D camera (center, zoom, bearing; no pitch) and encode it as `ext`. */
+    renderView(options: RenderViewOptions): Promise<Uint8Array<ArrayBuffer>> {
+        return this.view(options);
+    }
+
+    /**
+     * Render a 2D camera in `crs` (center in degrees, zoom of its grid: tile 0/0/0 512 px wide at
+     * zoom 0) and encode it as `ext`.
+     */
+    renderProjectedView(
+        options: RenderViewOptions & { crs: Crs },
+    ): Promise<Uint8Array<ArrayBuffer>> {
+        return this.view(options, options.crs);
+    }
+
+    /** Invalid CRSs, grids and tiles reject with a `RangeError`. */
+    private async tile(
+        {
+            stylejson,
             z,
             x,
             y,
             tileSize,
-            margin: Math.floor(margin / 2),
-        });
+            margin,
+            ext,
+            quality,
+        }: RenderTileOptions,
+        crs?: Crs,
+    ): Promise<Uint8Array<ArrayBuffer>> {
+        const m = 2 * Math.floor(margin / 2);
+        // An OGC grid's tiles may be taller than wide.
+        const level =
+            crs?.tileMatrixSet && 'tileMatrices' in crs.tileMatrixSet
+                ? crs.tileMatrixSet.tileMatrices[z]
+                : undefined;
+        const height = level
+            ? (tileSize * level.tileHeight) / level.tileWidth
+            : tileSize;
+        this.checkSize([tileSize + m, height + m]);
+        const renderer = await this.renderer(stylejson);
+        const tile = { z, x, y, tileSize, margin: Math.floor(margin / 2) };
+        const image = crs
+            ? await renderer.renderProjected(crs, { tile })
+            : await renderer.renderTile(tile);
         return encode(image, ext, quality);
     }
 
-    /** Render a lon/lat bounding box and encode it as `ext`. */
-    async renderBbox({
-        stylejson,
-        bbox,
-        size,
-        ext,
-        quality,
-    }: RenderBboxOptions): Promise<Uint8Array<ArrayBuffer>> {
+    private async bbox(
+        { stylejson, bbox, size, ext, quality }: RenderBboxOptions,
+        crs?: Crs,
+    ): Promise<Uint8Array<ArrayBuffer>> {
         this.checkSize([size]);
         const renderer = await this.renderer(stylejson);
-        const image = await renderer.render({ bbox, size });
+        const image = crs
+            ? await renderer.renderProjected(crs, { box: { bbox, size } })
+            : await renderer.render({ bbox, size });
         return encode(image, ext, quality);
     }
 
-    /** Render a 2D camera (center, zoom, bearing; no pitch) and encode it as `ext`. */
-    async renderView(
+    private async view(
         options: RenderViewOptions,
+        crs?: Crs,
     ): Promise<Uint8Array<ArrayBuffer>> {
         this.checkSize([options.width, options.height]);
         const renderer = await this.renderer(options.stylejson);
-        const image = await renderer.renderView({
+        const view = {
             center: options.center,
             zoom: options.zoom,
             bearing: options.bearing,
             width: options.width,
             height: options.height,
-        });
+        };
+        const image = crs
+            ? await renderer.renderProjected(crs, { view })
+            : await renderer.renderView(view);
         return encode(image, options.ext, options.quality);
     }
 
@@ -236,6 +288,7 @@ class Chiitiler {
 export {
     Chiitiler,
     type ChiitilerOptions,
+    type Crs,
     type RenderBboxOptions,
     type RenderTileOptions,
     type RenderViewOptions,

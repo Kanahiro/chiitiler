@@ -1,0 +1,144 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "NAD83 / Conus Albers",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "NAD83",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "North American Datum 1983",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4269
+            },
+            "remarks": "Longitude is POSITIVE EAST. The adjustment included connections to Greenland and Mexico but the system was not adopted there. For applications with an accuracy of better than 1m replaced by NAD83(HARN) in the US and PRVI and by NAD83(CSRS) in Canada."
+        },
+        "conversion": {
+            "name": "Conus Albers",
+            "method": {
+                "name": "Albers Equal Area",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9822
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of false origin",
+                    "value": 23,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8821
+                    }
+                },
+                {
+                    "name": "Longitude of false origin",
+                    "value": -96,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8822
+                    }
+                },
+                {
+                    "name": "Latitude of 1st standard parallel",
+                    "value": 29.5,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8823
+                    }
+                },
+                {
+                    "name": "Latitude of 2nd standard parallel",
+                    "value": 45.5,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8824
+                    }
+                },
+                {
+                    "name": "Easting at false origin",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8826
+                    }
+                },
+                {
+                    "name": "Northing at false origin",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8827
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "X",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "Y",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Data analysis and small scale data presentation for contiguous lower 48 states.",
+        "area": "United States (USA) - CONUS onshore - Alabama; Arizona; Arkansas; California; Colorado; Connecticut; Delaware; Florida; Georgia; Idaho; Illinois; Indiana; Iowa; Kansas; Kentucky; Louisiana; Maine; Maryland; Massachusetts; Michigan; Minnesota; Mississippi; Missouri; Montana; Nebraska; Nevada; New Hampshire; New Jersey; New Mexico; New York; North Carolina; North Dakota; Ohio; Oklahoma; Oregon; Pennsylvania; Rhode Island; South Carolina; South Dakota; Tennessee; Texas; Utah; Vermont; Virginia; Washington; West Virginia; Wisconsin; Wyoming.",
+        "bbox": {
+            "south_latitude": 24.41,
+            "west_longitude": -124.79,
+            "north_latitude": 49.38,
+            "east_longitude": -66.91
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 5070
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -2916311.100313347,
+            3255274.7939838283
+        ],
+        "extentAtZoom0": 5862061.013323881
+    }
+}

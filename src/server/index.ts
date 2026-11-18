@@ -6,7 +6,7 @@ import { serve } from '@hono/node-server';
 
 import type { Cache } from '../cache/index.js';
 import { getDebugPage, getEditorPage } from './debug.js';
-import { registerRoutes } from './routes.js';
+import { type CrsCatalog, registerRoutes } from './routes.js';
 
 type InitServerOptions = {
     cache: Cache;
@@ -18,6 +18,8 @@ type InitServerOptions = {
     cacheControl?: string;
     /** Origins allowed by CORS: `*`, or a list. Default: none (no CORS headers). */
     corsOrigins?: string[];
+    /** CRSs requests can render in with `?crs=<id>`. Default: none. */
+    crs?: CrsCatalog;
 };
 
 type InitializedServer = {
@@ -46,6 +48,7 @@ function initServer(options: InitServerOptions): InitializedServer {
         cache: options.cache,
         maxSize: options.maxSize,
         cacheControl: options.cacheControl,
+        crs: options.crs,
     });
 
     return {

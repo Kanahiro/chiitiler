@@ -167,8 +167,8 @@ importers:
   .:
     dependencies:
       '@ml2drender/node':
-        specifier: ^0.2.0
-        version: 0.2.0(@maplibre/maplibre-gl-style-spec@26.5.1)
+        specifier: ^0.4.0
+        version: 0.4.0(@maplibre/maplibre-gl-style-spec@26.5.1)
       lru-cache:
         specifier: ^11.5.2
         version: 11.5.2
@@ -604,35 +604,35 @@ packages:
   '@minimistjs/subarg@1.0.0':
     resolution: {integrity: sha512-Q/ONBiM2zNeYUy0mVSO44mWWKYM3UHuEK43PKIOzJCbvUnPoMH1K+gk3cf1kgnCVJFlWmddahQQCmrmBGlk9jQ==}
 
-  '@ml2drender/node-darwin-arm64@0.2.0':
-    resolution: {integrity: sha512-wkaOGONnDKZ53CvVEG0+GjbM8N2j3RUV1jh8dk8qOEgO8kUgrwMzgOqOFdMhNVOmS6iWQ9vhgc/8trKqwH2zvw==}
+  '@ml2drender/node-darwin-arm64@0.4.0':
+    resolution: {integrity: sha512-E6quVtT6NAyYEvaMvLUUvRvNko6hby7etrBDTs99ZVYVpg1uekh9uCa6KZC0bpsk2AU1PeqdZd9ySto7/Y4rWQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@ml2drender/node-darwin-x64@0.2.0':
-    resolution: {integrity: sha512-iC4z72xI0qJuHE+bpy6tiHx5G/fftXb0JfISdcAMEOQraF8qgeihnz+sv/j2bGSlTEnBv4Qi0/zS7MugD4NNTA==}
+  '@ml2drender/node-darwin-x64@0.4.0':
+    resolution: {integrity: sha512-dCNF43jZyppmOHQXqSdnLyWiprOWXy5HFZ48BfpbO3XWWqbZ8JCTN9kBc3epeCghqtWbbphysYT8yC4eBiyTiQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@ml2drender/node-linux-arm64-gnu@0.2.0':
-    resolution: {integrity: sha512-m7bjYCf2PQ2D2b9QxVsDc+I2g2DPIFhqIRLnVugEYMw9Ir8VYzY8WRQdTV5BRxcEvZCVgGB3s7ADiDyUYgtRQw==}
+  '@ml2drender/node-linux-arm64-gnu@0.4.0':
+    resolution: {integrity: sha512-kGtvDDrRtMW+0Y5sVQxcdOmHrVmEXvfaz2mGYuz/gj1PTL2l3XcK4t33QJVeVxO0Qpfqgh5NN5WGjTUcTP+B8w==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@ml2drender/node-linux-x64-gnu@0.2.0':
-    resolution: {integrity: sha512-/4Ywh3Z2xN2wAFh5Ps6qkhhETHYnamKKGdzksIiafhnO71gZVOB6pSq+0CQXuP2uYjS+qw8cz7IXbWAHjQOK4w==}
+  '@ml2drender/node-linux-x64-gnu@0.4.0':
+    resolution: {integrity: sha512-rKy02D6Y54od4Awfzv7NMoXybxFgxpjMLB2pTWfH07PfY0IMKAm10jv5d7uG9U6p+yVrKYtLebvEQw2GLhjMlA==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@ml2drender/node-win32-x64@0.2.0':
-    resolution: {integrity: sha512-VxbYpSpXzmw9YY0bSti/dO4jRGbu3tcazGeL9ht2eD4wAowyhARELkmHiPZtaEWu09wWJRU2zhHGW13uOs++3Q==}
+  '@ml2drender/node-win32-x64@0.4.0':
+    resolution: {integrity: sha512-17cHXUuZDGNVa9zUt60fQXJQUoenBmQSi056dqYTEfDhiEA2vWblE6/AlxsAcWAKUGsPFMIiRar3QJ5Egkf/jQ==}
     cpu: [x64]
     os: [win32]
 
-  '@ml2drender/node@0.2.0':
-    resolution: {integrity: sha512-d/iRbQTVorkc0gGIAhMbQ6sFyQJlT8Ka1VqoKDfj5Odk0rX1n9XZDkTAm5AUgrSZiRv2xSlQHkUG1DNk7MR2ZQ==}
+  '@ml2drender/node@0.4.0':
+    resolution: {integrity: sha512-c4uje/0tI42IofXi8bejWz0f0DOaNgeZeKai0aDwTv860+JrrB1fRx2mZIPuAePErT4RSY8Hdz/eF87TAgiY1Q==}
     engines: {node: ^22.23.4 || ^24.22.1 || >=26.12.1}
     peerDependencies:
       '@maplibre/maplibre-gl-style-spec': ^26.4.4
@@ -2054,30 +2054,30 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  '@ml2drender/node-darwin-arm64@0.2.0':
+  '@ml2drender/node-darwin-arm64@0.4.0':
     optional: true
 
-  '@ml2drender/node-darwin-x64@0.2.0':
+  '@ml2drender/node-darwin-x64@0.4.0':
     optional: true
 
-  '@ml2drender/node-linux-arm64-gnu@0.2.0':
+  '@ml2drender/node-linux-arm64-gnu@0.4.0':
     optional: true
 
-  '@ml2drender/node-linux-x64-gnu@0.2.0':
+  '@ml2drender/node-linux-x64-gnu@0.4.0':
     optional: true
 
-  '@ml2drender/node-win32-x64@0.2.0':
+  '@ml2drender/node-win32-x64@0.4.0':
     optional: true
 
-  '@ml2drender/node@0.2.0(@maplibre/maplibre-gl-style-spec@26.5.1)':
+  '@ml2drender/node@0.4.0(@maplibre/maplibre-gl-style-spec@26.5.1)':
     dependencies:
       '@maplibre/maplibre-gl-style-spec': 26.5.1
     optionalDependencies:
-      '@ml2drender/node-darwin-arm64': 0.2.0
-      '@ml2drender/node-darwin-x64': 0.2.0
-      '@ml2drender/node-linux-arm64-gnu': 0.2.0
-      '@ml2drender/node-linux-x64-gnu': 0.2.0
-      '@ml2drender/node-win32-x64': 0.2.0
+      '@ml2drender/node-darwin-arm64': 0.4.0
+      '@ml2drender/node-darwin-x64': 0.4.0
+      '@ml2drender/node-linux-arm64-gnu': 0.4.0
+      '@ml2drender/node-linux-x64-gnu': 0.4.0
+      '@ml2drender/node-win32-x64': 0.4.0
 
   '@nodable/entities@3.1.0': {}
 

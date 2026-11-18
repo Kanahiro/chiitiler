@@ -418,3 +418,146 @@ describe('intergration test', () => {
         expect(await res2.text()).toBe('invalid stylejson');
     });
 });
+
+describe('custom CRS', () => {
+    const style = 'url=file://localdata/style.json';
+    const size = async (res: Response) => {
+        const { width, height } = sizeof(
+            new Uint8Array(await res.arrayBuffer()),
+        );
+        return [width, height];
+    };
+    const post = (path: string, body: object) =>
+        fetch(`http://localhost:3000${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+    const red = {
+        version: 8,
+        sources: {},
+        layers: [
+            {
+                id: 'bg',
+                type: 'background',
+                paint: { 'background-color': '#ff0000' },
+            },
+        ],
+    };
+
+    test('GET /crs lists the presets by name', async () => {
+        const res = await fetch('http://localhost:3000/crs');
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        expect(list).toHaveLength(36);
+        expect(list).toContainEqual({
+            id: 'EPSG-6677',
+            name: 'JGD2011 / Japan Plane Rectangular CS IX',
+        });
+    });
+
+    test('GET /crs/{id}', async () => {
+        const res = await fetch('http://localhost:3000/crs/EPSG-6677');
+        expect(res.status).toBe(200);
+        const crs = await res.json();
+        expect(crs.projjson.name).toBe(
+            'JGD2011 / Japan Plane Rectangular CS IX',
+        );
+        expect(Object.keys(crs.tileMatrixSet).sort()).toEqual([
+            'extentAtZoom0',
+            'origin',
+        ]);
+        expect(
+            (await fetch('http://localhost:3000/crs/EPSG-9999')).status,
+        ).toBe(404);
+    });
+
+    test('GET /tiles?crs=', async () => {
+        const res = await fetch(
+            `http://localhost:3000/tiles/1/1/0.png?crs=EPSG-6677&${style}`,
+        );
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toBe('image/png');
+        const projected = new Uint8Array(await res.arrayBuffer());
+        expect(sizeof(projected)).toMatchObject({ width: 512, height: 512 });
+        // not the Web Mercator tile of the same z/x/y
+        const mercator = await fetch(
+            `http://localhost:3000/tiles/1/1/0.png?${style}`,
+        );
+        expect(Buffer.from(projected)).not.toEqual(
+            Buffer.from(await mercator.arrayBuffer()),
+        );
+
+        const world = await fetch(
+            `http://localhost:3000/tiles/0/0/0.webp?crs=EPSG-8857&tileSize=256&${style}`,
+        );
+        expect(world.status).toBe(200);
+        expect(world.headers.get('content-type')).toBe('image/webp');
+        expect(await size(world)).toEqual([256, 256]);
+    });
+
+    test('GET /clip?crs= takes a bbox in CRS units', async () => {
+        const res = await fetch(
+            `http://localhost:3000/clip.png?crs=EPSG-6677&bbox=-100000,-100000,100000,0&size=512&${style}`,
+        );
+        expect(res.status).toBe(200);
+        expect(await size(res)).toEqual([512, 256]);
+    });
+
+    test('GET /view?crs=', async () => {
+        const res = await fetch(
+            `http://localhost:3000/view/3/35.68/139.77/30/512x256.png?crs=EPSG-6677&${style}`,
+        );
+        expect(res.status).toBe(200);
+        expect(await size(res)).toEqual([512, 256]);
+    });
+
+    test('POST with a CRS in the body, over ?crs=', async () => {
+        const crs = await (
+            await fetch('http://localhost:3000/crs/EPSG-6677')
+        ).json();
+        for (const path of [
+            '/tiles/0/0/0.png',
+            '/tiles/0/0/0.png?crs=EPSG-8857',
+            '/tiles/0/0/0.png?crs=unknown',
+        ]) {
+            const res = await post(path, { style: red, crs });
+            expect(res.status, path).toBe(200);
+            expect(await size(res), path).toEqual([512, 512]);
+        }
+        const viaQuery = await post('/tiles/0/0/0.png?crs=EPSG-6677', {
+            style: red,
+        });
+        expect(viaQuery.status).toBe(200);
+    });
+
+    test('invalid CRSs answer 400', async () => {
+        const unknown = await fetch(
+            `http://localhost:3000/tiles/0/0/0.png?crs=EPSG-9999&${style}`,
+        );
+        expect(unknown.status).toBe(400);
+        expect(await unknown.text()).toBe('unknown crs');
+
+        // past the grid of zoom 0
+        const outside = await fetch(
+            `http://localhost:3000/tiles/0/1/0.png?crs=EPSG-6677&${style}`,
+        );
+        expect(outside.status).toBe(400);
+
+        const malformed = await post('/tiles/0/0/0.png', {
+            style: red,
+            crs: { projjson: 'EPSG:6677' },
+        });
+        expect(malformed.status).toBe(400);
+        expect(await malformed.text()).toBe('invalid crs');
+
+        const unsupported = await post('/tiles/0/0/0.png', {
+            style: red,
+            crs: {
+                projjson: { type: 'Foo' },
+                tileMatrixSet: { origin: [0, 0], extentAtZoom0: 1 },
+            },
+        });
+        expect(unsupported.status).toBe(400);
+    });
+});

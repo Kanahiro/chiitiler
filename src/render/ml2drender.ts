@@ -6,12 +6,16 @@ import type {
 } from '@maplibre/maplibre-gl-style-spec';
 
 import {
+    type Crs,
     encodeJpeg,
     encodePng,
     encodeWebp,
+    type ProjectedRenderer,
     Renderer,
     type View as NativeView,
 } from '@ml2drender/node';
+
+export type { Crs };
 
 /** A Web Mercator camera. */
 export interface View {
@@ -312,16 +316,8 @@ export class MapRenderer {
     /** Fetch required resources and return a new RGBA image of a Web Mercator camera. */
     async renderView(view: View): Promise<RenderedImage> {
         const args = nativeView(view);
-        const core = this.acquire();
-        try {
-            return image((await core.renderer.renderView(args)) as Bytes, args);
-        } catch (error) {
-            // A failed render may leave the renderer inconsistent: later renders use a new one.
-            this.retire(core);
-            throw error;
-        } finally {
-            core.active--;
-        }
+        const data = await this.draw((r) => r.renderView(args));
+        return image(data, Math.round(args.width * args.pixelRatio));
     }
 
     /** `renderView` of an XYZ tile of the Web Mercator grid. */
@@ -332,6 +328,55 @@ export class MapRenderer {
     /** `renderView` of a longitude/latitude box, `box.size` CSS pixels on the long side. */
     async render(box: LngLatBox): Promise<RenderedImage> {
         return this.renderView(fitLngLat(box));
+    }
+
+    /**
+     * Render in `crs`: a box in CRS units (easting first, y up), a tile of its grid, or a camera
+     * (center in degrees, zoom of its grid). Invalid CRSs, grids and tiles reject with a `RangeError`.
+     */
+    async renderProjected(
+        crs: Crs,
+        target: { tile: Tile } | { box: LngLatBox } | { view: View },
+    ): Promise<RenderedImage> {
+        let render: (r: ProjectedRenderer) => Promise<Uint8Array>;
+        /** Device pixels across, from the RGBA pixel count. */
+        let width: (pixels: number) => number;
+        if ('tile' in target) {
+            const { tileSize = 256, pixelRatio = 1, margin = 0 } = target.tile;
+            const tile = { ...target.tile, tileSize, pixelRatio, margin };
+            render = (r) => r.renderTile(tile);
+            width = () => Math.round(tileSize * pixelRatio);
+        } else if ('box' in target) {
+            const { bbox, size, pixelRatio = 1, margin = 0 } = target.box;
+            const [minX, minY, maxX, maxY] = bbox;
+            const long = Math.round(size * pixelRatio);
+            render = (r) => r.render({ bbox, size, pixelRatio, margin });
+            // `size` is the long side; the other follows the box's aspect ratio
+            width = (pixels) =>
+                maxX - minX >= maxY - minY ? long : pixels / long;
+        } else {
+            const args = nativeView(target.view);
+            render = (r) => r.renderView(args);
+            width = () => Math.round(args.width * args.pixelRatio);
+        }
+        const data = await this.draw((r) => drawProjected(r, crs, render));
+        return image(data, width(data.length / 4));
+    }
+
+    /** Draw with a renderer; one whose render failed is not reused. */
+    private async draw(
+        render: (renderer: Renderer) => Promise<Uint8Array>,
+    ): Promise<Bytes> {
+        const core = this.acquire();
+        try {
+            return (await render(core.renderer)) as Bytes;
+        } catch (error) {
+            // A failed render may leave the renderer inconsistent: later renders use a new one.
+            this.retire(core);
+            throw error;
+        } finally {
+            core.active--;
+        }
     }
 
     /**
@@ -374,9 +419,27 @@ export class MapRenderer {
 // The addon returns ArrayBuffer-backed bytes; its types only say Uint8Array.
 type Bytes = Uint8Array<ArrayBuffer>;
 
-function image(data: Bytes, view: NativeView): RenderedImage {
-    const width = Math.round(view.width * view.pixelRatio);
-    const height = Math.round(view.height * view.pixelRatio);
+/** `render` in `crs`; errors of its CRS, grid or tile ("unsupported: …" from the addon) as `RangeError`s. */
+async function drawProjected(
+    renderer: Renderer,
+    crs: Crs,
+    render: (r: ProjectedRenderer) => Promise<Uint8Array>,
+): Promise<Uint8Array> {
+    try {
+        return await render(renderer.projected(crs));
+    } catch (error) {
+        if (
+            error instanceof TypeError ||
+            (error instanceof Error && error.message.startsWith('unsupported:'))
+        )
+            throw new RangeError(error.message);
+        throw error;
+    }
+}
+
+/** `width` device pixels wide; the height follows from the bytes (tiles of a grid need not be square). */
+function image(data: Bytes, width: number): RenderedImage {
+    const height = data.length / 4 / width;
     return {
         width,
         height,

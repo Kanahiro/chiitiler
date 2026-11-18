@@ -3,9 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, it, expect, vi } from 'vitest';
+import sizeOf from 'image-size';
 
 import { initServer } from './index.js';
 import * as cache from '../cache/index.js';
+import type { Crs } from '../render/index.js';
 
 describe('initServer', () => {
     it('init', async () => {
@@ -191,6 +193,206 @@ describe('initServer', () => {
             expect(res.headers.get('content-type')).toBe(type);
             const bytes = new Uint8Array(await res.arrayBuffer());
             expect([...bytes.slice(0, 2)]).toEqual(magic);
+        }
+    });
+
+    it('renders in a registered CRS', async () => {
+        const style = {
+            version: 8,
+            sources: {},
+            layers: [
+                {
+                    id: 'bg',
+                    type: 'background',
+                    paint: { 'background-color': '#ff0000' },
+                },
+            ],
+        };
+        const degree = { unit: 'degree' };
+        // WGS 84 / UTM zone 54N (EPSG:32654)
+        const projjson = {
+            type: 'ProjectedCRS',
+            name: 'WGS 84 / UTM zone 54N',
+            base_crs: {
+                name: 'WGS 84',
+                datum: {
+                    type: 'GeodeticReferenceFrame',
+                    name: 'World Geodetic System 1984',
+                    ellipsoid: {
+                        name: 'WGS 84',
+                        semi_major_axis: 6378137,
+                        inverse_flattening: 298.257223563,
+                    },
+                },
+                coordinate_system: {
+                    subtype: 'ellipsoidal',
+                    axis: [
+                        {
+                            name: 'Lat',
+                            abbreviation: 'Lat',
+                            direction: 'north',
+                            ...degree,
+                        },
+                        {
+                            name: 'Lon',
+                            abbreviation: 'Lon',
+                            direction: 'east',
+                            ...degree,
+                        },
+                    ],
+                },
+            },
+            conversion: {
+                name: 'UTM zone 54N',
+                method: { name: 'Transverse Mercator' },
+                parameters: [
+                    { name: 'Latitude of natural origin', value: 0, ...degree },
+                    {
+                        name: 'Longitude of natural origin',
+                        value: 141,
+                        ...degree,
+                    },
+                    {
+                        name: 'Scale factor at natural origin',
+                        value: 0.9996,
+                        unit: 'unity',
+                    },
+                    { name: 'False easting', value: 500000, unit: 'metre' },
+                    { name: 'False northing', value: 0, unit: 'metre' },
+                ],
+            },
+            coordinate_system: {
+                subtype: 'Cartesian',
+                axis: [
+                    {
+                        name: 'Easting',
+                        abbreviation: 'E',
+                        direction: 'east',
+                        unit: 'metre',
+                    },
+                    {
+                        name: 'Northing',
+                        abbreviation: 'N',
+                        direction: 'north',
+                        unit: 'metre',
+                    },
+                ],
+            },
+        };
+        // An OGC TileMatrixSet with tiles twice as wide as tall, 3 x 1 of them at level 0
+        const tileMatrixSet = {
+            tileMatrices: [
+                {
+                    cellSize: 1000,
+                    pointOfOrigin: [-500000, 5000000],
+                    tileWidth: 256,
+                    tileHeight: 128,
+                    matrixWidth: 3,
+                    matrixHeight: 1,
+                },
+            ],
+        };
+        const catalog: Record<string, Crs> = {
+            utm: { projjson, tileMatrixSet },
+            nogrid: { projjson },
+            foo: { projjson: { type: 'Foo' }, tileMatrixSet },
+        };
+        const { app } = initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+            crs: {
+                ids: Object.keys(catalog),
+                get: async (id) =>
+                    Object.hasOwn(catalog, id) ? catalog[id] : undefined,
+            },
+        });
+        const post = (path: string) =>
+            app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ style }),
+            });
+        for (const [path, width, height] of [
+            // x = 2 is past 2^0 but in the grid
+            ['/tiles/0/2/0.png?crs=utm&tileSize=256', 256, 128],
+            [
+                '/clip.png?crs=utm&bbox=300000,3900000,500000,4000000&size=200',
+                200,
+                100,
+            ],
+            ['/view/0/35.68/139.77/30/64x32.png?crs=utm', 64, 32],
+            // a box needs no grid
+            ['/clip.png?crs=nogrid&bbox=0,0,2,1&size=20', 20, 10],
+        ] as const) {
+            const res = await post(path);
+            expect(res.status, path).toBe(200);
+            const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
+            expect([size.width, size.height], path).toEqual([width, height]);
+        }
+
+        // GET too
+        const dir = mkdtempSync(join(tmpdir(), 'chiitiler-'));
+        try {
+            writeFileSync(join(dir, 'style.json'), JSON.stringify(style));
+            const res = await app.request(
+                `/tiles/0/1/0.png?crs=utm&tileSize=256&url=file://${dir}/style.json`,
+            );
+            expect(res.status).toBe(200);
+            const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
+            expect([size.width, size.height]).toEqual([256, 128]);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+
+        // definitions
+        expect(await (await app.request('/crs')).json()).toEqual([
+            { id: 'utm', name: 'WGS 84 / UTM zone 54N' },
+            { id: 'nogrid', name: 'WGS 84 / UTM zone 54N' },
+            { id: 'foo', name: 'foo' },
+        ]);
+        const def = await app.request('/crs/utm');
+        expect(await def.json()).toEqual({ projjson, tileMatrixSet });
+        expect((await app.request('/crs/toString')).status).toBe(404);
+
+        // a CRS in the body, taking precedence over ?crs=
+        const withBody = (path: string, crs: unknown) =>
+            app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ style, crs }),
+            });
+        for (const path of [
+            '/tiles/0/2/0.png?tileSize=256',
+            '/tiles/0/2/0.png?tileSize=256&crs=nogrid',
+            '/tiles/0/2/0.png?tileSize=256&crs=unknown',
+        ]) {
+            const res = await withBody(path, { projjson, tileMatrixSet });
+            expect(res.status, path).toBe(200);
+            const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
+            expect([size.width, size.height], path).toEqual([256, 128]);
+        }
+        for (const crs of [
+            'EPSG:32654',
+            null,
+            {},
+            { projjson: 'EPSG:32654' },
+            { projjson, tileMatrixSet: 1 },
+            { projjson: { type: 'Foo' }, tileMatrixSet },
+        ]) {
+            const res = await withBody('/tiles/0/0/0.png', crs);
+            expect(res.status, JSON.stringify(crs)).toBe(400);
+        }
+
+        for (const path of [
+            '/tiles/0/0/0.png?crs=EPSG:32654', // not registered
+            '/tiles/0/3/0.png?crs=utm', // outside the grid
+            '/tiles/1/0/0.png?crs=utm', // no such level
+            '/tiles/0/0/0.png?crs=nogrid', // no grid
+            '/tiles/0/0/0.png?crs=foo', // unsupported
+        ]) {
+            const res = await post(path);
+            expect(res.status, path).toBe(400);
         }
     });
 

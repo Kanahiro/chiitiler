@@ -7,6 +7,7 @@ services:
             - ./src:/app/src
             - ./.cache:/app/.cache
             - ./localdata:/app/localdata
+            - ./crs:/app/crs
         ports:
             - 3000:3000
         command: pnpm dev
@@ -17,6 +18,7 @@ services:
             - CHIITILER_S3_ENDPOINT=http://rustfs:9000
             - CHIITILER_S3_FORCE_PATH_STYLE=true
             - CHIITILER_PROCESSES=0
+            - CHIITILER_CRS_DIR=/app/crs
             - AWS_ACCESS_KEY_ID=rustfsadmin
             - AWS_SECRET_ACCESS_KEY=rustfsadmin
             - CHIITILER_GCS_API_ENDPOINT=http://fake-gcs-server:4443

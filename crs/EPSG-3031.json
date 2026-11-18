@@ -1,0 +1,193 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "WGS 84 / Antarctic Polar Stereographic",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "WGS 84",
+            "datum_ensemble": {
+                "name": "World Geodetic System 1984 ensemble",
+                "members": [
+                    {
+                        "name": "World Geodetic System 1984 (Transit)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1166
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G730)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1152
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G873)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1153
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G1150)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1154
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G1674)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1155
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G1762)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1156
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G2139)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1309
+                        }
+                    },
+                    {
+                        "name": "World Geodetic System 1984 (G2296)",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1383
+                        }
+                    }
+                ],
+                "ellipsoid": {
+                    "name": "WGS 84",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257223563
+                },
+                "accuracy": "2.0",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 6326
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4326
+            }
+        },
+        "conversion": {
+            "name": "Antarctic Polar Stereographic",
+            "method": {
+                "name": "Polar Stereographic (variant B)",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9829
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of standard parallel",
+                    "value": -71,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8832
+                    }
+                },
+                {
+                    "name": "Longitude of origin",
+                    "value": 0,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8833
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "E",
+                    "direction": "north",
+                    "meridian": {
+                        "longitude": 90
+                    },
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "N",
+                    "direction": "north",
+                    "meridian": {
+                        "longitude": 0
+                    },
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Antarctic Digital Database and small scale topographic mapping.",
+        "area": "Antarctica.",
+        "bbox": {
+            "south_latitude": -90,
+            "west_longitude": -180,
+            "north_latitude": -60,
+            "east_longitude": 180
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 3031
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -3299207.5292114005,
+            3333134.027630276
+        ],
+        "extentAtZoom0": 6666268.055260552
+    }
+}

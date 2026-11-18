@@ -74,7 +74,8 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
 | `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
 | `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form view (2D: no pitch) |
-| `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) |
+| `GET` | `/crs`, `/crs/{id}` | Ids of the registered CRSs, and a CRS's `{ projjson, tileMatrixSet }` (see Custom projections) |
+| `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) | — `/debug` switches between the registered CRSs
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`.
 
@@ -90,6 +91,42 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | `size` | `1024` | `/clip` longest edge in pixels |
 
 For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
+
+**Custom projections**: register CRSs with `CHIITILER_CRS_DIR`, a directory of `<id>.json` files, and
+render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
+
+```jsonc
+// $CHIITILER_CRS_DIR/utm54n.json → ?crs=utm54n
+{
+  "projjson": { ... },     // PROJJSON of the CRS, e.g. from `projinfo EPSG:32654 -o PROJJSON`
+  "tileMatrixSet": { ... } // its tile grid: required by /tiles and /view, not by /clip
+}
+```
+
+- `tileMatrixSet` is MapLibre GL JS's grid (`{ "origin": [minX, maxY], "extentAtZoom0": ... }`, as given to `addProjection`) or an [OGC 2D TileMatrixSet](https://docs.ogc.org/is/17-083r4/17-083r4.html) (2.0, JSON).
+- `/tiles/{z}/{x}/{y}`: a tile of that grid (`tileSize` is its width; an OGC grid's tiles may be taller or shorter).
+- `/clip`: `bbox` in CRS units, `minX,minY,maxX,maxY` (easting first, y up).
+- `/view`: `lat`/`lon` in degrees, `zoom` of the grid (its first tile 512 px wide at zoom 0).
+- Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unknown id, an unsupported CRS, an invalid grid or a tile outside it answers `400`.
+- A file is read when a request names it; one without a `projjson` object answers `500`.
+- `POST` also takes a CRS in the body, in the same form: `{ "style": { ... }, "crs": { "projjson": { ... }, "tileMatrixSet": { ... } } }`. It takes precedence over `?crs=`.
+
+The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/crs`), as `?crs=EPSG-<code>`:
+
+| | |
+| --- | --- |
+| World | `EPSG-4326` (WGS 84), `EPSG-8857` (Equal Earth) |
+| Polar | `EPSG-3413`, `EPSG-3995` (Arctic), `EPSG-3031` (Antarctic) |
+| Europe | `EPSG-3035` (LAEA Europe), `EPSG-27700` (British National Grid), `EPSG-2154` (Lambert-93), `EPSG-25832` (ETRS89 / UTM 32N), `EPSG-2056` (Swiss LV95) |
+| North America | `EPSG-5070` (Conus Albers), `EPSG-3338` (Alaska Albers), `EPSG-3978` (Canada Atlas Lambert) |
+| Oceania | `EPSG-3577` (Australian Albers), `EPSG-2193` (NZTM2000) |
+| Asia | `EPSG-5179` (Korea Unified CS), `EPSG-3826` (TWD97 / TM2), `EPSG-6669`–`EPSG-6687` (JGD2011 / Japan Plane Rectangular CS I–XIX) |
+
+Their PROJJSON is PROJ's, and their grid is the square from the top-left corner of the CRS's area of use,
+covering it. To show the tiles with MapLibre GL JS, register the CRS with `addProjection`: its
+`tileMatrixSet` from `GET /crs/{id}`, and a converter of its `projjson` (e.g. `proj4('EPSG:4326', projjson)`),
+as `/debug` does. Datum
+shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own directory to replace them.
 
 **Rendering limits** (ml2drender renders 2D only)
 
@@ -134,6 +171,25 @@ const png = await chiitiler.renderTile({
 
 Methods: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long side) and
 `renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
+
+`renderProjectedTile`, `renderProjectedBbox` and `renderProjectedView` take the same options and a
+`crs` (`{ projjson, tileMatrixSet? }`, see [Custom projections](#http-api)): a tile of its grid, a box in
+its units (easting first, y up; no grid needed), or a camera with the grid's zoom. An invalid CRS, grid or
+tile rejects with a `RangeError`.
+
+```ts
+import { readFile } from 'node:fs/promises';
+
+const crs = JSON.parse(await readFile('crs/EPSG-6677.json', 'utf8'));
+const png = await chiitiler.renderProjectedBbox({
+    stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
+    crs,
+    bbox: [-20000, -60000, 20000, -30000], // meters of JGD2011 / Japan Plane Rectangular CS IX
+    size: 1024,
+    ext: 'png',
+    quality: 100,
+});
+```
 
 `stylejson` is a URL or a style object, and may differ on every call. An instance keeps renderers of
 the styles it drew last, with their decoded tiles, glyphs and sprites: create one and reuse it.
@@ -232,6 +288,7 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 | `CHIITILER_MAX_SIZE` | `4096` |
 | `CHIITILER_CACHE_CONTROL` | (none) |
 | `CHIITILER_CORS` | (none) |
+| `CHIITILER_CRS_DIR` | (none: Web Mercator only; `/app/crs` in the Docker image) |
 
 `CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
 Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in

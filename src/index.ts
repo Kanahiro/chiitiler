@@ -5,6 +5,7 @@ export { setUserAgent } from './source/userAgent.js';
 
 export type {
     ChiitilerOptions,
+    Crs,
     RenderBboxOptions,
     RenderTileOptions,
     RenderViewOptions,

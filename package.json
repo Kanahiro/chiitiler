@@ -50,7 +50,7 @@
         "vitest": "^4.1.4"
     },
     "dependencies": {
-        "@ml2drender/node": "^0.2.0",
+        "@ml2drender/node": "^0.4.0",
         "lru-cache": "^11.5.2",
         "pmtiles": "^4.5.0"
     },

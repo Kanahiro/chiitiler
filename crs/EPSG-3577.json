@@ -1,0 +1,143 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "GDA94 / Australian Albers",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "GDA94",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Geocentric Datum of Australia 1994",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4283
+            }
+        },
+        "conversion": {
+            "name": "Australian Albers",
+            "method": {
+                "name": "Albers Equal Area",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9822
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of false origin",
+                    "value": 0,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8821
+                    }
+                },
+                {
+                    "name": "Longitude of false origin",
+                    "value": 132,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8822
+                    }
+                },
+                {
+                    "name": "Latitude of 1st standard parallel",
+                    "value": -18,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8823
+                    }
+                },
+                {
+                    "name": "Latitude of 2nd standard parallel",
+                    "value": -36,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8824
+                    }
+                },
+                {
+                    "name": "Easting at false origin",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8826
+                    }
+                },
+                {
+                    "name": "Northing at false origin",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8827
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "E",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "N",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Statistical analysis.",
+        "area": "Australia - Australian Capital Territory; New South Wales; Northern Territory; Queensland; South Australia; Tasmania; Western Australia; Victoria.",
+        "bbox": {
+            "south_latitude": -43.7,
+            "west_longitude": 112.85,
+            "north_latitude": -9.86,
+            "east_longitude": 153.69
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 3577
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -2153255.2758118785,
+            -1033322.2695071194
+        ],
+        "extentAtZoom0": 4589525.568606872
+    }
+}

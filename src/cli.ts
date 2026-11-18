@@ -1,9 +1,13 @@
 import process from 'node:process';
 import cluster from 'node:cluster';
+import { readdirSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
+import { basename, join } from 'node:path';
 
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
+import type { Crs } from './render/index.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -88,6 +92,32 @@ function readCache(env: Env): caches.Cache {
     });
 }
 
+/**
+ * The `<id>.json` files of CHIITILER_CRS_DIR, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`,
+ * by id. Only their names are kept: a file is read when it is asked for.
+ */
+function readCrs(env: Env): InitServerOptions['crs'] {
+    const dir = read(env, 'CHIITILER_CRS_DIR');
+    if (dir === undefined) return undefined;
+    const ids = new Set(
+        readdirSync(dir)
+            .filter((f) => f.endsWith('.json'))
+            .map((f) => basename(f, '.json')),
+    );
+    return {
+        ids: [...ids].sort(),
+        get: async (id) => {
+            if (!ids.has(id)) return undefined;
+            const value = JSON.parse(
+                await readFile(join(dir, `${id}.json`), 'utf8'),
+            );
+            if (value?.projjson === null || typeof value?.projjson !== 'object')
+                throw new Error(`${id}.json has no projjson object`);
+            return value as Crs;
+        },
+    };
+}
+
 type Config = InitServerOptions & { processes: number };
 
 /**
@@ -103,6 +133,7 @@ function readConfig(env: Env = process.env): Config {
         processes: processes === 0 ? availableParallelism() : processes,
         maxSize: integer(env, 'CHIITILER_MAX_SIZE', 4096, 1),
         cacheControl: read(env, 'CHIITILER_CACHE_CONTROL'),
+        crs: readCrs(env),
         corsOrigins: read(env, 'CHIITILER_CORS')
             ?.split(',')
             .map((origin) => origin.trim())

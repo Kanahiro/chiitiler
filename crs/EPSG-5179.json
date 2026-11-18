@@ -1,0 +1,134 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "KGD2002 / Unified CS",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "KGD2002",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Korean Geodetic Datum 2002",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4737
+            }
+        },
+        "conversion": {
+            "name": "Korea Unified Belt",
+            "method": {
+                "name": "Transverse Mercator",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9807
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of natural origin",
+                    "value": 38,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8801
+                    }
+                },
+                {
+                    "name": "Longitude of natural origin",
+                    "value": 127.5,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8802
+                    }
+                },
+                {
+                    "name": "Scale factor at natural origin",
+                    "value": 0.9996,
+                    "unit": "unity",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8805
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 1000000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": 2000000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Northing",
+                    "abbreviation": "X",
+                    "direction": "north",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Easting",
+                    "abbreviation": "Y",
+                    "direction": "east",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Topographic mapping (small scale).",
+        "area": "Republic of Korea (South Korea) - onshore and offshore.",
+        "bbox": {
+            "south_latitude": 28.6,
+            "west_longitude": 122.71,
+            "north_latitude": 40.27,
+            "east_longitude": 134.28
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 5179
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            531371.8435902168,
+            2274021.3084433167
+        ],
+        "extentAtZoom0": 1316164.6502899085
+    }
+}
