@@ -91,6 +91,24 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 
 For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
+**Custom projections** (`POST` only): add `crs` to the body to render in another CRS instead of Web Mercator.
+
+```jsonc
+{
+  "style": { ... },
+  "crs": {
+    "projjson": { ... },     // PROJJSON of the CRS, e.g. from `projinfo EPSG:6677 -o PROJJSON`
+    "tileMatrixSet": { ... } // its tile grid: required by /tiles and /view, not by /clip
+  }
+}
+```
+
+- `tileMatrixSet` is MapLibre GL JS's grid (`{ "origin": [minX, maxY], "extentAtZoom0": ... }`, as given to `addProjection`) or an [OGC 2D TileMatrixSet](https://docs.ogc.org/is/17-083r4/17-083r4.html) (2.0, JSON).
+- `/tiles/{z}/{x}/{y}`: a tile of that grid (`tileSize` is its width; an OGC grid's tiles may be taller or shorter).
+- `/clip`: `bbox` in CRS units, `minX,minY,maxX,maxY` (easting first, y up).
+- `/view`: `lat`/`lon` in degrees, `zoom` of the grid (its first tile 512 px wide at zoom 0).
+- Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unsupported CRS, an invalid grid or a tile outside it answers `400`.
+
 **Rendering limits** (ml2drender renders 2D only)
 
 - `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.

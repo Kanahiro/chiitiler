@@ -2,7 +2,7 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { availableParallelism } from 'node:os';
 import { LRUCache } from 'lru-cache';
 
-import { MapRenderer, type RenderedImage } from './ml2drender.js';
+import { type Crs, MapRenderer, type RenderedImage } from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
 import { getSource, type Protocols } from '../source/index.js';
 
@@ -28,14 +28,25 @@ type RenderTileOptions = {
     ext: SupportedFormat;
     /** JPEG quality; WebP is always lossless. */
     quality: number;
+    /**
+     * Render in this CRS instead of Web Mercator: PROJJSON and, for tiles and views, its tile grid
+     * (MapLibre GL JS's `{ origin, extentAtZoom0 }` or an OGC 2D TileMatrixSet).
+     */
+    crs?: Crs;
 };
 
 type RenderBboxOptions = {
     stylejson: string | StyleSpecification;
+    /** Degrees, or CRS units (easting first, y up) with `crs`. */
     bbox: [number, number, number, number];
     size: number;
     ext: SupportedFormat;
     quality: number;
+    /**
+     * Render in this CRS instead of Web Mercator: PROJJSON and, for tiles and views, its tile grid
+     * (MapLibre GL JS's `{ origin, extentAtZoom0 }` or an OGC 2D TileMatrixSet).
+     */
+    crs?: Crs;
 };
 
 type RenderViewOptions = {
@@ -47,6 +58,11 @@ type RenderViewOptions = {
     center: [number, number];
     height: number;
     width: number;
+    /**
+     * Render in this CRS instead of Web Mercator: PROJJSON and, for tiles and views, its tile grid
+     * (MapLibre GL JS's `{ origin, extentAtZoom0 }` or an OGC 2D TileMatrixSet).
+     */
+    crs?: Crs;
 };
 
 const DEFAULT_MAX_SIZE = 4096;
@@ -120,16 +136,23 @@ class Chiitiler {
         margin,
         ext,
         quality,
+        crs,
     }: RenderTileOptions): Promise<Uint8Array<ArrayBuffer>> {
-        this.checkSize([tileSize + 2 * Math.floor(margin / 2)]);
+        const m = 2 * Math.floor(margin / 2);
+        // An OGC grid's tiles may be taller than wide.
+        const level =
+            crs?.tileMatrixSet && 'tileMatrices' in crs.tileMatrixSet
+                ? crs.tileMatrixSet.tileMatrices[z]
+                : undefined;
+        const height = level
+            ? (tileSize * level.tileHeight) / level.tileWidth
+            : tileSize;
+        this.checkSize([tileSize + m, height + m]);
         const renderer = await this.renderer(stylejson);
-        const image = await renderer.renderTile({
-            z,
-            x,
-            y,
-            tileSize,
-            margin: Math.floor(margin / 2),
-        });
+        const tile = { z, x, y, tileSize, margin: Math.floor(margin / 2) };
+        const image = crs
+            ? await renderer.renderProjected(crs, { tile })
+            : await renderer.renderTile(tile);
         return encode(image, ext, quality);
     }
 
@@ -140,10 +163,13 @@ class Chiitiler {
         size,
         ext,
         quality,
+        crs,
     }: RenderBboxOptions): Promise<Uint8Array<ArrayBuffer>> {
         this.checkSize([size]);
         const renderer = await this.renderer(stylejson);
-        const image = await renderer.render({ bbox, size });
+        const image = crs
+            ? await renderer.renderProjected(crs, { box: { bbox, size } })
+            : await renderer.render({ bbox, size });
         return encode(image, ext, quality);
     }
 
@@ -153,13 +179,16 @@ class Chiitiler {
     ): Promise<Uint8Array<ArrayBuffer>> {
         this.checkSize([options.width, options.height]);
         const renderer = await this.renderer(options.stylejson);
-        const image = await renderer.renderView({
+        const view = {
             center: options.center,
             zoom: options.zoom,
             bearing: options.bearing,
             width: options.width,
             height: options.height,
-        });
+        };
+        const image = options.crs
+            ? await renderer.renderProjected(options.crs, { view })
+            : await renderer.renderView(view);
         return encode(image, options.ext, options.quality);
     }
 
@@ -236,6 +265,7 @@ class Chiitiler {
 export {
     Chiitiler,
     type ChiitilerOptions,
+    type Crs,
     type RenderBboxOptions,
     type RenderTileOptions,
     type RenderViewOptions,

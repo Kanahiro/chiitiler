@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, it, expect, vi } from 'vitest';
+import sizeOf from 'image-size';
 
 import { initServer } from './index.js';
 import * as cache from '../cache/index.js';
@@ -191,6 +192,145 @@ describe('initServer', () => {
             expect(res.headers.get('content-type')).toBe(type);
             const bytes = new Uint8Array(await res.arrayBuffer());
             expect([...bytes.slice(0, 2)]).toEqual(magic);
+        }
+    });
+
+    it('renders in a CRS given by POST', async () => {
+        const { app } = initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+        });
+        const style = {
+            version: 8,
+            sources: {},
+            layers: [
+                {
+                    id: 'bg',
+                    type: 'background',
+                    paint: { 'background-color': '#ff0000' },
+                },
+            ],
+        };
+        const degree = { unit: 'degree' };
+        // WGS 84 / UTM zone 54N (EPSG:32654)
+        const projjson = {
+            type: 'ProjectedCRS',
+            name: 'WGS 84 / UTM zone 54N',
+            base_crs: {
+                name: 'WGS 84',
+                datum: {
+                    type: 'GeodeticReferenceFrame',
+                    name: 'World Geodetic System 1984',
+                    ellipsoid: {
+                        name: 'WGS 84',
+                        semi_major_axis: 6378137,
+                        inverse_flattening: 298.257223563,
+                    },
+                },
+                coordinate_system: {
+                    subtype: 'ellipsoidal',
+                    axis: [
+                        {
+                            name: 'Lat',
+                            abbreviation: 'Lat',
+                            direction: 'north',
+                            ...degree,
+                        },
+                        {
+                            name: 'Lon',
+                            abbreviation: 'Lon',
+                            direction: 'east',
+                            ...degree,
+                        },
+                    ],
+                },
+            },
+            conversion: {
+                name: 'UTM zone 54N',
+                method: { name: 'Transverse Mercator' },
+                parameters: [
+                    { name: 'Latitude of natural origin', value: 0, ...degree },
+                    {
+                        name: 'Longitude of natural origin',
+                        value: 141,
+                        ...degree,
+                    },
+                    {
+                        name: 'Scale factor at natural origin',
+                        value: 0.9996,
+                        unit: 'unity',
+                    },
+                    { name: 'False easting', value: 500000, unit: 'metre' },
+                    { name: 'False northing', value: 0, unit: 'metre' },
+                ],
+            },
+            coordinate_system: {
+                subtype: 'Cartesian',
+                axis: [
+                    {
+                        name: 'Easting',
+                        abbreviation: 'E',
+                        direction: 'east',
+                        unit: 'metre',
+                    },
+                    {
+                        name: 'Northing',
+                        abbreviation: 'N',
+                        direction: 'north',
+                        unit: 'metre',
+                    },
+                ],
+            },
+        };
+        // An OGC TileMatrixSet with tiles twice as wide as tall, 3 x 1 of them at level 0
+        const tileMatrixSet = {
+            tileMatrices: [
+                {
+                    cellSize: 1000,
+                    pointOfOrigin: [-500000, 5000000],
+                    tileWidth: 256,
+                    tileHeight: 128,
+                    matrixWidth: 3,
+                    matrixHeight: 1,
+                },
+            ],
+        };
+        const post = (path: string, crs: unknown) =>
+            app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ style, crs }),
+            });
+        const crs = { projjson, tileMatrixSet };
+        for (const [path, width, height] of [
+            // x = 2 is past 2^0 but in the grid
+            ['/tiles/0/2/0.png?tileSize=256', 256, 128],
+            ['/clip.png?bbox=300000,3900000,500000,4000000&size=200', 200, 100],
+            ['/view/0/35.68/139.77/30/64x32.png', 64, 32],
+        ] as const) {
+            const res = await post(path, crs);
+            expect(res.status, path).toBe(200);
+            const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
+            expect([size.width, size.height], path).toEqual([width, height]);
+        }
+
+        // a box needs no grid
+        const box = await post('/clip.png?bbox=300000,3900000,500000,4000000', {
+            projjson,
+        });
+        expect(box.status).toBe(200);
+
+        for (const [path, body] of [
+            ['/tiles/0/3/0.png', crs], // outside the grid
+            ['/tiles/1/0/0.png', crs], // no such level
+            ['/tiles/0/0/0.png', { projjson }], // no grid
+            ['/tiles/0/0/0.png', { projjson: { type: 'Foo' }, tileMatrixSet }],
+            ['/tiles/0/0/0.png', { projjson: 'EPSG:32654' }],
+            ['/tiles/0/0/0.png', 'EPSG:32654'],
+        ] as const) {
+            const res = await post(path, body);
+            expect(res.status, `${path} ${JSON.stringify(body)}`).toBe(400);
         }
     });
 

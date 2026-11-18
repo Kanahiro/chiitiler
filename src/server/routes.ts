@@ -5,7 +5,7 @@ import { bodyLimit } from 'hono/body-limit';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { isSupportedFormat, isValidStylejson } from './utils.js';
-import { Chiitiler, type SupportedFormat } from '../render/index.js';
+import { Chiitiler, type Crs, type SupportedFormat } from '../render/index.js';
 import type { Cache } from '../cache/index.js';
 
 type RouteOptions = {
@@ -23,32 +23,35 @@ type Common = {
     stylejson: string | StyleSpecification;
     ext: SupportedFormat;
     quality: number;
+    crs?: Crs;
 };
 
+type Input = Pick<Common, 'stylejson' | 'crs'>;
+
 /**
- * `GET path?url=<style URL>` and `POST path` with `{ "style": {...} }`, both rendering what
- * `parse` reads from the request (or answering its error response) as an image.
+ * `GET path?url=<style URL>` and `POST path` with `{ "style": {...}, "crs"?: {...} }`, both
+ * rendering what `parse` reads from the request (or answering its error response) as an image.
  */
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
     path: string,
     cacheControl: string | undefined,
     failure: string,
-    parse: (c: Context) => P | Response,
+    parse: (c: Context, crs: Crs | undefined) => P | Response,
     render: (params: P & Common) => Promise<Uint8Array<ArrayBuffer>>,
 ) {
     const handle = async (
         c: Context,
-        style: (c: Context) => Promise<Common['stylejson'] | Response>,
+        read: (c: Context) => Promise<Input | Response>,
     ) => {
-        const params = parse(c);
+        const input = await read(c);
+        if (input instanceof Response) return input;
+        const params = parse(c, input.crs);
         if (params instanceof Response) return params;
-        const stylejson = await style(c);
-        if (stylejson instanceof Response) return stylejson;
         try {
             const image = await render({
                 ...params,
-                stylejson,
+                ...input,
                 quality: Number(c.req.query('quality') ?? 100),
             });
             const type = params.ext === 'jpg' ? 'jpeg' : params.ext;
@@ -78,7 +81,9 @@ function imageRoute<P extends { ext: SupportedFormat }>(
     app.get(path, (c) =>
         handle(c, async () => {
             const url = c.req.query('url');
-            return url ?? c.body('url is required', 400);
+            return url === undefined
+                ? c.body('url is required', 400)
+                : { stylejson: url };
         }),
     );
     app.post(
@@ -90,9 +95,16 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         (c) =>
             handle(c, async () => {
                 const body = await c.req.json().catch(() => null);
-                return isValidStylejson(body?.style)
-                    ? body.style
-                    : c.body('invalid stylejson', 400);
+                if (!isValidStylejson(body?.style))
+                    return c.body('invalid stylejson', 400);
+                const crs: unknown = body.crs;
+                // its members are checked by the renderer (400 when invalid)
+                if (
+                    crs !== undefined &&
+                    (crs === null || typeof crs !== 'object')
+                )
+                    return c.body('invalid crs', 400);
+                return { stylejson: body.style, crs: crs as Crs | undefined };
             }),
     );
 }
@@ -116,11 +128,13 @@ function registerRoutes(app: Hono, options: RouteOptions) {
         '/tiles/:z/:x/:y_ext',
         cacheControl,
         'failed to render tile',
-        (c) => {
+        (c, crs) => {
             const z = Number(param(c, 'z'));
             const x = Number(param(c, 'x'));
             const y = Number(param(c, 'y_ext').split('.')[0]);
-            if (x < 0 || y < 0 || z < 0 || x >= 2 ** z || y >= 2 ** z)
+            // a CRS's grid need not be 2^z x 2^z: the renderer checks its tiles
+            const n = crs ? Infinity : 2 ** z;
+            if (x < 0 || y < 0 || z < 0 || x >= n || y >= n)
                 return c.body('invalid xyz', 400);
             const ext = format(c, param(c, 'y_ext'));
             if (ext instanceof Response) return ext;
