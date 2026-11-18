@@ -107,7 +107,7 @@
     "tileMatrixSet": {
         "origin": [
             -180.0,
-            90.0
+            180.0
         ],
         "extentAtZoom0": 360.0
     }
