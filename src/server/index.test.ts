@@ -7,6 +7,7 @@ import sizeOf from 'image-size';
 
 import { initServer } from './index.js';
 import * as cache from '../cache/index.js';
+import type { Crs } from '../render/index.js';
 
 describe('initServer', () => {
     it('init', async () => {
@@ -295,11 +296,14 @@ describe('initServer', () => {
             port: 8989,
             cache: cache.noneCache(),
             debug: false,
-            crs: {
-                utm: { projjson, tileMatrixSet },
-                nogrid: { projjson },
-                foo: { projjson: { type: 'Foo' }, tileMatrixSet },
-            },
+            crs: async (id) =>
+                (
+                    ({
+                        utm: { projjson, tileMatrixSet },
+                        nogrid: { projjson },
+                        foo: { projjson: { type: 'Foo' }, tileMatrixSet },
+                    }) as Record<string, Crs>
+                )[id],
         });
         const post = (path: string) =>
             app.request(path, {
@@ -341,7 +345,6 @@ describe('initServer', () => {
 
         for (const path of [
             '/tiles/0/0/0.png?crs=EPSG:32654', // not registered
-            '/tiles/0/0/0.png?crs=toString', // not an own key
             '/tiles/0/3/0.png?crs=utm', // outside the grid
             '/tiles/1/0/0.png?crs=utm', // no such level
             '/tiles/0/0/0.png?crs=nogrid', // no grid

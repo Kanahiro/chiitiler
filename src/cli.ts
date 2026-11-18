@@ -1,6 +1,7 @@
 import process from 'node:process';
 import cluster from 'node:cluster';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { basename, join } from 'node:path';
 
@@ -91,25 +92,27 @@ function readCache(env: Env): caches.Cache {
     });
 }
 
-/** `<id>.json` files of `dir`, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`, by id. */
-function readCrs(env: Env): Record<string, Crs> | undefined {
+/**
+ * The `<id>.json` files of CHIITILER_CRS_DIR, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`,
+ * by id. Only their names are kept: a file is read when a request names it (thousands may be there).
+ */
+function readCrs(env: Env): InitServerOptions['crs'] {
     const dir = read(env, 'CHIITILER_CRS_DIR');
     if (dir === undefined) return undefined;
-    const crs: Record<string, Crs> = {};
-    for (const file of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
-        const value = JSON.parse(readFileSync(join(dir, file), 'utf8'));
-        const isObject = (v: unknown) => v !== null && typeof v === 'object';
-        if (
-            !isObject(value?.projjson) ||
-            (value.tileMatrixSet !== undefined &&
-                !isObject(value.tileMatrixSet))
-        )
-            throw new Error(
-                `${join(dir, file)} must be { "projjson": {...}, "tileMatrixSet"?: {...} }`,
-            );
-        crs[basename(file, '.json')] = value;
-    }
-    return crs;
+    const ids = new Set(
+        readdirSync(dir)
+            .filter((f) => f.endsWith('.json'))
+            .map((f) => basename(f, '.json')),
+    );
+    return async (id) => {
+        if (!ids.has(id)) return undefined;
+        const value = JSON.parse(
+            await readFile(join(dir, `${id}.json`), 'utf8'),
+        );
+        if (value?.projjson === null || typeof value?.projjson !== 'object')
+            throw new Error(`${id}.json has no projjson object`);
+        return value as Crs;
+    };
 }
 
 type Config = InitServerOptions & { processes: number };

@@ -19,8 +19,8 @@ type InitServerOptions = {
     cacheControl?: string;
     /** Origins allowed by CORS: `*`, or a list. Default: none (no CORS headers). */
     corsOrigins?: string[];
-    /** CRSs requests can render in with `?crs=<id>`, by id. Default: none. */
-    crs?: Record<string, Crs>;
+    /** The CRS a request names with `?crs=<id>`, or undefined for an unknown id. Default: none. */
+    crs?: (id: string) => Promise<Crs | undefined>;
 };
 
 type InitializedServer = {

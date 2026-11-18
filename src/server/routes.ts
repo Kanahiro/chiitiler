@@ -14,8 +14,8 @@ type RouteOptions = {
     maxSize?: number;
     /** `Cache-Control` of rendered images, if any. */
     cacheControl?: string;
-    /** CRSs requests can render in with `?crs=<id>`, by id. */
-    crs?: Record<string, Crs>;
+    /** The CRS a request names with `?crs=<id>`, or undefined for an unknown id. */
+    crs?: (id: string) => Promise<Crs | undefined>;
 };
 
 /** Bodies of POST requests (styles, inline GeoJSON included). */
@@ -36,7 +36,7 @@ type Common = {
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
     path: string,
-    { cacheControl, crs: crsById = {} }: RouteOptions,
+    { cacheControl, crs: lookup }: RouteOptions,
     failure: string,
     parse: (c: Context, crs: Crs | undefined) => P | Response,
     render: (params: P & Common) => Promise<Uint8Array<ArrayBuffer>>,
@@ -46,9 +46,9 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         style: (c: Context) => Promise<Common['stylejson'] | Response>,
     ) => {
         const id = c.req.query('crs');
-        if (id !== undefined && !Object.hasOwn(crsById, id))
+        const crs = id === undefined ? undefined : await lookup?.(id);
+        if (id !== undefined && crs === undefined)
             return c.body('unknown crs', 400);
-        const crs = id === undefined ? undefined : crsById[id];
         const params = parse(c, crs);
         if (params instanceof Response) return params;
         const stylejson = await style(c);

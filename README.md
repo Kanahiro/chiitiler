@@ -107,7 +107,14 @@ render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
 - `/clip`: `bbox` in CRS units, `minX,minY,maxX,maxY` (easting first, y up).
 - `/view`: `lat`/`lon` in degrees, `zoom` of the grid (its first tile 512 px wide at zoom 0).
 - Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unknown id, an unsupported CRS, an invalid grid or a tile outside it answers `400`.
-- Files are read at startup; a file without a `projjson` object stops it.
+- A file is read when a request names it; one without a `projjson` object answers `500`.
+
+The Docker image comes with presets (`CHIITILER_CRS_DIR=/app/crs`): `EPSG:4326` and the EPSG projected
+CRSs the renderer supports (about 5,200), as `?crs=EPSG:<code>` (e.g. `?crs=EPSG:6677`). Each is
+generated from PROJ's database by [`crs/generate.py`](crs/generate.py): its grid is the square from the
+top-left corner of the CRS's area of use, covering it. Fetch `/app/crs/EPSG:<code>.json` from the image
+to show the tiles with MapLibre GL JS (`addProjection` takes its `tileMatrixSet`). Datum shifts are
+ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own directory to replace them.
 
 **Rendering limits** (ml2drender renders 2D only)
 
@@ -250,7 +257,7 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 | `CHIITILER_MAX_SIZE` | `4096` |
 | `CHIITILER_CACHE_CONTROL` | (none) |
 | `CHIITILER_CORS` | (none) |
-| `CHIITILER_CRS_DIR` | (none: Web Mercator only) |
+| `CHIITILER_CRS_DIR` | (none: Web Mercator only; `/app/crs` in the Docker image) |
 
 `CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
 Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in
