@@ -7,6 +7,7 @@ on:
         paths:
             - "src/**"
             - "tests/**"
+            - "crs/**"
             - "Dockerfile"
             - "docker-compose.yml"
             - "package.json"
@@ -48,6 +49,11 @@ jobs:
                     -d '{"style":{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#ff0000"}}]}}' \
                     http://localhost:3100/tiles/0/0/0.png
                   file tile.png | tee /dev/stderr | grep -q 'PNG image data, 512 x 512'
+                  # preset CRSs (crs/) ship in the image
+                  curl -sf -o projected.png -X POST -H 'Content-Type: application/json' \
+                    -d '{"style":{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#ff0000"}}]}}' \
+                    'http://localhost:3100/tiles/0/0/0.png?crs=EPSG-6677'
+                  file projected.png | tee /dev/stderr | grep -q 'PNG image data, 512 x 512'
             - name: dump server logs
               if: failure()
               run: docker compose logs
