@@ -47,8 +47,8 @@ function getDebugPage(c: Context) {
                 const params = new URLSearchParams(window.location.search);
                 const crsId = params.get('crs') ?? '';
                 const select = document.getElementById('crs');
-                for (const id of await (await fetch('/crs')).json())
-                    select.add(new Option(id, id, false, id === crsId));
+                for (const { id, name } of await (await fetch('/crs')).json())
+                    select.add(new Option(name + ' (' + id + ')', id, false, id === crsId));
                 select.onchange = () => {
                     if (select.value) params.set('crs', select.value);
                     else params.delete('crs');

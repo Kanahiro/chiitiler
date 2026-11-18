@@ -109,6 +109,7 @@ render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
 - `/view`: `lat`/`lon` in degrees, `zoom` of the grid (its first tile 512 px wide at zoom 0).
 - Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unknown id, an unsupported CRS, an invalid grid or a tile outside it answers `400`.
 - A file is read when a request names it; one without a `projjson` object answers `500`.
+- `POST` also takes a CRS in the body, in the same form: `{ "style": { ... }, "crs": { "projjson": { ... }, "tileMatrixSet": { ... } } }`. It takes precedence over `?crs=`.
 
 The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/crs`), as `?crs=EPSG-<code>`:
 
@@ -170,6 +171,25 @@ const png = await chiitiler.renderTile({
 
 Methods: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long side) and
 `renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
+
+`renderProjectedTile`, `renderProjectedBbox` and `renderProjectedView` take the same options and a
+`crs` (`{ projjson, tileMatrixSet? }`, see [Custom projections](#http-api)): a tile of its grid, a box in
+its units (easting first, y up; no grid needed), or a camera with the grid's zoom. An invalid CRS, grid or
+tile rejects with a `RangeError`.
+
+```ts
+import { readFile } from 'node:fs/promises';
+
+const crs = JSON.parse(await readFile('crs/EPSG-6677.json', 'utf8'));
+const png = await chiitiler.renderProjectedBbox({
+    stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
+    crs,
+    bbox: [-20000, -60000, 20000, -30000], // meters of JGD2011 / Japan Plane Rectangular CS IX
+    size: 1024,
+    ext: 'png',
+    quality: 100,
+});
+```
 
 `stylejson` is a URL or a style object, and may differ on every call. An instance keeps renderers of
 the styles it drew last, with their decoded tiles, glyphs and sprites: create one and reuse it.

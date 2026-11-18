@@ -138,7 +138,7 @@ describe('preset CRSs', () => {
         expect(files.length).toBeGreaterThan(0);
         for (const file of files) {
             const crs = JSON.parse(await readFile(`crs/${file}`, 'utf8'));
-            const png = await chiitiler.renderTile({
+            const png = await chiitiler.renderProjectedTile({
                 stylejson: style,
                 crs,
                 z: 0,

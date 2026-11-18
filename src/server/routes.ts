@@ -32,13 +32,17 @@ type Common = {
     stylejson: string | StyleSpecification;
     ext: SupportedFormat;
     quality: number;
-    crs?: Crs;
 };
 
+type Input = { stylejson: Common['stylejson']; crs?: Crs };
+
+const isObject = (v: unknown): v is object =>
+    v !== null && typeof v === 'object';
+
 /**
- * `GET path?url=<style URL>` and `POST path` with `{ "style": {...} }`, both rendering what
- * `parse` reads from the request (or answering its error response) as an image, in the CRS
- * `?crs=<id>` names if any.
+ * `GET path?url=<style URL>` and `POST path` with `{ "style": {...}, "crs"?: {...} }`, both
+ * rendering what `parse` reads from the request (or answering its error response) as an image, in
+ * the CRS of the body, or else of `?crs=<id>`, if any.
  */
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
@@ -46,27 +50,34 @@ function imageRoute<P extends { ext: SupportedFormat }>(
     { cacheControl, crs: catalog }: RouteOptions,
     failure: string,
     parse: (c: Context, crs: Crs | undefined) => P | Response,
-    render: (params: P & Common) => Promise<Uint8Array<ArrayBuffer>>,
+    render: (
+        params: P & Common,
+        crs: Crs | undefined,
+    ) => Promise<Uint8Array<ArrayBuffer>>,
 ) {
     const handle = async (
         c: Context,
-        style: (c: Context) => Promise<Common['stylejson'] | Response>,
+        read: (c: Context) => Promise<Input | Response>,
     ) => {
+        const input = await read(c);
+        if (input instanceof Response) return input;
+        let crs = input.crs;
         const id = c.req.query('crs');
-        const crs = id === undefined ? undefined : await catalog?.get(id);
-        if (id !== undefined && crs === undefined)
-            return c.body('unknown crs', 400);
+        if (crs === undefined && id !== undefined) {
+            crs = await catalog?.get(id);
+            if (crs === undefined) return c.body('unknown crs', 400);
+        }
         const params = parse(c, crs);
         if (params instanceof Response) return params;
-        const stylejson = await style(c);
-        if (stylejson instanceof Response) return stylejson;
         try {
-            const image = await render({
-                ...params,
-                stylejson,
+            const image = await render(
+                {
+                    ...params,
+                    stylejson: input.stylejson,
+                    quality: Number(c.req.query('quality') ?? 100),
+                },
                 crs,
-                quality: Number(c.req.query('quality') ?? 100),
-            });
+            );
             const type = params.ext === 'jpg' ? 'jpeg' : params.ext;
             const headers: Record<string, string> = {
                 'Content-Type': `image/${type}`,
@@ -94,7 +105,9 @@ function imageRoute<P extends { ext: SupportedFormat }>(
     app.get(path, (c) =>
         handle(c, async () => {
             const url = c.req.query('url');
-            return url ?? c.body('url is required', 400);
+            return url === undefined
+                ? c.body('url is required', 400)
+                : { stylejson: url };
         }),
     );
     app.post(
@@ -106,9 +119,23 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         (c) =>
             handle(c, async () => {
                 const body = await c.req.json().catch(() => null);
-                return isValidStylejson(body?.style)
-                    ? body.style
-                    : c.body('invalid stylejson', 400);
+                if (!isValidStylejson(body?.style))
+                    return c.body('invalid stylejson', 400);
+                const crs: unknown = body.crs;
+                // the rest is checked by the renderer (400 when invalid)
+                if (
+                    crs !== undefined &&
+                    !(
+                        isObject(crs) &&
+                        'projjson' in crs &&
+                        isObject(crs.projjson) &&
+                        (!('tileMatrixSet' in crs) ||
+                            crs.tileMatrixSet === undefined ||
+                            isObject(crs.tileMatrixSet))
+                    )
+                )
+                    return c.body('invalid crs', 400);
+                return { stylejson: body.style, crs: crs as Crs | undefined };
             }),
     );
 }
@@ -127,7 +154,20 @@ function format(c: Context, nameExt: string): SupportedFormat | Response {
 function registerRoutes(app: Hono, options: RouteOptions) {
     const chiitiler = new Chiitiler(options);
     // CRS definitions, for clients showing the tiles (MapLibre GL JS's addProjection takes the grid)
-    app.get('/crs', (c) => c.json(options.crs?.ids ?? []));
+    app.get('/crs', async (c) => {
+        const { crs } = options;
+        if (!crs) return c.json([]);
+        const list = await Promise.all(
+            crs.ids.map(async (id) => {
+                const projjson = (await crs.get(id))?.projjson;
+                return {
+                    id,
+                    name: (projjson as { name?: string })?.name ?? id,
+                };
+            }),
+        );
+        return c.json(list);
+    });
     app.get('/crs/:id', async (c) => {
         const crs = await options.crs?.get(param(c, 'id'));
         return crs ? c.json(crs) : c.body('unknown crs', 404);
@@ -156,7 +196,10 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 margin: Number(c.req.query('margin') ?? 0),
             };
         },
-        (p) => chiitiler.renderTile(p),
+        (p, crs) =>
+            crs
+                ? chiitiler.renderProjectedTile({ ...p, crs })
+                : chiitiler.renderTile(p),
     );
 
     imageRoute(
@@ -184,7 +227,10 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 size: Number(c.req.query('size') ?? 1024),
             };
         },
-        (p) => chiitiler.renderBbox(p),
+        (p, crs) =>
+            crs
+                ? chiitiler.renderProjectedBbox({ ...p, crs })
+                : chiitiler.renderBbox(p),
     );
 
     imageRoute(
@@ -222,7 +268,10 @@ function registerRoutes(app: Hono, options: RouteOptions) {
                 height,
             };
         },
-        (p) => chiitiler.renderView(p),
+        (p, crs) =>
+            crs
+                ? chiitiler.renderProjectedView({ ...p, crs })
+                : chiitiler.renderView(p),
     );
 }
 

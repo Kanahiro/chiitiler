@@ -347,13 +347,42 @@ describe('initServer', () => {
 
         // definitions
         expect(await (await app.request('/crs')).json()).toEqual([
-            'utm',
-            'nogrid',
-            'foo',
+            { id: 'utm', name: 'WGS 84 / UTM zone 54N' },
+            { id: 'nogrid', name: 'WGS 84 / UTM zone 54N' },
+            { id: 'foo', name: 'foo' },
         ]);
         const def = await app.request('/crs/utm');
         expect(await def.json()).toEqual({ projjson, tileMatrixSet });
         expect((await app.request('/crs/toString')).status).toBe(404);
+
+        // a CRS in the body, taking precedence over ?crs=
+        const withBody = (path: string, crs: unknown) =>
+            app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ style, crs }),
+            });
+        for (const path of [
+            '/tiles/0/2/0.png?tileSize=256',
+            '/tiles/0/2/0.png?tileSize=256&crs=nogrid',
+            '/tiles/0/2/0.png?tileSize=256&crs=unknown',
+        ]) {
+            const res = await withBody(path, { projjson, tileMatrixSet });
+            expect(res.status, path).toBe(200);
+            const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
+            expect([size.width, size.height], path).toEqual([256, 128]);
+        }
+        for (const crs of [
+            'EPSG:32654',
+            null,
+            {},
+            { projjson: 'EPSG:32654' },
+            { projjson, tileMatrixSet: 1 },
+            { projjson: { type: 'Foo' }, tileMatrixSet },
+        ]) {
+            const res = await withBody('/tiles/0/0/0.png', crs);
+            expect(res.status, JSON.stringify(crs)).toBe(400);
+        }
 
         for (const path of [
             '/tiles/0/0/0.png?crs=EPSG:32654', // not registered
