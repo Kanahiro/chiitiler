@@ -14,8 +14,15 @@ type RouteOptions = {
     maxSize?: number;
     /** `Cache-Control` of rendered images, if any. */
     cacheControl?: string;
-    /** The CRS a request names with `?crs=<id>`, or undefined for an unknown id. */
-    crs?: (id: string) => Promise<Crs | undefined>;
+    /** CRSs requests can render in with `?crs=<id>`. */
+    crs?: CrsCatalog;
+};
+
+/** CRSs by id. */
+type CrsCatalog = {
+    ids: string[];
+    /** The CRS of `id`, or undefined for an unknown id. */
+    get: (id: string) => Promise<Crs | undefined>;
 };
 
 /** Bodies of POST requests (styles, inline GeoJSON included). */
@@ -36,7 +43,7 @@ type Common = {
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
     path: string,
-    { cacheControl, crs: lookup }: RouteOptions,
+    { cacheControl, crs: catalog }: RouteOptions,
     failure: string,
     parse: (c: Context, crs: Crs | undefined) => P | Response,
     render: (params: P & Common) => Promise<Uint8Array<ArrayBuffer>>,
@@ -46,7 +53,7 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         style: (c: Context) => Promise<Common['stylejson'] | Response>,
     ) => {
         const id = c.req.query('crs');
-        const crs = id === undefined ? undefined : await lookup?.(id);
+        const crs = id === undefined ? undefined : await catalog?.get(id);
         if (id !== undefined && crs === undefined)
             return c.body('unknown crs', 400);
         const params = parse(c, crs);
@@ -119,6 +126,12 @@ function format(c: Context, nameExt: string): SupportedFormat | Response {
 
 function registerRoutes(app: Hono, options: RouteOptions) {
     const chiitiler = new Chiitiler(options);
+    // CRS definitions, for clients showing the tiles (MapLibre GL JS's addProjection takes the grid)
+    app.get('/crs', (c) => c.json(options.crs?.ids ?? []));
+    app.get('/crs/:id', async (c) => {
+        const crs = await options.crs?.get(param(c, 'id'));
+        return crs ? c.json(crs) : c.body('unknown crs', 404);
+    });
     imageRoute(
         app,
         '/tiles/:z/:x/:y_ext',
@@ -213,4 +226,4 @@ function registerRoutes(app: Hono, options: RouteOptions) {
     );
 }
 
-export { registerRoutes, type RouteOptions };
+export { type CrsCatalog, registerRoutes, type RouteOptions };

@@ -94,7 +94,7 @@ function readCache(env: Env): caches.Cache {
 
 /**
  * The `<id>.json` files of CHIITILER_CRS_DIR, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`,
- * by id. Only their names are kept: a file is read when a request names it (thousands may be there).
+ * by id. Only their names are kept: a file is read when it is asked for.
  */
 function readCrs(env: Env): InitServerOptions['crs'] {
     const dir = read(env, 'CHIITILER_CRS_DIR');
@@ -104,14 +104,17 @@ function readCrs(env: Env): InitServerOptions['crs'] {
             .filter((f) => f.endsWith('.json'))
             .map((f) => basename(f, '.json')),
     );
-    return async (id) => {
-        if (!ids.has(id)) return undefined;
-        const value = JSON.parse(
-            await readFile(join(dir, `${id}.json`), 'utf8'),
-        );
-        if (value?.projjson === null || typeof value?.projjson !== 'object')
-            throw new Error(`${id}.json has no projjson object`);
-        return value as Crs;
+    return {
+        ids: [...ids].sort(),
+        get: async (id) => {
+            if (!ids.has(id)) return undefined;
+            const value = JSON.parse(
+                await readFile(join(dir, `${id}.json`), 'utf8'),
+            );
+            if (value?.projjson === null || typeof value?.projjson !== 'object')
+                throw new Error(`${id}.json has no projjson object`);
+            return value as Crs;
+        },
     };
 }
 

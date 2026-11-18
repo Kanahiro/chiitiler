@@ -5,9 +5,8 @@ import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
 
 import type { Cache } from '../cache/index.js';
-import type { Crs } from '../render/index.js';
 import { getDebugPage, getEditorPage } from './debug.js';
-import { registerRoutes } from './routes.js';
+import { type CrsCatalog, registerRoutes } from './routes.js';
 
 type InitServerOptions = {
     cache: Cache;
@@ -19,8 +18,8 @@ type InitServerOptions = {
     cacheControl?: string;
     /** Origins allowed by CORS: `*`, or a list. Default: none (no CORS headers). */
     corsOrigins?: string[];
-    /** The CRS a request names with `?crs=<id>`, or undefined for an unknown id. Default: none. */
-    crs?: (id: string) => Promise<Crs | undefined>;
+    /** CRSs requests can render in with `?crs=<id>`. Default: none. */
+    crs?: CrsCatalog;
 };
 
 type InitializedServer = {

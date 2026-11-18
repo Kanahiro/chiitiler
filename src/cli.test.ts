@@ -112,10 +112,11 @@ describe('configuration', () => {
             writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
             writeFileSync(join(dir, 'README.md'), 'not a CRS');
             const crs = readConfig({ CHIITILER_CRS_DIR: dir }).crs;
-            expect(await crs?.('EPSG-32654')).toEqual(utm);
+            expect(crs?.ids).toEqual(['EPSG-32654', 'bad']);
+            expect(await crs?.get('EPSG-32654')).toEqual(utm);
             for (const id of ['README', 'missing', '../EPSG-32654', 'toString'])
-                expect(await crs?.(id), id).toBeUndefined();
-            await expect(crs?.('bad')).rejects.toThrow(
+                expect(await crs?.get(id), id).toBeUndefined();
+            await expect(crs?.get('bad')).rejects.toThrow(
                 'bad.json has no projjson',
             );
             expect(readConfig({}).crs).toBeUndefined();

@@ -74,7 +74,8 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
 | `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
 | `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form view (2D: no pitch) |
-| `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) |
+| `GET` | `/crs`, `/crs/{id}` | Ids of the registered CRSs, and a CRS's `{ projjson, tileMatrixSet }` (see Custom projections) |
+| `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) | — `/debug` switches between the registered CRSs
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`.
 
@@ -121,7 +122,9 @@ The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/c
 | Asia | `EPSG-5179` (Korea Unified CS), `EPSG-3826` (TWD97 / TM2), `EPSG-6669`–`EPSG-6687` (JGD2011 / Japan Plane Rectangular CS I–XIX) |
 
 Their PROJJSON is PROJ's, and their grid is the square from the top-left corner of the CRS's area of use,
-covering it: use the same `tileMatrixSet` with MapLibre GL JS's `addProjection` to show the tiles. Datum
+covering it. To show the tiles with MapLibre GL JS, register the CRS with `addProjection`: its
+`tileMatrixSet` from `GET /crs/{id}`, and a converter of its `projjson` (e.g. `proj4('EPSG:4326', projjson)`),
+as `/debug` does. Datum
 shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own directory to replace them.
 
 **Rendering limits** (ml2drender renders 2D only)

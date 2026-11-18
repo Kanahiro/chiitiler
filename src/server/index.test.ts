@@ -292,18 +292,20 @@ describe('initServer', () => {
                 },
             ],
         };
+        const catalog: Record<string, Crs> = {
+            utm: { projjson, tileMatrixSet },
+            nogrid: { projjson },
+            foo: { projjson: { type: 'Foo' }, tileMatrixSet },
+        };
         const { app } = initServer({
             port: 8989,
             cache: cache.noneCache(),
             debug: false,
-            crs: async (id) =>
-                (
-                    ({
-                        utm: { projjson, tileMatrixSet },
-                        nogrid: { projjson },
-                        foo: { projjson: { type: 'Foo' }, tileMatrixSet },
-                    }) as Record<string, Crs>
-                )[id],
+            crs: {
+                ids: Object.keys(catalog),
+                get: async (id) =>
+                    Object.hasOwn(catalog, id) ? catalog[id] : undefined,
+            },
         });
         const post = (path: string) =>
             app.request(path, {
@@ -342,6 +344,16 @@ describe('initServer', () => {
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }
+
+        // definitions
+        expect(await (await app.request('/crs')).json()).toEqual([
+            'utm',
+            'nogrid',
+            'foo',
+        ]);
+        const def = await app.request('/crs/utm');
+        expect(await def.json()).toEqual({ projjson, tileMatrixSet });
+        expect((await app.request('/crs/toString')).status).toBe(404);
 
         for (const path of [
             '/tiles/0/0/0.png?crs=EPSG:32654', // not registered
