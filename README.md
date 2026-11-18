@@ -123,7 +123,8 @@ The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/c
 | Asia | `EPSG-5179` (Korea Unified CS), `EPSG-3826` (TWD97 / TM2), `EPSG-6669`–`EPSG-6687` (JGD2011 / Japan Plane Rectangular CS I–XIX) |
 
 Their PROJJSON is PROJ's, and their grid is the square from the top-left corner of the CRS's area of use,
-covering it. To show the tiles with MapLibre GL JS, register the CRS with `addProjection`: its
+covering it; the world CRSs' (`EPSG-4326`, `EPSG-8857`) is centered on the world instead, as MapLibre GL JS
+needs the middle of the grid on the map. To show the tiles with MapLibre GL JS, register the CRS with `addProjection`: its
 `tileMatrixSet` from `GET /crs/{id}`, and a converter of its `projjson` (e.g. `proj4('EPSG:4326', projjson)`),
 as `/debug` does. Datum
 shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own directory to replace them.
