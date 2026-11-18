@@ -1,9 +1,12 @@
 import process from 'node:process';
 import cluster from 'node:cluster';
+import { readdirSync, readFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
+import { basename, join } from 'node:path';
 
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
+import type { Crs } from './render/index.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -88,6 +91,27 @@ function readCache(env: Env): caches.Cache {
     });
 }
 
+/** `<id>.json` files of `dir`, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`, by id. */
+function readCrs(env: Env): Record<string, Crs> | undefined {
+    const dir = read(env, 'CHIITILER_CRS_DIR');
+    if (dir === undefined) return undefined;
+    const crs: Record<string, Crs> = {};
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
+        const value = JSON.parse(readFileSync(join(dir, file), 'utf8'));
+        const isObject = (v: unknown) => v !== null && typeof v === 'object';
+        if (
+            !isObject(value?.projjson) ||
+            (value.tileMatrixSet !== undefined &&
+                !isObject(value.tileMatrixSet))
+        )
+            throw new Error(
+                `${join(dir, file)} must be { "projjson": {...}, "tileMatrixSet"?: {...} }`,
+            );
+        crs[basename(file, '.json')] = value;
+    }
+    return crs;
+}
+
 type Config = InitServerOptions & { processes: number };
 
 /**
@@ -103,6 +127,7 @@ function readConfig(env: Env = process.env): Config {
         processes: processes === 0 ? availableParallelism() : processes,
         maxSize: integer(env, 'CHIITILER_MAX_SIZE', 4096, 1),
         cacheControl: read(env, 'CHIITILER_CACHE_CONTROL'),
+        crs: readCrs(env),
         corsOrigins: read(env, 'CHIITILER_CORS')
             ?.split(',')
             .map((origin) => origin.trim())

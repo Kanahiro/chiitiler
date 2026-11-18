@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import cluster from 'node:cluster';
-import { availableParallelism } from 'node:os';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { availableParallelism, tmpdir } from 'node:os';
 
 import { readConfig, run } from './cli.js';
 import * as server from './server/index.js';
@@ -97,6 +99,28 @@ describe('configuration', () => {
         ['CHIITILER_CACHE_TTL_SEC', 'x', 'CHIITILER_CACHE_TTL_SEC must be'],
     ])('rejects %s=%s', (name, value, error) => {
         expect(() => readConfig({ [name]: value })).toThrow(error);
+    });
+
+    it('reads CRSs from CHIITILER_CRS_DIR', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'chiitiler-crs-'));
+        try {
+            const utm = {
+                projjson: { type: 'ProjectedCRS' },
+                tileMatrixSet: { origin: [0, 0], extentAtZoom0: 1 },
+            };
+            writeFileSync(join(dir, 'utm.json'), JSON.stringify(utm));
+            writeFileSync(join(dir, 'README.md'), 'not a CRS');
+            const config = readConfig({ CHIITILER_CRS_DIR: dir });
+            expect(config.crs).toEqual({ utm });
+            expect(readConfig({}).crs).toBeUndefined();
+
+            writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
+            expect(() => readConfig({ CHIITILER_CRS_DIR: dir })).toThrow(
+                'bad.json must be',
+            );
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it.each([

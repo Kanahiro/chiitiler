@@ -91,15 +91,14 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 
 For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 
-**Custom projections** (`POST` only): add `crs` to the body to render in another CRS instead of Web Mercator.
+**Custom projections**: register CRSs with `CHIITILER_CRS_DIR`, a directory of `<id>.json` files, and
+render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
 
 ```jsonc
+// $CHIITILER_CRS_DIR/utm54n.json → ?crs=utm54n
 {
-  "style": { ... },
-  "crs": {
-    "projjson": { ... },     // PROJJSON of the CRS, e.g. from `projinfo EPSG:6677 -o PROJJSON`
-    "tileMatrixSet": { ... } // its tile grid: required by /tiles and /view, not by /clip
-  }
+  "projjson": { ... },     // PROJJSON of the CRS, e.g. from `projinfo EPSG:32654 -o PROJJSON`
+  "tileMatrixSet": { ... } // its tile grid: required by /tiles and /view, not by /clip
 }
 ```
 
@@ -107,7 +106,8 @@ For `POST`, send the style object as JSON body: `{ "style": { ... } }`.
 - `/tiles/{z}/{x}/{y}`: a tile of that grid (`tileSize` is its width; an OGC grid's tiles may be taller or shorter).
 - `/clip`: `bbox` in CRS units, `minX,minY,maxX,maxY` (easting first, y up).
 - `/view`: `lat`/`lon` in degrees, `zoom` of the grid (its first tile 512 px wide at zoom 0).
-- Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unsupported CRS, an invalid grid or a tile outside it answers `400`.
+- Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unknown id, an unsupported CRS, an invalid grid or a tile outside it answers `400`.
+- Files are read at startup; a file without a `projjson` object stops it.
 
 **Rendering limits** (ml2drender renders 2D only)
 
@@ -250,6 +250,7 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 | `CHIITILER_MAX_SIZE` | `4096` |
 | `CHIITILER_CACHE_CONTROL` | (none) |
 | `CHIITILER_CORS` | (none) |
+| `CHIITILER_CRS_DIR` | (none: Web Mercator only) |
 
 `CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
 Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in

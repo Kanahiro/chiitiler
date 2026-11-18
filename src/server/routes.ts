@@ -14,6 +14,8 @@ type RouteOptions = {
     maxSize?: number;
     /** `Cache-Control` of rendered images, if any. */
     cacheControl?: string;
+    /** CRSs requests can render in with `?crs=<id>`, by id. */
+    crs?: Record<string, Crs>;
 };
 
 /** Bodies of POST requests (styles, inline GeoJSON included). */
@@ -26,32 +28,36 @@ type Common = {
     crs?: Crs;
 };
 
-type Input = Pick<Common, 'stylejson' | 'crs'>;
-
 /**
- * `GET path?url=<style URL>` and `POST path` with `{ "style": {...}, "crs"?: {...} }`, both
- * rendering what `parse` reads from the request (or answering its error response) as an image.
+ * `GET path?url=<style URL>` and `POST path` with `{ "style": {...} }`, both rendering what
+ * `parse` reads from the request (or answering its error response) as an image, in the CRS
+ * `?crs=<id>` names if any.
  */
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
     path: string,
-    cacheControl: string | undefined,
+    { cacheControl, crs: crsById = {} }: RouteOptions,
     failure: string,
     parse: (c: Context, crs: Crs | undefined) => P | Response,
     render: (params: P & Common) => Promise<Uint8Array<ArrayBuffer>>,
 ) {
     const handle = async (
         c: Context,
-        read: (c: Context) => Promise<Input | Response>,
+        style: (c: Context) => Promise<Common['stylejson'] | Response>,
     ) => {
-        const input = await read(c);
-        if (input instanceof Response) return input;
-        const params = parse(c, input.crs);
+        const id = c.req.query('crs');
+        if (id !== undefined && !Object.hasOwn(crsById, id))
+            return c.body('unknown crs', 400);
+        const crs = id === undefined ? undefined : crsById[id];
+        const params = parse(c, crs);
         if (params instanceof Response) return params;
+        const stylejson = await style(c);
+        if (stylejson instanceof Response) return stylejson;
         try {
             const image = await render({
                 ...params,
-                ...input,
+                stylejson,
+                crs,
                 quality: Number(c.req.query('quality') ?? 100),
             });
             const type = params.ext === 'jpg' ? 'jpeg' : params.ext;
@@ -81,9 +87,7 @@ function imageRoute<P extends { ext: SupportedFormat }>(
     app.get(path, (c) =>
         handle(c, async () => {
             const url = c.req.query('url');
-            return url === undefined
-                ? c.body('url is required', 400)
-                : { stylejson: url };
+            return url ?? c.body('url is required', 400);
         }),
     );
     app.post(
@@ -95,16 +99,9 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         (c) =>
             handle(c, async () => {
                 const body = await c.req.json().catch(() => null);
-                if (!isValidStylejson(body?.style))
-                    return c.body('invalid stylejson', 400);
-                const crs: unknown = body.crs;
-                // its members are checked by the renderer (400 when invalid)
-                if (
-                    crs !== undefined &&
-                    (crs === null || typeof crs !== 'object')
-                )
-                    return c.body('invalid crs', 400);
-                return { stylejson: body.style, crs: crs as Crs | undefined };
+                return isValidStylejson(body?.style)
+                    ? body.style
+                    : c.body('invalid stylejson', 400);
             }),
     );
 }
@@ -122,11 +119,10 @@ function format(c: Context, nameExt: string): SupportedFormat | Response {
 
 function registerRoutes(app: Hono, options: RouteOptions) {
     const chiitiler = new Chiitiler(options);
-    const { cacheControl } = options;
     imageRoute(
         app,
         '/tiles/:z/:x/:y_ext',
-        cacheControl,
+        options,
         'failed to render tile',
         (c, crs) => {
             const z = Number(param(c, 'z'));
@@ -154,7 +150,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
         app,
         // only clip.<ext>: other paths are not found
         '/:file{clip\\.[^/]*}',
-        cacheControl,
+        options,
         'failed to render tile',
         (c) => {
             const ext = format(c, param(c, 'file'));
@@ -181,7 +177,7 @@ function registerRoutes(app: Hono, options: RouteOptions) {
     imageRoute(
         app,
         '/view/:zoom/:lat/:lon/:bearing/:dimensions_ext',
-        cacheControl,
+        options,
         'failed to render static image',
         (c) => {
             const ext = format(c, param(c, 'dimensions_ext'));

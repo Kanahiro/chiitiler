@@ -195,12 +195,7 @@ describe('initServer', () => {
         }
     });
 
-    it('renders in a CRS given by POST', async () => {
-        const { app } = initServer({
-            port: 8989,
-            cache: cache.noneCache(),
-            debug: false,
-        });
+    it('renders in a registered CRS', async () => {
         const style = {
             version: 8,
             sources: {},
@@ -296,41 +291,64 @@ describe('initServer', () => {
                 },
             ],
         };
-        const post = (path: string, crs: unknown) =>
+        const { app } = initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+            crs: {
+                utm: { projjson, tileMatrixSet },
+                nogrid: { projjson },
+                foo: { projjson: { type: 'Foo' }, tileMatrixSet },
+            },
+        });
+        const post = (path: string) =>
             app.request(path, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ style, crs }),
+                body: JSON.stringify({ style }),
             });
-        const crs = { projjson, tileMatrixSet };
         for (const [path, width, height] of [
             // x = 2 is past 2^0 but in the grid
-            ['/tiles/0/2/0.png?tileSize=256', 256, 128],
-            ['/clip.png?bbox=300000,3900000,500000,4000000&size=200', 200, 100],
-            ['/view/0/35.68/139.77/30/64x32.png', 64, 32],
+            ['/tiles/0/2/0.png?crs=utm&tileSize=256', 256, 128],
+            [
+                '/clip.png?crs=utm&bbox=300000,3900000,500000,4000000&size=200',
+                200,
+                100,
+            ],
+            ['/view/0/35.68/139.77/30/64x32.png?crs=utm', 64, 32],
+            // a box needs no grid
+            ['/clip.png?crs=nogrid&bbox=0,0,2,1&size=20', 20, 10],
         ] as const) {
-            const res = await post(path, crs);
+            const res = await post(path);
             expect(res.status, path).toBe(200);
             const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
             expect([size.width, size.height], path).toEqual([width, height]);
         }
 
-        // a box needs no grid
-        const box = await post('/clip.png?bbox=300000,3900000,500000,4000000', {
-            projjson,
-        });
-        expect(box.status).toBe(200);
+        // GET too
+        const dir = mkdtempSync(join(tmpdir(), 'chiitiler-'));
+        try {
+            writeFileSync(join(dir, 'style.json'), JSON.stringify(style));
+            const res = await app.request(
+                `/tiles/0/1/0.png?crs=utm&tileSize=256&url=file://${dir}/style.json`,
+            );
+            expect(res.status).toBe(200);
+            const size = sizeOf(new Uint8Array(await res.arrayBuffer()));
+            expect([size.width, size.height]).toEqual([256, 128]);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
 
-        for (const [path, body] of [
-            ['/tiles/0/3/0.png', crs], // outside the grid
-            ['/tiles/1/0/0.png', crs], // no such level
-            ['/tiles/0/0/0.png', { projjson }], // no grid
-            ['/tiles/0/0/0.png', { projjson: { type: 'Foo' }, tileMatrixSet }],
-            ['/tiles/0/0/0.png', { projjson: 'EPSG:32654' }],
-            ['/tiles/0/0/0.png', 'EPSG:32654'],
-        ] as const) {
-            const res = await post(path, body);
-            expect(res.status, `${path} ${JSON.stringify(body)}`).toBe(400);
+        for (const path of [
+            '/tiles/0/0/0.png?crs=EPSG:32654', // not registered
+            '/tiles/0/0/0.png?crs=toString', // not an own key
+            '/tiles/0/3/0.png?crs=utm', // outside the grid
+            '/tiles/1/0/0.png?crs=utm', // no such level
+            '/tiles/0/0/0.png?crs=nogrid', // no grid
+            '/tiles/0/0/0.png?crs=foo', // unsupported
+        ]) {
+            const res = await post(path);
+            expect(res.status, path).toBe(400);
         }
     });
 
