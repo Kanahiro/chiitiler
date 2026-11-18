@@ -108,12 +108,12 @@ describe('configuration', () => {
                 projjson: { type: 'ProjectedCRS' },
                 tileMatrixSet: { origin: [0, 0], extentAtZoom0: 1 },
             };
-            writeFileSync(join(dir, 'EPSG:32654.json'), JSON.stringify(utm));
+            writeFileSync(join(dir, 'EPSG-32654.json'), JSON.stringify(utm));
             writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
             writeFileSync(join(dir, 'README.md'), 'not a CRS');
             const crs = readConfig({ CHIITILER_CRS_DIR: dir }).crs;
-            expect(await crs?.('EPSG:32654')).toEqual(utm);
-            for (const id of ['README', 'missing', '../EPSG:32654', 'toString'])
+            expect(await crs?.('EPSG-32654')).toEqual(utm);
+            for (const id of ['README', 'missing', '../EPSG-32654', 'toString'])
                 expect(await crs?.(id), id).toBeUndefined();
             await expect(crs?.('bad')).rejects.toThrow(
                 'bad.json has no projjson',

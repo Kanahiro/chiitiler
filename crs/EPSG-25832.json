@@ -1,0 +1,239 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "ETRS89 / UTM zone 32N",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "ETRS89",
+            "datum_ensemble": {
+                "name": "European Terrestrial Reference System 1989 ensemble",
+                "members": [
+                    {
+                        "name": "European Terrestrial Reference Frame 1989",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1178
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1990",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1179
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1991",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1180
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1992",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1181
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1993",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1182
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1994",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1183
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1996",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1184
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 1997",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1185
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 2000",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1186
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 2005",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1204
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 2014",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1206
+                        }
+                    },
+                    {
+                        "name": "European Terrestrial Reference Frame 2020",
+                        "id": {
+                            "authority": "EPSG",
+                            "code": 1382
+                        }
+                    }
+                ],
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                },
+                "accuracy": "0.1",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 6258
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4258
+            },
+            "remarks": "Has been realized through ETRF89, ETRF90, ETRF91, ETRF92, ETRF93, ETRF94, ETRF96, ETRF97, ETRF2000, ETRF2005 and ETRF2014. This 'ensemble' covers any or all of these realizations without distinction."
+        },
+        "conversion": {
+            "name": "UTM zone 32N",
+            "method": {
+                "name": "Transverse Mercator",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9807
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of natural origin",
+                    "value": 0,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8801
+                    }
+                },
+                {
+                    "name": "Longitude of natural origin",
+                    "value": 9,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8802
+                    }
+                },
+                {
+                    "name": "Scale factor at natural origin",
+                    "value": 0.9996,
+                    "unit": "unity",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8805
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 500000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "E",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "N",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "usages": [
+            {
+                "scope": "Engineering survey, topographic mapping.",
+                "area": "Europe between 6\u00b0E and 12\u00b0E: Austria; Denmark - onshore and offshore; Germany - onshore and offshore; Italy - onshore and offshore; Norway including Svalbard - onshore and offshore; Spain - offshore.",
+                "bbox": {
+                    "south_latitude": 36.53,
+                    "west_longitude": 6,
+                    "north_latitude": 84.01,
+                    "east_longitude": 12.01
+                }
+            },
+            {
+                "scope": "Pan-European conformal mapping at scales larger than 1:500,000.",
+                "area": "Europe between 6\u00b0E and 12\u00b0E and approximately 36\u00b030'N to 84\u00b0N.",
+                "bbox": {
+                    "south_latitude": 36.53,
+                    "west_longitude": 6,
+                    "north_latitude": 84.01,
+                    "east_longitude": 12.01
+                }
+            }
+        ],
+        "id": {
+            "authority": "EPSG",
+            "code": 25832
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            231401.818883594,
+            9330126.130136942
+        ],
+        "extentAtZoom0": 5287390.310401566
+    }
+}

@@ -1,0 +1,134 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "OSGB36 / British National Grid",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "OSGB36",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Ordnance Survey of Great Britain 1936",
+                "ellipsoid": {
+                    "name": "Airy 1830",
+                    "semi_major_axis": 6377563.396,
+                    "inverse_flattening": 299.3249646
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4277
+            }
+        },
+        "conversion": {
+            "name": "British National Grid",
+            "method": {
+                "name": "Transverse Mercator",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9807
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of natural origin",
+                    "value": 49,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8801
+                    }
+                },
+                {
+                    "name": "Longitude of natural origin",
+                    "value": -2,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8802
+                    }
+                },
+                {
+                    "name": "Scale factor at natural origin",
+                    "value": 0.9996012717,
+                    "unit": "unity",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8805
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 400000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": -100000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "E",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "N",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Engineering survey, topographic mapping.",
+        "area": "United Kingdom (UK) - offshore to boundary of UKCS within 49\u00b045'N to 61\u00b0N and 9\u00b0W to 2\u00b0E; onshore Great Britain (England, Wales and Scotland). Isle of Man onshore.",
+        "bbox": {
+            "south_latitude": 49.75,
+            "west_longitude": -9.01,
+            "north_latitude": 61.01,
+            "east_longitude": 2.01
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 27700
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -104728.76470291585,
+            1256616.3207024282
+        ],
+        "extentAtZoom0": 1273244.0518230754
+    }
+}

@@ -109,12 +109,20 @@ render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
 - Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unknown id, an unsupported CRS, an invalid grid or a tile outside it answers `400`.
 - A file is read when a request names it; one without a `projjson` object answers `500`.
 
-The Docker image comes with presets (`CHIITILER_CRS_DIR=/app/crs`): `EPSG:4326` and the EPSG projected
-CRSs the renderer supports (about 5,200), as `?crs=EPSG:<code>` (e.g. `?crs=EPSG:6677`). Each is
-generated from PROJ's database by [`crs/generate.py`](crs/generate.py): its grid is the square from the
-top-left corner of the CRS's area of use, covering it. Fetch `/app/crs/EPSG:<code>.json` from the image
-to show the tiles with MapLibre GL JS (`addProjection` takes its `tileMatrixSet`). Datum shifts are
-ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own directory to replace them.
+The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/crs`), as `?crs=EPSG-<code>`:
+
+| | |
+| --- | --- |
+| World | `EPSG-4326` (WGS 84), `EPSG-8857` (Equal Earth) |
+| Polar | `EPSG-3413`, `EPSG-3995` (Arctic), `EPSG-3031` (Antarctic) |
+| Europe | `EPSG-3035` (LAEA Europe), `EPSG-27700` (British National Grid), `EPSG-2154` (Lambert-93), `EPSG-25832` (ETRS89 / UTM 32N), `EPSG-2056` (Swiss LV95) |
+| North America | `EPSG-5070` (Conus Albers), `EPSG-3338` (Alaska Albers), `EPSG-3978` (Canada Atlas Lambert) |
+| Oceania | `EPSG-3577` (Australian Albers), `EPSG-2193` (NZTM2000) |
+| Asia | `EPSG-5179` (Korea Unified CS), `EPSG-3826` (TWD97 / TM2), `EPSG-6669`–`EPSG-6687` (JGD2011 / Japan Plane Rectangular CS I–XIX) |
+
+Their PROJJSON is PROJ's, and their grid is the square from the top-left corner of the CRS's area of use,
+covering it: use the same `tileMatrixSet` with MapLibre GL JS's `addProjection` to show the tiles. Datum
+shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own directory to replace them.
 
 **Rendering limits** (ml2drender renders 2D only)
 

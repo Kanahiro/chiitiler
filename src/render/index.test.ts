@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
@@ -121,5 +121,35 @@ describe('library resources', () => {
         };
         expect(await size(1024)).toEqual([1024, 901]);
         expect(await size(512)).toEqual([512, 451]);
+    });
+});
+
+describe('preset CRSs', () => {
+    it('renders a tile in each CRS of crs/', async () => {
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+        });
+        const style: StyleSpecification = {
+            version: 8,
+            sources: {},
+            layers: [{ id: 'bg', type: 'background' }],
+        };
+        const files = await readdir('crs');
+        expect(files.length).toBeGreaterThan(0);
+        for (const file of files) {
+            const crs = JSON.parse(await readFile(`crs/${file}`, 'utf8'));
+            const png = await chiitiler.renderTile({
+                stylejson: style,
+                crs,
+                z: 0,
+                x: 0,
+                y: 0,
+                tileSize: 64,
+                margin: 0,
+                ext: 'png',
+                quality: 100,
+            });
+            expect([...png.slice(0, 4)], file).toEqual(PNG);
+        }
     });
 });
