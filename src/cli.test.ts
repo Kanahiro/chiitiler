@@ -109,17 +109,18 @@ describe('configuration', () => {
                 tileMatrixSet: { origin: [0, 0], extentAtZoom0: 1 },
             };
             writeFileSync(join(dir, 'EPSG-32654.json'), JSON.stringify(utm));
-            writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
             writeFileSync(join(dir, 'README.md'), 'not a CRS');
             const crs = readConfig({ CHIITILER_CRS_DIR: dir }).crs;
-            expect(crs?.ids).toEqual(['EPSG-32654', 'bad']);
+            expect(crs?.ids).toEqual(['EPSG-32654']);
             expect(await crs?.get('EPSG-32654')).toEqual(utm);
             for (const id of ['README', 'missing', '../EPSG-32654', 'toString'])
                 expect(await crs?.get(id), id).toBeUndefined();
-            await expect(crs?.get('bad')).rejects.toThrow(
+            expect(readConfig({}).crs).toBeUndefined();
+            // read once, at startup: an invalid file stops it
+            writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
+            expect(() => readConfig({ CHIITILER_CRS_DIR: dir })).toThrow(
                 'bad.json has no projjson',
             );
-            expect(readConfig({}).crs).toBeUndefined();
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }

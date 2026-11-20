@@ -1,7 +1,6 @@
 import process from 'node:process';
 import cluster from 'node:cluster';
-import { readdirSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readdirSync, readFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
 import { basename, join } from 'node:path';
 
@@ -95,28 +94,19 @@ function readCache(env: Env): caches.Cache {
 
 /**
  * The `<id>.json` files of CHIITILER_CRS_DIR, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`,
- * by id. Only their names are kept: a file is read when it is asked for.
+ * by id. Read once, at startup: an invalid file stops it.
  */
 function readCrs(env: Env): InitServerOptions['crs'] {
     const dir = read(env, 'CHIITILER_CRS_DIR');
     if (dir === undefined) return undefined;
-    const ids = new Set(
-        readdirSync(dir)
-            .filter((f) => f.endsWith('.json'))
-            .map((f) => basename(f, '.json')),
-    );
-    return {
-        ids: [...ids].sort(),
-        get: async (id) => {
-            if (!ids.has(id)) return undefined;
-            const value = JSON.parse(
-                await readFile(join(dir, `${id}.json`), 'utf8'),
-            );
-            if (value?.projjson === null || typeof value?.projjson !== 'object')
-                throw new Error(`${id}.json has no projjson object`);
-            return value as Crs;
-        },
-    };
+    const crss = new Map<string, Crs>();
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
+        const value = JSON.parse(readFileSync(join(dir, file), 'utf8'));
+        if (value?.projjson === null || typeof value?.projjson !== 'object')
+            throw new Error(`${file} has no projjson object`);
+        crss.set(basename(file, '.json'), value);
+    }
+    return { ids: [...crss.keys()].sort(), get: async (id) => crss.get(id) };
 }
 
 type Config = InitServerOptions & { processes: number };

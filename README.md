@@ -111,7 +111,7 @@ render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
 - `/clip`: `bbox` in CRS units, `minX,minY,maxX,maxY` (easting first, y up).
 - `/view`: `lat`/`lon` in degrees, `zoom` of the grid (its first tile 512 px wide at zoom 0).
 - Supported methods and limits: see [ml2drender](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems). An unknown id, an unsupported CRS, an invalid grid or a tile outside it answers `400`.
-- A file is read when a request names it; one without a `projjson` object answers `500`.
+- The files are read once, at startup; one that is not JSON or has no `projjson` object stops it.
 - `POST` also takes a CRS in the body, in the same form: `{ "style": { ... }, "crs": { "projjson": { ... }, "tileMatrixSet": { ... } } }`. It takes precedence over `?crs=`.
 
 The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/crs`), as `?crs=EPSG-<code>`:
@@ -436,7 +436,7 @@ const cache = ChiitilerCache.withFrontCache(
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 
 > [!WARNING]
-> **Do not expose chiitiler directly to the public internet.** Chiitiler fetches whatever the request tells it to: the `url` style and every source, glyph, and sprite URL inside the style (`GET` or `POST`). This allows SSRF — requests to internal networks or cloud metadata endpoints — and reads of local files (`file://`, `mbtiles://`) and buckets (`s3://`, `gs://`) with the server's credentials. Accept requests only from trusted clients, e.g. behind an authenticating proxy or a private network.
+> **Do not expose chiitiler directly to the public internet.** Chiitiler fetches whatever the request tells it to: the `url` style and every source, glyph, and sprite URL inside the style (`GET` or `POST`). This allows SSRF — requests to internal networks or cloud metadata endpoints — and reads of local files (`file://`, `mbtiles://`, `pmtiles://`) and buckets (`s3://`, `gs://`, `pmtiles://s3://`) with the server's credentials. Accept requests only from trusted clients, e.g. behind an authenticating proxy or a private network.
 
 ## Migrating from 1.x
 
