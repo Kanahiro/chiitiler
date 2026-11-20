@@ -341,8 +341,9 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 | `CHIITILER_CRS_DIR` | (none: Web Mercator only; `/app/crs` in the Docker image) |
 
 `CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
-Within a process, rendering and encoding run on libuv's thread pool (up to 4 renders of a style in
-parallel), so the server keeps answering (e.g. `/health`) while it draws.
+Within a process, rendering and encoding run on libuv's thread pool, as many renders of a style in
+parallel as it has threads, so the server keeps answering (e.g. `/health`) while it draws. Its size,
+`UV_THREADPOOL_SIZE`, defaults to the number of CPUs, split among the worker processes.
 
 `CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/view`
 dimensions, times `@{n}x`); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).

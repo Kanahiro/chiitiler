@@ -232,6 +232,19 @@ describe('run chiitiler', () => {
         );
         expect(fork).toHaveBeenCalledTimes(count === 1 ? 0 : count);
         expect(options === undefined).toBe(count !== 1);
+        // Workers split the thread pool between them.
+        if (count !== 1)
+            expect(fork).toHaveBeenCalledWith({
+                UV_THREADPOOL_SIZE: String(
+                    Math.max(
+                        1,
+                        Math.floor(
+                            (Number(process.env.UV_THREADPOOL_SIZE) ||
+                                availableParallelism()) / count,
+                        ),
+                    ),
+                ),
+            });
     });
 
     it('starts a cluster worker without forking again', async () => {
