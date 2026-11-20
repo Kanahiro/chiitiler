@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-import { generateTile, tileRange } from './generate.js';
+import { blocks, generateTile, tileRange } from './generate.js';
 import { noneCache } from './cache/index.js';
 
 const WORLD: [number, number, number, number] = [-180, -90, 180, 90];
@@ -27,6 +27,28 @@ describe('tileRange', () => {
         expect(tileRange([139.7, 35.6, 139.8, 35.7], 10)).toEqual([
             909, 403, 909, 403,
         ]);
+    });
+});
+
+describe('blocks', () => {
+    it('takes every tile once, by blocks of a parent tile', () => {
+        const bbox: [number, number, number, number] = [139, 35, 140.5, 36];
+        for (const z of [0, 3, 9, 14]) {
+            const [minX, minY, maxX, maxY] = tileRange(bbox, z);
+            const all = [...blocks(bbox, z, 4)];
+            const tiles = all.flat().map(({ x, y }) => `${x}/${y}`);
+            expect(new Set(tiles).size).toBe(tiles.length);
+            expect(tiles.length).toBe((maxX - minX + 1) * (maxY - minY + 1));
+            // each within one tile 4 zooms up (smaller blocks divide it)
+            for (const block of all) {
+                const parents = block.map(
+                    ({ x, y }) => `${Math.floor(x / 16)}/${Math.floor(y / 16)}`,
+                );
+                expect(new Set(parents).size).toBe(1);
+            }
+            // enough blocks to share between 4 lanes, where the zoom has the tiles
+            if (tiles.length >= 8) expect(all.length).toBeGreaterThanOrEqual(8);
+        }
     });
 });
 
