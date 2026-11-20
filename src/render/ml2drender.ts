@@ -6,7 +6,6 @@ import type {
 } from '@maplibre/maplibre-gl-style-spec';
 
 import {
-    type Crs,
     encodeJpeg,
     encodePng,
     encodeWebp,
@@ -15,7 +14,51 @@ import {
     type View as NativeView,
 } from '@ml2drender/node';
 
-export type { Crs };
+/**
+ * A CRS, with a tile grid for it. Chiitiler's own type (ml2drender's is 0.x and may change): the
+ * renderer's is checked against it where it is passed.
+ */
+export interface Crs {
+    /**
+     * PROJJSON of a geographic or projected CRS (or of a bound or compound CRS of one). Most
+     * projection methods are supported (see `@ml2drender/node`), without datum shifts.
+     */
+    projjson: object;
+    /**
+     * The CRS's tile grid, which a CRS does not have by itself. Required to render tiles and
+     * views (whose zoom is the grid's); a box renders without it.
+     */
+    tileMatrixSet?: QuadTileMatrixSet | OgcTileMatrixSet;
+}
+
+/**
+ * MapLibre GL JS's grid (`addProjection`): tile 0/0/0 is the square of side `extentAtZoom0` whose
+ * top-left corner is `origin`, and each zoom splits every tile in four; x grows east, y south.
+ */
+export interface QuadTileMatrixSet {
+    /** CRS coordinates of the top-left corner of tile 0/0/0: [min x, max y]. */
+    origin: [number, number];
+    /** Width (= height) of tile 0/0/0 in CRS units. */
+    extentAtZoom0: number;
+}
+
+/** An OGC 2D TileMatrixSet (2.0, JSON); members not listed here are not read. */
+export interface OgcTileMatrixSet {
+    /** The CRS's axes in order; when the first is Lat, Lon, N or E, it orders each `pointOfOrigin`. */
+    orderedAxes?: string[];
+    /** The zoom levels, from the coarsest (`z` is the index). */
+    tileMatrices: {
+        /** CRS units per pixel. */
+        cellSize: number;
+        /** The corner rows and columns count from, in the CRS's axis order. */
+        pointOfOrigin: [number, number];
+        cornerOfOrigin?: 'topLeft' | 'bottomLeft';
+        tileWidth: number;
+        tileHeight: number;
+        matrixWidth: number;
+        matrixHeight: number;
+    }[];
+}
 
 /** A Web Mercator camera. */
 export interface View {
