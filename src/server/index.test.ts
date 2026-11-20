@@ -182,6 +182,7 @@ describe('initServer', () => {
             ['/tiles/1/0/0.png?tileSize=256', 'image/png', [0x89, 0x50]],
             ['/tiles/1/0/0.jpg', 'image/jpeg', [0xff, 0xd8]],
             ['/clip.webp?bbox=0,0,10,10&size=64', 'image/webp', [0x52, 0x49]],
+            ['/tiles/1/0/0.avif?quality=60', 'image/avif', [0x00, 0x00]],
             ['/view/2/0/0/30/64x32.png', 'image/png', [0x89, 0x50]],
         ] as const) {
             const res = await app.request(path, {
@@ -194,6 +195,56 @@ describe('initServer', () => {
             const bytes = new Uint8Array(await res.arrayBuffer());
             expect([...bytes.slice(0, 2)]).toEqual(magic);
         }
+    });
+
+    it('renders @<n>x images in n times the pixels', async () => {
+        const { app } = initServer({
+            port: 8989,
+            cache: cache.noneCache(),
+            debug: false,
+            maxSize: 1024,
+        });
+        const style = { version: 8, sources: {}, layers: [] };
+        const post = (path: string) =>
+            app.request(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ style }),
+            });
+        for (const [path, width, height] of [
+            ['/tiles/1/0/0.png?tileSize=256', 256, 256],
+            ['/tiles/1/0/0@2x.png?tileSize=256', 512, 512],
+            ['/tiles/1/0/0@3x.webp?tileSize=256&margin=10', 768, 768],
+            ['/tiles/1/0/0@2x.jpg', 1024, 1024],
+            ['/clip@2x.png?bbox=0,0,10,5&size=64', 128, 66], // 1x: 64x33
+            ['/view/2/0/0/30/64x32@2x.png', 128, 64],
+        ] as const) {
+            const res = await post(path);
+            expect(res.status, path).toBe(200);
+            const bytes = new Uint8Array(await res.arrayBuffer());
+            expect(sizeOf(bytes), path).toMatchObject({ width, height });
+        }
+        for (const [path, message] of [
+            ['/tiles/1/0/0@0x.png', 'invalid pixel ratio'],
+            ['/tiles/1/0/0@2x.gif', 'invalid format'],
+            ['/view/2/0/0/30/64x32@0x.png', 'invalid pixel ratio'],
+            // maxSize counts device pixels
+            ['/tiles/1/0/0@3x.png', 'image sides must be at most 1024 px'],
+            [
+                '/tiles/1/0/0@2x.png?margin=2',
+                'image sides must be at most 1024 px',
+            ],
+            [
+                '/clip@2x.png?bbox=0,0,1,1&size=513',
+                'image sides must be at most 1024 px',
+            ],
+        ] as const) {
+            const res = await post(path);
+            expect(res.status, path).toBe(400);
+            expect(await res.text(), path).toBe(message);
+        }
+        expect((await post('/clip@2x.gif')).status).toBe(400);
+        expect((await post('/clipx@2x.png')).status).toBe(404);
     });
 
     it('renders in a registered CRS', async () => {
@@ -491,9 +542,9 @@ describe('initServer', () => {
             cache: cache.noneCache(),
             debug: false,
         });
-        // ~15,000 circles: about 100 ms of drawing per tile
-        const url = `file://${process.cwd()}/tests/fixtures/bench-style.json`;
-        const path = `/tiles/5/28/12.png?url=${encodeURIComponent(url)}`;
+        // a dense city tile with labels: tens of ms of drawing
+        const url = `file://${process.cwd()}/tests/fixtures/bench/style.json`;
+        const path = `/tiles/12/2175/1492.png?url=${encodeURIComponent(url)}`;
         expect((await app.request(path)).status).toBe(200); // load resources
         let last = performance.now();
         let longest = 0;

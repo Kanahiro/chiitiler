@@ -1,12 +1,10 @@
 <div align="center">
 
-<img src="./logo.svg" alt="chiitiler" width="200" />
-
 # chiitiler
 
 **A tiny raster tile server for MapLibre styles.**
 
-Point it at any `style.json` and get back PNG / WebP / JPEG tiles, static images, or map cut-outs.
+Point it at any `style.json` and get back PNG / WebP / JPEG / AVIF tiles, static images, or map cut-outs.
 
 [![Release](https://img.shields.io/github/v/release/Kanahiro/chiitiler?label=ghcr.io%2Fkanahiro%2Fchiitiler&color=0ea5e9)](https://github.com/Kanahiro/chiitiler/pkgs/container/chiitiler)
 [![Unit Tests](https://img.shields.io/github/actions/workflow/status/Kanahiro/chiitiler/test:unit.yml?label=unit)](https://github.com/Kanahiro/chiitiler/actions)
@@ -49,7 +47,6 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **No GPU, no system libraries** — rendered by [ml2drender](https://github.com/Kanahiro/ml2drender) (`@ml2drender/node`), a pure-Rust 2D MapLibre renderer, as a Node-API addon
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form views (`/view`)
-- **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
 - **Pluggable caching** — `file` · `s3` · `gcs` backends for shared source assets, plus an in-process front cache
 - **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles`
 - **Library or server** — import the renderer directly into your Node.js pipeline
@@ -71,13 +68,19 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
-| `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
-| `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form view (2D: no pitch) |
+| `GET` / `POST` | `/tiles/{z}/{x}/{y}[@{n}x].{ext}` | Slippy-map raster tile |
+| `GET` / `POST` | `/clip[@{n}x].{ext}` | Bounding-box cut-out |
+| `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}[@{n}x].{ext}` | Free-form view (2D: no pitch) |
 | `GET` | `/crs`, `/crs/{id}` | Ids of the registered CRSs, and a CRS's `{ projjson, tileMatrixSet }` (see Custom projections) |
 | `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) | — `/debug` switches between the registered CRSs
 
-`ext` is one of `png`, `jpeg`, `jpg`, `webp`.
+`ext` is one of `png`, `jpeg`, `jpg`, `webp`, `avif` (`avif` needs `@napi-rs/image`; without it, `500`).
+
+**High-DPI (`@2x`)**: `@{n}x` before the extension (e.g. `/tiles/5/27/12@2x.png`) renders the same
+map in `n` times the pixels: labels, lines and icons keep their size on a high-DPI screen, and the
+style's sprite is read from `sprite@{n}x`. `tileSize`, `margin`, `size` and `width`/`height` stay in
+CSS pixels, so a client keeps its `tileSize` (e.g. 512) and only changes the URL. A larger
+`tileSize` instead shows a wider area with smaller labels.
 
 **Query parameters**
 
@@ -85,7 +88,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `url` | — | Style JSON URL (required for `GET`) |
 | `tileSize` | `512` | Tile size in pixels |
-| `quality` | `100` | JPEG quality (WebP is always lossless) |
+| `quality` | `100` | JPEG and AVIF quality (use less than `100` for AVIF: `100` is near-lossless and large). WebP is lossy below `100` (alpha stays lossless) when `@napi-rs/image` is installed, as in the Docker image, and lossless otherwise |
 | `margin` | `0` | Extra pixels rendered around the tile (half on each side) and cropped, e.g. to keep labels across tile edges |
 | `bbox` | — | `/clip` bounding box: `minLon,minLat,maxLon,maxLat` |
 | `size` | `1024` | `/clip` longest edge in pixels |
@@ -134,11 +137,13 @@ shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own dir
 - `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.
 - Bidirectional text and Arabic shaping are not supported, and glyphs come only from the style's `glyphs` (no local font fallback).
 - JPEG has no alpha: transparent areas become black. Chroma is subsampled 4:2:0 at every quality (as sharp did by default).
+- Lossy WebP (libwebp) and AVIF (rav1e at its fastest preset, 4:4:4 chroma), both via `@napi-rs/image`, take about 10 times longer to encode than lossless WebP or JPEG (25–30 ms for a 512px tile): cache the rendered tiles (e.g. behind a CDN) if you use them. AVIF is smaller than lossy WebP from mid quality on, and keeps thin colored lines sharp (WebP subsamples chroma 4:2:0).
 
 ## Library Usage
 
-Chiitiler is also published to npm. A `Chiitiler` renders any style and returns the encoded image as
-a `Uint8Array`.
+Chiitiler is also published to npm. A `Chiitiler` renders any style and returns a `RenderedImage`:
+its pixels (`data`: `width` × `height` × 4 bytes of RGBA) to process further, and encoders to
+`Uint8Array`s: `toPng()`, `toJpeg(quality)`, `toWebp(quality)` and `toAvif(quality)`.
 
 ```bash
 npm install chiitiler @maplibre/maplibre-gl-style-spec
@@ -146,10 +151,13 @@ npm install chiitiler @maplibre/maplibre-gl-style-spec
 npm install @aws-sdk/client-s3
 # only for gs:// sources and the GCS cache
 npm install @google-cloud/storage
+# only for lossy WebP (quality below 100) and AVIF
+npm install @napi-rs/image
 ```
 
-`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs are
-optional ones, loaded when first used.
+`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs and
+`@napi-rs/image` are optional ones, loaded when first used. Without `@napi-rs/image`, WebP is lossless
+at every quality (with a warning the first time a lower quality is asked for), and AVIF throws.
 
 ```ts
 import { Chiitiler, ChiitilerCache } from 'chiitiler';
@@ -160,14 +168,28 @@ const chiitiler = new Chiitiler({
     // maxSize: 4096,       the largest image side in pixels
 });
 
-const png = await chiitiler.renderTile({
+const image = await chiitiler.renderTile({
     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
     z: 5, x: 27, y: 12,
     tileSize: 512,
-    ext: 'png',
-    quality: 100,
     margin: 0,
+    // pixelRatio: 2,       @2x: the same tile in twice the pixels
 });
+const png = await image.toPng(); // or edit image.data (RGBA) first
+```
+
+`encode(pixels, ext, quality?)` encodes any `{ data, width, height }` of RGBA pixels as `png`, `jpeg`
+(`jpg`), `webp` or `avif`, e.g. new pixels made from a rendered image:
+
+```ts
+import { encode } from 'chiitiler';
+
+const gray = new Uint8Array(image.data);
+for (let i = 0; i < gray.length; i += 4) {
+    const v = (gray[i] + gray[i + 1] + gray[i + 2]) / 3;
+    gray.fill(v, i, i + 3);
+}
+const webp = await encode({ data: gray, width: image.width, height: image.height }, 'webp', 80);
 ```
 
 Methods: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long side) and
@@ -187,9 +209,7 @@ const png = await chiitiler.renderProjectedBbox({
     crs,
     bbox: [-20000, -60000, 20000, -30000], // meters of JGD2011 / Japan Plane Rectangular CS IX
     size: 1024,
-    ext: 'png',
-    quality: 100,
-});
+}).then((image) => image.toPng());
 ```
 
 `stylejson` is a URL or a style object, and may differ on every call. An instance keeps renderers of
@@ -239,9 +259,9 @@ const protocols: Protocols = {
 };
 
 const chiitiler = new Chiitiler({ cache, protocols });
-const png = await chiitiler.renderTile({
+const image = await chiitiler.renderTile({
     stylejson: { version: 8, sources: { t: { type: 'vector', tiles: ['db://tiles/{z}/{x}/{y}'] } }, layers: [/* … */] },
-    z: 5, x: 27, y: 12, tileSize: 512, ext: 'png', quality: 100, margin: 0,
+    z: 5, x: 27, y: 12, tileSize: 512, margin: 0,
 });
 ```
 
@@ -255,6 +275,7 @@ import type {
     RenderTileOptions,
     RenderBboxOptions,
     RenderViewOptions,
+    RenderedImage,
     SupportedFormat,
     Cache,
     Protocol,
@@ -268,10 +289,36 @@ that package, the two structurally-different types are not assignable to each ot
 
 chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default, so the runtime's default is used (Node sends `node`). Some tile providers (e.g. OpenStreetMap) require an identifying User-Agent — set one with `setUserAgent('my-app/1.0')` or the `CHIITILER_USER_AGENT` environment variable.
 
+## Generating tiles
+
+`generate-tile` renders the tiles of a style into an MBTiles file, without a server:
+
+```bash
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
+  /app/build/main.mjs generate-tile --style style.json --output out.mbtiles --maxzoom 8 --bbox 139,35,141,37
+```
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `--style` | (required) | Style URL, or a local path |
+| `--output`, `-o` | (required) | A `.mbtiles` file |
+| `--maxzoom` | (required) | |
+| `--minzoom` | `0` | |
+| `--bbox` | the world | `minLon,minLat,maxLon,maxLat` |
+| `--ext` | `png` | `png`, `jpeg`, `jpg`, `webp` or `avif` |
+| `--tile-size` | `512` | |
+| `--quality` | `100` | As the server's `quality` |
+| `--margin` | `0` | As the server's `margin` |
+| `--force` | | Delete an existing `--output` first |
+
+An interrupted or failed run keeps the tiles it wrote: run it again with the same options to resume, skipping them.
+An existing file generated with other options (or not by `generate-tile`) is left alone with an error; `--force` replaces it.
+Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …).
+
 ## Configuration
 
 The server is configured with environment variables only; it takes no command-line arguments
-(not even 1.x's `tile-server` command). Empty values count as unset, and an invalid value stops
+(not even 1.x's `tile-server` command) but `generate-tile`. Empty values count as unset, and an invalid value stops
 startup with an error naming the variable.
 
 ```bash
@@ -296,7 +343,7 @@ Within a process, rendering and encoding run on libuv's thread pool (up to 4 ren
 parallel), so the server keeps answering (e.g. `/health`) while it draws.
 
 `CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/view`
-dimensions); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
+dimensions, times `@{n}x`); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
 
 `CHIITILER_CACHE_CONTROL` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
 keep them; chiitiler doesn't cache rendered images itself). `GET` images carry an `ETag`, so
@@ -387,7 +434,6 @@ const cache = ChiitilerCache.withFrontCache(
 
 - **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables)
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
-- **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
 > [!WARNING]
 > **Do not expose chiitiler directly to the public internet.** Chiitiler fetches whatever the request tells it to: the `url` style and every source, glyph, and sprite URL inside the style (`GET` or `POST`). This allows SSRF — requests to internal networks or cloud metadata endpoints — and reads of local files (`file://`, `mbtiles://`) and buckets (`s3://`, `gs://`) with the server's credentials. Accept requests only from trusted clients, e.g. behind an authenticating proxy or a private network.
@@ -402,7 +448,8 @@ placement differ).
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
   `/camera` is renamed `/view` and has no pitch segment:
   `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
-- **Formats:** WebP is lossless, so `quality` applies to JPEG only; JPEG uses 4:2:0 chroma and
+- **Formats:** WebP is lossless unless `@napi-rs/image` is installed (then `quality` below 100 is
+  lossy; the Docker image includes it); JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
   `400` instead of `500`.
@@ -416,11 +463,16 @@ placement differ).
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The `memory` method and `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` are
   removed: the front cache now also sits in front of `none`, so use `none` and raise
-  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
+  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead.
+- **Docker:** the image has no entrypoint script; the bundle is `build/main.mjs`. The image is
+  distroless (no shell): its entrypoint is `node`, so a `command` override passes only the script and
+  its arguments. The AWS Lambda Web Adapter and the `cdk/` app are removed.
 - **Library:**
   - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are replaced by
     the `renderTile`, `renderBbox` and `renderView` methods of a `Chiitiler` (`renderView` takes no
-    `pitch`; its options type is `RenderViewOptions`, and so on), which resolve to a `Uint8Array`.
+    `pitch`; its options type is `RenderViewOptions`, and so on), which resolve to a `RenderedImage`
+    (RGBA pixels, encoded with `toPng()`, `toJpeg(quality)`, `toWebp(quality)` or `toAvif(quality)`)
+    and take no `ext` or `quality`.
     `cache`, `protocols` and `maxSize` are given once to `new Chiitiler(...)`, the style to every
     call. The `*Stream` variants (Sharp)
     and `prewarm()` are removed.
@@ -428,8 +480,9 @@ placement differ).
   - `memoryCache` is removed (use `withFrontCache(noneCache(), …)`), `withMemoryCache` is renamed
     `withFrontCache`, and `Cache.memory` is renamed `Cache.front`.
   - New `protocols` option for custom URL schemes.
-  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
-    `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
+  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3`,
+    `@google-cloud/storage` and `@napi-rs/image` optional ones: install them for `s3://` / `gs://`
+    sources and caches, and lossy WebP and AVIF.
   - The renderer comes from `@ml2drender/node`, which has prebuilt addons for linux-x64 and
     linux-arm64 (glibc), darwin-x64, darwin-arm64 and win32-x64.
 
@@ -445,7 +498,7 @@ pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
-pnpm test:benchmark   # see bench/BENCHMARK.md
+pnpm test:benchmark   # [<baseline checkout>] see tests/benchmark.ts
 pnpm build            # bundle to build/main.mjs (loads @ml2drender/node from node_modules)
 ```
 

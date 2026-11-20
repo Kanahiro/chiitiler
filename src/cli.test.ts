@@ -145,7 +145,7 @@ describe('run chiitiler', () => {
         async (...args) => {
             const init = vi.spyOn(server, 'initServer');
             await expect(run(args, {})).rejects.toThrow(
-                'chiitiler takes no command-line arguments',
+                'chiitiler takes no command-line arguments but generate-tile',
             );
             expect(init).not.toHaveBeenCalled();
         },
