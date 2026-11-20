@@ -19,7 +19,6 @@ async function getGCSSource(uri: string) {
             // 404: オブジェクトが存在しない。空タイルとして扱わせる
             if (e.code === 404) return null;
             // それ以外は有無が不明なのでthrowしてレンダリングを失敗させる
-            console.log(e);
             throw e;
         }
     });

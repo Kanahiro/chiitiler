@@ -7,6 +7,7 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { isSupportedFormat, isValidStylejson } from './utils.js';
 import { Chiitiler, type Crs, type SupportedFormat } from '../render/index.js';
 import type { Cache } from '../cache/index.js';
+import { log } from '../log.js';
 
 type RouteOptions = {
     cache: Cache;
@@ -98,7 +99,11 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         } catch (e) {
             // out-of-range parameters the route does not check itself
             if (e instanceof RangeError) return c.text(e.message, 400);
-            console.error(`render error: ${e}`);
+            log('ERROR', 'render failed', {
+                method: c.req.method,
+                path: c.req.path,
+                error: e,
+            });
             return c.text(failure, 500);
         }
     };

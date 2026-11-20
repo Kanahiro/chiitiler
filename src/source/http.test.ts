@@ -76,6 +76,14 @@ describe('getHttpSource', () => {
         );
     });
 
+    it('keeps the query (credentials) out of errors', async () => {
+        mockFetch(new Response('', { status: 503 }));
+        const error = await getHttpSource(
+            'https://example.com/a.webp?key=SECRET',
+        ).catch((e: Error) => e);
+        expect(String(error)).not.toContain('SECRET');
+    });
+
     it('does not send a User-Agent header by default', async () => {
         const fetchSpy = mockFetch(
             new Response(new Uint8Array([1]), { status: 200 }),

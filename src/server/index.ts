@@ -7,6 +7,7 @@ import { serve } from '@hono/node-server';
 import type { Cache } from '../cache/index.js';
 import { getDebugPage, getEditorPage } from './debug.js';
 import { type CrsCatalog, registerRoutes } from './routes.js';
+import { log } from '../log.js';
 
 type InitServerOptions = {
     cache: Cache;
@@ -60,7 +61,7 @@ function initServer(options: InitServerOptions): InitializedServer {
             }) as Server;
             // Stop accepting connections, let requests in progress finish, then exit.
             const shutdown = () => {
-                console.log('shutting down server...');
+                log('INFO', 'shutting down server');
                 server.close(() => process.exit(0));
                 server.closeIdleConnections();
                 setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS).unref();

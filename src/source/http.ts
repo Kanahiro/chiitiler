@@ -12,6 +12,8 @@ async function getHttpSource(
     if (val !== undefined) return val; // hit
 
     // miss
+    // the query may hold credentials (API keys, signatures): keep it out of errors
+    const where = uri.split('?')[0];
     let res: Response;
     try {
         const userAgent = getUserAgent();
@@ -21,17 +23,14 @@ async function getHttpSource(
     } catch (e) {
         // ネットワークエラー: タイルの有無が不明なまま透明タイルを返すと
         // CDN等に欠損タイルがキャッシュされうるので、throwしてレンダリングを失敗させる
-        console.error(`[ERROR] failed to fetch ${uri}: ${e}`);
-        throw new Error(`failed to fetch ${uri}: ${e}`);
+        throw new Error(`failed to fetch ${where}`, { cause: e });
     }
     if (res.status >= 500) {
         // 5xx: 一時的な障害でタイルの有無は不明。ネットワークエラーと同様に扱う
-        console.error(`[ERROR] upstream error ${res.status} for ${uri}`);
-        throw new Error(`upstream error ${res.status} for ${uri}`);
+        throw new Error(`upstream error ${res.status} for ${where}`);
     }
     if (!res.ok) {
         // 4xx: タイルが存在しない(404など)。空タイルとして扱わせる
-        console.log(`failed to fetch ${uri}`);
         return null;
     }
     // 204/空ボディはキャッシュ汚染を避けるため書き込まずnullを返す

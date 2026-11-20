@@ -24,7 +24,6 @@ async function getS3Source(uri: string) {
             if (e.name === 'NoSuchKey') return null;
             // それ以外(スロットリング・ネットワークエラー等)は有無が不明なので
             // throwしてレンダリングを失敗させる
-            console.log(e);
             throw e;
         }
     });
