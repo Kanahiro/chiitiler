@@ -1,0 +1,134 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "TWD97 / TM2 zone 121",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "TWD97",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Taiwan Datum 1997",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 3824
+            }
+        },
+        "conversion": {
+            "name": "Taiwan 2-degree TM zone 121",
+            "method": {
+                "name": "Transverse Mercator",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9807
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of natural origin",
+                    "value": 0,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8801
+                    }
+                },
+                {
+                    "name": "Longitude of natural origin",
+                    "value": 121,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8802
+                    }
+                },
+                {
+                    "name": "Scale factor at natural origin",
+                    "value": 0.9999,
+                    "unit": "unity",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8805
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 250000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "X",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "Y",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Engineering survey, topographic mapping.",
+        "area": "Taiwan, Republic of China - between 120\u00b0E and 122\u00b0E, onshore and offshore - Taiwan Island.",
+        "bbox": {
+            "south_latitude": 20.41,
+            "west_longitude": 119.99,
+            "north_latitude": 26.72,
+            "east_longitude": 122.06
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 3826
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            144589.1710246117,
+            2956748.9358171043
+        ],
+        "extentAtZoom0": 699218.4456882863
+    }
+}

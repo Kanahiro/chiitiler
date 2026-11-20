@@ -7,16 +7,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { send } = vi.hoisted(() => ({ send: vi.fn() }));
 
 vi.mock('../s3.js', () => ({
-    getS3Client: () => ({ send }),
+    s3Timeout: () => 'timeout signal',
+    getS3: async () => ({
+        client: { send },
+        sdk: await vi.importActual('@aws-sdk/client-s3'),
+    }),
 }));
 
 import { getS3Source } from './s3.js';
 import { getSource } from './index.js';
-import { type Cache, withMemoryCache } from '../cache/index.js';
+import { type Cache, withFrontCache } from '../cache/index.js';
 
 describe('getS3Source', () => {
     beforeEach(() => {
         send.mockReset();
+    });
+
+    it('times out: a stalled bucket must not stall renders', async () => {
+        send.mockRejectedValueOnce(
+            Object.assign(new Error('missing'), { name: 'NoSuchKey' }),
+        );
+        await getS3Source('s3://bucket/key');
+        expect(send.mock.calls[0][1]).toEqual({
+            abortSignal: 'timeout signal',
+        });
     });
 
     it('loads a percent-encoded key using its decoded form first', async () => {
@@ -31,7 +45,7 @@ describe('getS3Source', () => {
             's3://fonts/Noto%20Sans%20Regular%2CArial/0-255.pbf',
         );
 
-        expect(result?.toString()).toBe('glyph');
+        expect(new TextDecoder().decode(result!)).toBe('glyph');
         expect(send).toHaveBeenCalledOnce();
         expect((send.mock.calls[0][0] as GetObjectCommand).input).toEqual({
             Bucket: 'fonts',
@@ -48,7 +62,7 @@ describe('getS3Source', () => {
     });
 });
 
-describe('s3 sources use only the memory front cache, not the backing cache', () => {
+describe('s3 sources use only the front cache, not the backing cache', () => {
     const backing = {
         name: 'spy',
         get: vi.fn(async () => undefined),
@@ -74,13 +88,13 @@ describe('s3 sources use only the memory front cache, not the backing cache', ()
                     Uint8Array.from(Buffer.from('sprite')),
             },
         });
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
 
         const a = await getSource('s3://assets/sprite.png', cache);
         const b = await getSource('s3://assets/sprite.png', cache);
 
-        expect(a?.toString()).toBe('sprite');
-        expect(b?.toString()).toBe('sprite');
+        expect(new TextDecoder().decode(a!)).toBe('sprite');
+        expect(new TextDecoder().decode(b!)).toBe('sprite');
         expect(send).toHaveBeenCalledOnce();
     });
 
@@ -100,7 +114,7 @@ describe('s3 sources use only the memory front cache, not the backing cache', ()
                 },
             };
         });
-        const cache = withMemoryCache(backing);
+        const cache = withFrontCache(backing);
         const uri = 'pmtiles://s3://tiles/school.pmtiles/0/0/0';
 
         const a = await getSource(uri, cache);

@@ -1,0 +1,135 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "JGD2011 / Japan Plane Rectangular CS IX",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "JGD2011",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "Japanese Geodetic Datum 2011",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 6668
+            },
+            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+        },
+        "conversion": {
+            "name": "Japan Plane Rectangular CS zone IX",
+            "method": {
+                "name": "Transverse Mercator",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9807
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of natural origin",
+                    "value": 36,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8801
+                    }
+                },
+                {
+                    "name": "Longitude of natural origin",
+                    "value": 139.833333333333,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8802
+                    }
+                },
+                {
+                    "name": "Scale factor at natural origin",
+                    "value": 0.9999,
+                    "unit": "unity",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8805
+                    }
+                },
+                {
+                    "name": "False easting",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8806
+                    }
+                },
+                {
+                    "name": "False northing",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8807
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Northing",
+                    "abbreviation": "X",
+                    "direction": "north",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Easting",
+                    "abbreviation": "Y",
+                    "direction": "east",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
+        "area": "Japan - onshore - Honshu - Tokyo-to. (Excludes offshore island areas of Tokyo-to covered by Japan Plane Rectangular Coordinate System zones XIV, XVIII and XIX).",
+        "bbox": {
+            "south_latitude": 29.31,
+            "west_longitude": 138.4,
+            "north_latitude": 37.98,
+            "east_longitude": 141.11
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 6677
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -139237.37425984908,
+            220682.80140033204
+        ],
+        "extentAtZoom0": 962521.2402793387
+    }
+}

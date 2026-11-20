@@ -1,22 +1,22 @@
 name: test:benchmark
 
+# Paired throughput comparison of the PR against its base (or of HEAD against main
+# when run manually); see the header of tests/benchmark.ts. Reports only, never gates:
+# shared runners are too noisy for a pass/fail threshold.
+
 on:
     pull_request:
         branches:
             - main
         paths:
             - "src/**"
-            - "tests/**"
-            - "localdata/**"
+            - "tests/benchmark.ts"
+            - "tests/fixtures/**"
+            - "crs/**"
             - "package.json"
             - "pnpm-lock.yaml"
             - ".github/workflows/test:benchmark.yml"
     workflow_dispatch:
-        inputs:
-            aa:
-                description: "Compare the selected commit with itself to measure noise"
-                type: boolean
-                default: true
 
 permissions:
     contents: read
@@ -29,7 +29,7 @@ concurrency:
 jobs:
     benchmark:
         runs-on: ubuntu-24.04
-        timeout-minutes: 30
+        timeout-minutes: 20
 
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,64 +41,22 @@ jobs:
               with:
                   node-version-file: .node-version
                   cache: pnpm
-            - name: Install native deps for maplibre-gl-native
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y \
-                      xvfb \
-                      libcurl4-openssl-dev \
-                      libglfw3-dev \
-                      libuv1-dev \
-                      libjpeg-turbo8-dev \
-                      libpng-dev \
-                      libwebp-dev
-            - name: Install harness dependencies
-              run: pnpm install --frozen-lockfile
-
-            - name: Prepare fixed comparison checkouts
+            - run: pnpm install --frozen-lockfile
+            # A baseline that fails to install is reported by the benchmark, which then
+            # measures this checkout alone.
+            - name: Check out the baseline
               env:
-                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
-                  CURRENT_SHA: ${{ github.sha }}
-                  AA: ${{ inputs.aa }}
+                  BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/main' }}
               run: |
-                  base="${BASE_SHA:-$(git rev-parse origin/main)}"
-                  if [ "$AA" = "true" ]; then base="$CURRENT_SHA"; fi
-                  baseline="$RUNNER_TEMP/benchmark-baseline"
-                  current="$RUNNER_TEMP/benchmark-current"
-                  mkdir -p "$baseline" "$current"
-                  git archive "$base" | tar -x -C "$baseline"
-                  git archive "$CURRENT_SHA" | tar -x -C "$current"
-                  for dir in "$baseline" "$current"; do
-                      # Commits from before the pnpm migration only have package-lock.json.
-                      if [ -f "$dir/pnpm-lock.yaml" ]; then
-                          pnpm install --frozen-lockfile --dir "$dir"
-                      else
-                          npm ci --prefix "$dir"
-                      fi
-                  done
-                  echo "CHIITILER_BENCH_BASELINE=$baseline" >> "$GITHUB_ENV"
-                  echo "CHIITILER_BENCH_CURRENT=$current" >> "$GITHUB_ENV"
-                  echo "CHIITILER_BENCH_BASE_SHA=$base" >> "$GITHUB_ENV"
-                  echo "CHIITILER_BENCH_CURRENT_SHA=$CURRENT_SHA" >> "$GITHUB_ENV"
-
-            - name: Run paired benchmarks
-              run: xvfb-run -a node --import tsx tests/run-benchmark-comparison.ts
-              env:
-                  # Balance both execution orders for quick PR feedback; manual runs retain more samples.
-                  CHIITILER_BENCH_ROUNDS: ${{ github.event_name == 'pull_request' && '2' || '5' }}
-                  CHIITILER_BENCH_DURATION: ${{ github.event_name == 'pull_request' && '5' || '10' }}
-                  CHIITILER_BENCH_WARMUP: '3'
-
+                  git worktree add --detach "$RUNNER_TEMP/baseline" "$BASE_SHA"
+                  pnpm install --frozen-lockfile --dir "$RUNNER_TEMP/baseline" || true
+            - name: Run benchmark
+              run: |
+                  pnpm --silent test:benchmark "$RUNNER_TEMP/baseline" > benchmark.md
+                  cat benchmark.md >> "$GITHUB_STEP_SUMMARY"
             - name: Post results to PR
-              if: ${{ !cancelled() && github.event_name == 'pull_request' && hashFiles('benchmark-results/benchmark.md') != '' }}
+              if: github.event_name == 'pull_request'
               uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
               with:
                   header: benchmark
-                  path: benchmark-results/benchmark.md
-            - name: Upload benchmark results
-              if: always()
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: benchmark-results
-                  path: benchmark-results/
-                  if-no-files-found: ignore
+                  path: benchmark.md

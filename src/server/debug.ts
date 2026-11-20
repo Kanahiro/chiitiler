@@ -7,6 +7,17 @@ function getDebugPage(c: Context) {
     const margin = Number(c.req.query('margin') ?? 0);
     const quality = Number(c.req.query('quality') ?? 100);
     const tileSize = Number(c.req.query('tileSize') ?? 512);
+    // The query is the requester's: encoded, and written into the script as a JSON string whose
+    // `<` is escaped (a `</script>` in it would end the script).
+    const query = new URLSearchParams({
+        url,
+        quality: String(quality),
+        margin: String(margin),
+        tileSize: String(tileSize),
+    });
+    const tilePath = JSON.stringify(
+        `/tiles/{z}/{x}/{y}.webp?${query}`,
+    ).replaceAll('<', '\\u003c');
 
     // show tile in MapLibre GL JS
     return c.html(`<!DOCTYPE html>
@@ -14,11 +25,10 @@ function getDebugPage(c: Context) {
         <head>
             <meta charset="utf-8" />
             <title>MapLibre GL JS</title>
-            <!-- maplibre gl js-->
-            <script src="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.js"></script>
+            <!-- maplibre gl js (v6 ships ES modules only: imported below) -->
             <link
                 rel="stylesheet"
-                href="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.css"
+                href="https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.css"
             />
             <style>
                 body {
@@ -35,15 +45,56 @@ function getDebugPage(c: Context) {
         </head>
         <body>
             <div id="map" style="height: 100vh"></div>
-            <script>
+            <select id="crs" style="position: absolute; top: 10px; left: 10px">
+                <option value="">Web Mercator</option>
+            </select>
+            <script src="https://unpkg.com/proj4@2.22.0/dist/proj4.js"></script>
+            <script type="module">
+                import * as maplibregl from 'https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.mjs';
                 // hostname
-                const tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=${quality}&margin=${margin}&tileSize=${tileSize}';
+                let tileUrl = window.location.origin + ${tilePath};
+
+                // ?crs=<id>: tiles of that CRS, shown in it
+                const params = new URLSearchParams(window.location.search);
+                const crsId = params.get('crs') ?? '';
+                const select = document.getElementById('crs');
+                for (const { id, name } of await (await fetch('/crs')).json())
+                    select.add(new Option(name + ' (' + id + ')', id, false, id === crsId));
+                select.onchange = () => {
+                    if (select.value) params.set('crs', select.value);
+                    else params.delete('crs');
+                    window.location.href = '?' + params; // drops the hash: zooms differ between CRSs
+                };
+                let projection;
+                let center = [0, 0];
+                let zoom = 1;
+                if (crsId) {
+                    const crs = await (await fetch('/crs/' + encodeURIComponent(crsId))).json();
+                    if (!crs.tileMatrixSet || 'tileMatrices' in crs.tileMatrixSet)
+                        alert('MapLibre GL JS shows only grids of { origin, extentAtZoom0 }');
+                    const name = 'chiitiler:' + crsId; // addProjection needs a colon
+                    maplibregl.addProjection({
+                        name,
+                        projection: proj4('EPSG:4326', crs.projjson),
+                        tileMatrixSet: crs.tileMatrixSet,
+                    });
+                    projection = { type: name };
+                    tileUrl += '&crs=' + encodeURIComponent(crsId);
+                    // the middle of the CRS's area of use, if PROJJSON has it
+                    const b = crs.projjson.bbox;
+                    if (b) {
+                        const east = b.east_longitude < b.west_longitude ? b.east_longitude + 360 : b.east_longitude;
+                        center = [((b.west_longitude + east) / 2 + 540) % 360 - 180, (b.south_latitude + b.north_latitude) / 2];
+                    }
+                    zoom = 0;
+                }
 
                 const map = new maplibregl.Map({
                     hash: true,
                     container: 'map', // container id
                     style: {
                         version: 8,
+                        ...(projection ? { projection } : {}),
                         sources: {
                             chiitiler: {
                                 type: 'raster',
@@ -61,8 +112,8 @@ function getDebugPage(c: Context) {
                             }
                         ],
                     },
-                    center: [0, 0], // starting position [lng, lat]
-                    zoom: 1, // starting zoom
+                    center, // starting position [lng, lat]
+                    zoom, // starting zoom
                 });
             </script>
         </body>
@@ -75,11 +126,10 @@ function getEditorPage(c: Context) {
         <head>
             <meta charset="utf-8" />
             <title>MapLibre GL JS</title>
-            <!-- maplibre gl js-->
-            <script src="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.js"></script>
+            <!-- maplibre gl js (v6 ships ES modules only: imported below) -->
             <link
                 rel="stylesheet"
-                href="https://unpkg.com/maplibre-gl@^4.0/dist/maplibre-gl.css"
+                href="https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.css"
             />
             <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.css" rel="stylesheet" type="text/css">
             <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.min.js"></script>
@@ -93,7 +143,8 @@ function getEditorPage(c: Context) {
         <body>
             <div id="map" style="height: 50vh"></div>
             <div id="jsoneditor" style="height: 50vh"></div>
-            <script>
+            <script type="module">
+                import * as maplibregl from 'https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.mjs';
                 const container = document.getElementById("jsoneditor")
                 const editor = new JSONEditor(container, {
                     mode: 'code',

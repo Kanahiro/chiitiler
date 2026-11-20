@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 
 import { getSource } from './index.js';
-import { noneCache, withMemoryCache } from '../cache/index.js';
+import { noneCache, withFrontCache } from '../cache/index.js';
 
 describe('getSource', () => {
     it('file://', async () => {
@@ -14,12 +14,12 @@ describe('getSource', () => {
         expect(data).not.toBeNull();
     });
 
-    it('file:// is served from the memory front cache, even over none', async () => {
+    it('file:// is served from the front cache, even over none', async () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chiitiler-'));
         const file = path.join(dir, 'a.json');
         fs.writeFileSync(file, 'old');
         try {
-            const cache = withMemoryCache(noneCache());
+            const cache = withFrontCache(noneCache());
             expect((await getSource(`file://${file}`, cache))?.toString()).toBe(
                 'old',
             );
@@ -63,13 +63,6 @@ describe('getSource', () => {
 
     it('pmtiles://', async () => {
         const uri = 'pmtiles://localdata/school.pmtiles/0/0/0';
-        const data = await getSource(uri);
-        expect(data).not.toBeNull();
-    });
-
-    it('cog://', async () => {
-        const uri =
-            'cog://https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/54/T/WN/2024/9/S2A_54TWN_20240908_0_L2A/TCI.tif/6/32/24';
         const data = await getSource(uri);
         expect(data).not.toBeNull();
     });

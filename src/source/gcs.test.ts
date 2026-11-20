@@ -4,12 +4,13 @@ const { download, file } = vi.hoisted(() => {
     const download = vi.fn();
     return {
         download,
-        file: vi.fn(() => ({ download })),
+        file: vi.fn(() => ({})),
     };
 });
 
 vi.mock('../gcs.js', () => ({
-    getStorageClient: () => ({
+    download,
+    getStorage: async () => ({
         bucket: () => ({ file }),
     }),
 }));
@@ -23,7 +24,7 @@ describe('getGCSSource', () => {
     });
 
     it('loads a percent-encoded path using its decoded form first', async () => {
-        download.mockResolvedValueOnce([Buffer.from('glyph')]);
+        download.mockResolvedValueOnce(Buffer.from('glyph'));
 
         const result = await getGCSSource(
             'gs://fonts/Noto%20Sans%20Regular%2CArial/0-255.pbf',

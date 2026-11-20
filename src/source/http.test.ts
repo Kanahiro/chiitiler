@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-import { getHttpSource } from './http.js';
+import { getHttpSource, MAX_BODY_BYTES } from './http.js';
 import { setUserAgent } from './userAgent.js';
-import { memoryCache } from '../cache/memory.js';
+import { noneCache, withFrontCache } from '../cache/index.js';
 
 function mockFetch(response: Response) {
     return vi
@@ -16,7 +16,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns null for 204 No Content without caching', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
         mockFetch(new Response(null, { status: 204 }));
 
@@ -29,7 +29,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns null for empty-body 200 without caching', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
         mockFetch(new Response(new ArrayBuffer(0), { status: 200 }));
 
@@ -41,7 +41,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns null for 404', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         mockFetch(new Response('not found', { status: 404 }));
 
         const data = await getHttpSource(
@@ -52,8 +52,23 @@ describe('getHttpSource', () => {
         expect(data).toBeNull();
     });
 
+    it.each([401, 408, 429])(
+        'throws for %i: the tile may exist, it must not be drawn empty',
+        async (status) => {
+            mockFetch(new Response('', { status }));
+            await expect(
+                getHttpSource('https://example.com/a.webp'),
+            ).rejects.toThrow(`upstream error ${status}`);
+        },
+    );
+
+    it('returns null for 403 (S3 buckets answer missing objects with it)', async () => {
+        mockFetch(new Response('', { status: 403 }));
+        expect(await getHttpSource('https://example.com/a.webp')).toBeNull();
+    });
+
     it('throws for 5xx to fail rendering instead of drawing an empty tile', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
         mockFetch(new Response('internal server error', { status: 500 }));
 
@@ -65,7 +80,7 @@ describe('getHttpSource', () => {
     });
 
     it('throws when fetch fails (server unreachable)', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         vi.spyOn(globalThis, 'fetch').mockRejectedValue(
             new TypeError('fetch failed'),
         );
@@ -74,6 +89,36 @@ describe('getHttpSource', () => {
         await expect(getHttpSource(uri, cache)).rejects.toThrow(
             'failed to fetch',
         );
+    });
+
+    it('times out: an upstream that never answers must not stall renders', async () => {
+        const fetchSpy = mockFetch(new Response('x'));
+        await getHttpSource('https://example.com/a.webp');
+        expect(fetchSpy.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('fails on a body larger than MAX_BODY_BYTES, without reading it all', async () => {
+        let sent = 0;
+        const endless = new ReadableStream<Uint8Array>({
+            pull: (controller) => {
+                sent += 1 << 20;
+                controller.enqueue(new Uint8Array(1 << 20));
+            },
+        });
+        mockFetch(new Response(endless));
+        const error = await getHttpSource('https://example.com/a').catch(
+            (e: Error) => e,
+        );
+        expect(String((error as Error).cause)).toContain('larger than');
+        expect(sent).toBeLessThan(MAX_BODY_BYTES + 4 * (1 << 20));
+    });
+
+    it('keeps the query (credentials) out of errors', async () => {
+        mockFetch(new Response('', { status: 503 }));
+        const error = await getHttpSource(
+            'https://example.com/a.webp?key=SECRET',
+        ).catch((e: Error) => e);
+        expect(String(error)).not.toContain('SECRET');
     });
 
     it('does not send a User-Agent header by default', async () => {
@@ -104,7 +149,7 @@ describe('getHttpSource', () => {
     });
 
     it('returns and caches a non-empty body', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const body = new Uint8Array([1, 2, 3, 4]);
         mockFetch(new Response(body, { status: 200 }));
 

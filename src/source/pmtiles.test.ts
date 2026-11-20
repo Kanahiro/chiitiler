@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { getPmtilesSource } from './pmtiles.js';
-import { memoryCache } from '../cache/memory.js';
+import { noneCache, withFrontCache } from '../cache/index.js';
 
 // Serve localdata/school.pmtiles over HTTP with byte-range support (pmtiles
 // requires it) and a switchable failure mode, so we can exercise how the
@@ -73,7 +73,7 @@ const uri = (tag: string, zxy: string) =>
 describe('getPmtilesSource (http)', () => {
     it('shares a cold archive header across concurrent requests for different tiles', async () => {
         mode = 'ok';
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const tiles = ['0/0/0', '6/57/23'];
         const results = await Promise.all(
             tiles.map((tile) =>
@@ -94,7 +94,7 @@ describe('getPmtilesSource (http)', () => {
 
     it('returns a tile that exists in the archive', async () => {
         mode = 'ok';
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const buf = await getPmtilesSource(uri('exists', '6/57/23'), cache);
         expect(buf).not.toBeNull();
         expect(buf!.length).toBeGreaterThan(0);
@@ -102,21 +102,21 @@ describe('getPmtilesSource (http)', () => {
 
     it('returns null for a tile absent from the archive (empty tile)', async () => {
         mode = 'ok';
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         const buf = await getPmtilesSource(uri('sparse', '14/1/1'), cache);
         expect(buf).toBeNull();
     });
 
     it('throws on upstream 5xx instead of returning an empty tile', async () => {
         mode = '500';
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         await expect(
             getPmtilesSource(uri('err5xx', '6/57/23'), cache),
         ).rejects.toThrow();
     });
 
     it('recovers after a transient header-load failure (no sticky poisoning)', async () => {
-        const cache = memoryCache({ ttl: 60, maxItemCount: 10 });
+        const cache = withFrontCache(noneCache());
         // first request loads the archive header while upstream is failing
         mode = '500';
         await expect(
@@ -129,5 +129,23 @@ describe('getPmtilesSource (http)', () => {
         const buf = await getPmtilesSource(uri('recover', '6/57/23'), cache);
         expect(buf).not.toBeNull();
         expect(buf!.length).toBeGreaterThan(0);
+    });
+});
+
+describe.runIf(process.platform === 'linux')('local archives', () => {
+    const open = () => fs.readdirSync('/proc/self/fd').length;
+
+    it('read a tile, and leave no file handle open', async () => {
+        const local = path.join(process.cwd(), 'localdata/school.pmtiles');
+        const before = open();
+        expect(
+            await getPmtilesSource(`pmtiles://${local}/0/0/0`),
+        ).not.toBeNull();
+        // not archives: each fails, and must not keep its file open
+        for (let i = 0; i < 20; i++)
+            await getPmtilesSource(
+                `pmtiles://${'/.'.repeat(i)}/etc/hostname/0/0/0`,
+            ).catch(() => {});
+        expect(open()).toBe(before);
     });
 });

@@ -1,0 +1,144 @@
+{
+    "projjson": {
+        "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
+        "type": "ProjectedCRS",
+        "name": "NAD83 / Canada Atlas Lambert",
+        "base_crs": {
+            "type": "GeographicCRS",
+            "name": "NAD83",
+            "datum": {
+                "type": "GeodeticReferenceFrame",
+                "name": "North American Datum 1983",
+                "ellipsoid": {
+                    "name": "GRS 1980",
+                    "semi_major_axis": 6378137,
+                    "inverse_flattening": 298.257222101
+                }
+            },
+            "coordinate_system": {
+                "subtype": "ellipsoidal",
+                "axis": [
+                    {
+                        "name": "Geodetic latitude",
+                        "abbreviation": "Lat",
+                        "direction": "north",
+                        "unit": "degree"
+                    },
+                    {
+                        "name": "Geodetic longitude",
+                        "abbreviation": "Lon",
+                        "direction": "east",
+                        "unit": "degree"
+                    }
+                ]
+            },
+            "id": {
+                "authority": "EPSG",
+                "code": 4269
+            },
+            "remarks": "Longitude is POSITIVE EAST. The adjustment included connections to Greenland and Mexico but the system was not adopted there. For applications with an accuracy of better than 1m replaced by NAD83(HARN) in the US and PRVI and by NAD83(CSRS) in Canada."
+        },
+        "conversion": {
+            "name": "Canada Atlas Lambert",
+            "method": {
+                "name": "Lambert Conic Conformal (2SP)",
+                "id": {
+                    "authority": "EPSG",
+                    "code": 9802
+                }
+            },
+            "parameters": [
+                {
+                    "name": "Latitude of false origin",
+                    "value": 49,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8821
+                    }
+                },
+                {
+                    "name": "Longitude of false origin",
+                    "value": -95,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8822
+                    }
+                },
+                {
+                    "name": "Latitude of 1st standard parallel",
+                    "value": 49,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8823
+                    }
+                },
+                {
+                    "name": "Latitude of 2nd standard parallel",
+                    "value": 77,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8824
+                    }
+                },
+                {
+                    "name": "Easting at false origin",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8826
+                    }
+                },
+                {
+                    "name": "Northing at false origin",
+                    "value": 0,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8827
+                    }
+                }
+            ]
+        },
+        "coordinate_system": {
+            "subtype": "Cartesian",
+            "axis": [
+                {
+                    "name": "Easting",
+                    "abbreviation": "E",
+                    "direction": "east",
+                    "unit": "metre"
+                },
+                {
+                    "name": "Northing",
+                    "abbreviation": "N",
+                    "direction": "north",
+                    "unit": "metre"
+                }
+            ]
+        },
+        "scope": "Transformation of coordinates at 5m level of accuracy.",
+        "area": "Canada - onshore and offshore - Alberta; British Columbia; Manitoba; New Brunswick; Newfoundland and Labrador; Northwest Territories; Nova Scotia; Nunavut; Ontario; Prince Edward Island; Quebec; Saskatchewan; Yukon.",
+        "bbox": {
+            "south_latitude": 38.21,
+            "west_longitude": -141.01,
+            "north_latitude": 86.46,
+            "east_longitude": -40.73
+        },
+        "id": {
+            "authority": "EPSG",
+            "code": 3978
+        }
+    },
+    "tileMatrixSet": {
+        "origin": [
+            -3894481.379315484,
+            4329768.401274023
+        ],
+        "extentAtZoom0": 8327301.381089382
+    }
+}

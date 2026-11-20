@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { Storage } from '@google-cloud/storage';
 
-import { getStorageClient } from './gcs.js';
+import { getStorage } from './gcs.js';
 
-describe('getStorageClient', () => {
-    it('getStorageClient', async () => {
-        const client1 = getStorageClient({});
+describe('getStorage', () => {
+    it('one client per configuration', async () => {
+        const client1 = await getStorage({});
         expect(client1).toBeInstanceOf(Storage);
-        const client2 = getStorageClient({});
-        expect(client2).toBe(client1); // singleton
-        const client3 = getStorageClient({ projectId: 'test-project' });
-        expect(client3).toBe(client1); // even when different options...
+        const client2 = await getStorage({});
+        expect(client2).toBe(client1); // one per configuration
+        const client3 = await getStorage({ projectId: 'test-project' });
+        expect(client3).not.toBe(client1);
+        expect(await getStorage({ projectId: 'test-project' })).toBe(client3);
     });
 });
