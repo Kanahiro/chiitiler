@@ -182,6 +182,7 @@ describe('initServer', () => {
             ['/tiles/1/0/0.png?tileSize=256', 'image/png', [0x89, 0x50]],
             ['/tiles/1/0/0.jpg', 'image/jpeg', [0xff, 0xd8]],
             ['/clip.webp?bbox=0,0,10,10&size=64', 'image/webp', [0x52, 0x49]],
+            ['/tiles/1/0/0.avif?quality=60', 'image/avif', [0x00, 0x00]],
             ['/view/2/0/0/30/64x32.png', 'image/png', [0x89, 0x50]],
         ] as const) {
             const res = await app.request(path, {

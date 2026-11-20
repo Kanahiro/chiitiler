@@ -10,7 +10,7 @@ function isValidStylejson(stylejson: any): stylejson is StyleSpecification {
 }
 
 function isSupportedFormat(ext: string | undefined): ext is SupportedFormat {
-    return Boolean(ext && ['png', 'jpeg', 'jpg', 'webp'].includes(ext));
+    return Boolean(ext && ['png', 'jpeg', 'jpg', 'webp', 'avif'].includes(ext));
 }
 
 export { isValidStylejson, isSupportedFormat };
