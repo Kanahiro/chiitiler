@@ -1,6 +1,9 @@
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
-import { unzip } from 'zlib';
+import { promisify } from 'node:util';
+import { unzip } from 'node:zlib';
 import { LRUCache } from 'lru-cache';
+
+const unzipAsync = promisify(unzip);
 
 // A StatementSync is only valid while its DatabaseSync is alive, and node:sqlite
 // does not guarantee the statement keeps the database from being GC'd. Cache the
@@ -39,15 +42,12 @@ async function getMbtilesSource(uri: string): Promise<Buffer | null> {
 
     if (!row) return null;
 
-    const unzipped = await new Promise<Buffer | null>((resolve, _) => {
-        unzip((row as any).tile_data, (err, buffer) => {
-            if (err) {
-                console.error(`[ERROR]: ${err}`);
-                resolve(null);
-            } else resolve(buffer);
-        });
-    });
-    return unzipped;
+    const data = (row as { tile_data: Uint8Array }).tile_data;
+    // Vector tiles are gzip (1f 8b) or zlib (78) compressed; raster tiles (PNG, JPEG, WebP) are not.
+    // A corrupt compressed tile throws: the render fails rather than drawing a hole.
+    const compressed =
+        (data[0] === 0x1f && data[1] === 0x8b) || data[0] === 0x78;
+    return compressed ? unzipAsync(data) : Buffer.from(data);
 }
 
 export { getMbtilesSource };
