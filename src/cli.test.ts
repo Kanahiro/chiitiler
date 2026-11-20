@@ -51,10 +51,8 @@ describe('configuration', () => {
         expect(config.debug).toBe(false);
         expect(config.processes).toBe(1);
         expect(config.maxSize).toBe(4096);
-        expect(config.maxRenders).toBe(64);
-        expect(readConfig({ CHIITILER_MAX_RENDERS: '0' }).maxRenders).toBe(
-            undefined, // no limit
-        );
+        expect(config.maxRenders).toBeUndefined(); // no limit
+        expect(readConfig({ CHIITILER_MAX_RENDERS: '64' }).maxRenders).toBe(64);
         expect(config.cacheControl).toBeUndefined();
         expect(config.corsOrigins).toBeUndefined();
     });

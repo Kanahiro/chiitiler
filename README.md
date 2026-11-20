@@ -334,7 +334,7 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 | `CHIITILER_USER_AGENT` | (none) |
 | `CHIITILER_PROCESSES` | `1` (set `0` for all CPUs) |
 | `CHIITILER_MAX_SIZE` | `4096` |
-| `CHIITILER_MAX_RENDERS` | `64` (set `0` for no limit) |
+| `CHIITILER_MAX_RENDERS` | `0` (no limit) |
 | `CHIITILER_CACHE_CONTROL` | (none) |
 | `CHIITILER_CORS` | (none) |
 | `CHIITILER_CRS_DIR` | (none: Web Mercator only; `/app/crs` in the Docker image) |
@@ -346,8 +346,9 @@ parallel), so the server keeps answering (e.g. `/health`) while it draws.
 `CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/view`
 dimensions, times `@{n}x`); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
 
-`CHIITILER_MAX_RENDERS` bounds the renders in progress in a process, waiting ones included: beyond it,
-requests answer `503` with `Retry-After: 1` instead of queueing without bound. Sources are read for at
+`CHIITILER_MAX_RENDERS`, when set, bounds the renders in progress in a process, waiting ones included:
+beyond it, requests answer `503` with `Retry-After: 1` instead of queueing without bound (by default
+they queue: set it where the platform does not already limit concurrent requests). Sources are read for at
 most 30 seconds each (http(s), S3 and GCS; a render whose source times out answers `500`), and http(s)
 bodies are limited to 64 MiB.
 
