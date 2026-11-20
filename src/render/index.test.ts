@@ -125,7 +125,7 @@ describe('library resources', () => {
 });
 
 describe('formats', () => {
-    it('encodes WebP lossy below quality 100 and lossless at 100', async () => {
+    it('encodes WebP lossy below quality 100 and lossless at 100, and AVIF', async () => {
         const chiitiler = new Chiitiler({
             cache: { get: async () => undefined, set: async () => {} },
             protocols: {
@@ -139,22 +139,26 @@ describe('formats', () => {
                         : tile(url.replace('test://tiles/', '')),
             },
         });
-        const fourcc = async (quality: number) => {
-            const webp = await chiitiler.renderTile({
+        const encode = (ext: 'webp' | 'avif', quality: number) =>
+            chiitiler.renderTile({
                 stylejson: 'test://style.json',
                 z: 5,
                 x: 28,
                 y: 12,
                 tileSize: 256,
                 margin: 0,
-                ext: 'webp',
+                ext,
                 quality,
             });
-            return new TextDecoder().decode(webp.slice(8, 16));
-        };
+        const fourcc = async (quality: number) =>
+            new TextDecoder().decode(
+                (await encode('webp', quality)).slice(8, 16),
+            );
         // A transparent tile: lossy WebP keeps its alpha in the extended format.
         expect(await fourcc(80)).toBe('WEBPVP8X');
         expect(await fourcc(100)).toBe('WEBPVP8L');
+        const avif = await encode('avif', 60);
+        expect(new TextDecoder().decode(avif.slice(4, 12))).toBe('ftypavif');
     });
 });
 

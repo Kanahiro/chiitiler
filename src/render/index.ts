@@ -6,7 +6,7 @@ import { type Crs, MapRenderer, type RenderedImage } from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
 import { getSource, type Protocols } from '../source/index.js';
 
-type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
+type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp' | 'avif';
 
 type ChiitilerOptions = {
     /** Where fetched sources are kept (see `ChiitilerCache`). */
@@ -26,7 +26,7 @@ type RenderTileOptions = {
     /** Extra pixels rendered around the tile (half on each side) and cropped away. */
     margin: number;
     ext: SupportedFormat;
-    /** JPEG quality; WebP quality below 100 (lossless at 100) with `@napi-rs/image` installed. */
+    /** JPEG and AVIF quality; WebP quality below 100 (lossless at 100) with `@napi-rs/image` installed. */
     quality: number;
 };
 
@@ -82,6 +82,8 @@ function encode(
             return image.toJpeg(quality);
         case 'webp':
             return image.toWebp(quality);
+        case 'avif':
+            return image.toAvif(quality);
     }
 }
 
