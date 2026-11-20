@@ -10,6 +10,9 @@ import { getUserAgent } from './userAgent.js';
  */
 const FETCH_TIMEOUT_MS = 30_000;
 
+/** Statuses meaning the resource does not exist. */
+const MISSING = new Set([403, 404, 410]);
+
 async function getHttpSource(
     uri: string,
     cache: Cache = noneCache(),
@@ -32,13 +35,13 @@ async function getHttpSource(
         // CDN等に欠損タイルがキャッシュされうるので、throwしてレンダリングを失敗させる
         throw new Error(`failed to fetch ${where}`, { cause: e });
     }
-    if (res.status >= 500) {
-        // 5xx: 一時的な障害でタイルの有無は不明。ネットワークエラーと同様に扱う
-        throw new Error(`upstream error ${res.status} for ${where}`);
-    }
+    // タイルが存在しない: 空タイルとして扱わせる。403はS3等のバケットが
+    // 存在しないオブジェクトに返すもの(一覧権限がない場合)
+    if (MISSING.has(res.status)) return null;
     if (!res.ok) {
-        // 4xx: タイルが存在しない(404など)。空タイルとして扱わせる
-        return null;
+        // それ以外(5xx・429・401・408など)は一時的な障害や設定ミスでタイルの有無が不明。
+        // 空タイルを返すとCDN等に欠損タイルがキャッシュされうるので、throwしてレンダリングを失敗させる
+        throw new Error(`upstream error ${res.status} for ${where}`);
     }
     // 204/空ボディはキャッシュ汚染を避けるため書き込まずnullを返す
     if (res.status === 204) return null;

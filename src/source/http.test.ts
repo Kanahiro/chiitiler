@@ -52,6 +52,21 @@ describe('getHttpSource', () => {
         expect(data).toBeNull();
     });
 
+    it.each([401, 408, 429])(
+        'throws for %i: the tile may exist, it must not be drawn empty',
+        async (status) => {
+            mockFetch(new Response('', { status }));
+            await expect(
+                getHttpSource('https://example.com/a.webp'),
+            ).rejects.toThrow(`upstream error ${status}`);
+        },
+    );
+
+    it('returns null for 403 (S3 buckets answer missing objects with it)', async () => {
+        mockFetch(new Response('', { status: 403 }));
+        expect(await getHttpSource('https://example.com/a.webp')).toBeNull();
+    });
+
     it('throws for 5xx to fail rendering instead of drawing an empty tile', async () => {
         const cache = withFrontCache(noneCache());
         const setSpy = vi.spyOn(cache, 'set');
