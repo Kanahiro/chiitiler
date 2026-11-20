@@ -12,7 +12,7 @@ Point it at any `style.json` and get back PNG / WebP / JPEG / AVIF tiles, static
 [![codecov](https://codecov.io/gh/Kanahiro/chiitiler/graph/badge.svg?token=9RVLAJG126)](https://codecov.io/gh/Kanahiro/chiitiler)
 [![License](https://img.shields.io/github/license/Kanahiro/chiitiler?color=blue)](./LICENSE)
 
-[Live Demo](https://spatialty-io.github.io/chiitiler-demo/) · [Quickstart](#quickstart) · [HTTP API](#http-api) · [Library](#library-usage) · [Deployment](#deployment)
+[Live Demo](https://spatialty-io.github.io/chiitiler-demo/) · [Quickstart](#quickstart) · [HTTP API](#http-api) · [Library](#library-usage) · [API Reference](https://kanahiro.github.io/chiitiler/) · [Deployment](#deployment)
 
 </div>
 
@@ -144,6 +144,7 @@ shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own dir
 Chiitiler is also published to npm. A `Chiitiler` renders any style and returns a `RenderedImage`:
 its pixels (`data`: `width` × `height` × 4 bytes of RGBA) to process further, and encoders to
 `Uint8Array`s: `toPng()`, `toJpeg(quality)`, `toWebp(quality)` and `toAvif(quality)`.
+Every export is documented in the [API reference](https://kanahiro.github.io/chiitiler/).
 
 ```bash
 npm install chiitiler @maplibre/maplibre-gl-style-spec
