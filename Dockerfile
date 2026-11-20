@@ -22,10 +22,6 @@ RUN v=$(node -p "require('./node_modules/@napi-rs/image/package.json').version")
 # Distroless: no shell, npm or apt. Entrypoint is /nodejs/bin/node (Node 24.22.3 at this digest).
 FROM gcr.io/distroless/nodejs24-debian13@sha256:24bc0fe0225c7518f202a822587dad74fe143b96326b81fe5cc08c1df8bed03e AS runtime
 
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.1 /lambda-adapter /opt/extensions/lambda-adapter
-ENV AWS_LWA_PORT=3000
-ENV AWS_LWA_READINESS_CHECK_PATH=/health
-
 WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=deps /app/node_modules ./node_modules

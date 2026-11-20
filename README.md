@@ -49,7 +49,6 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 - **No GPU, no system libraries** — rendered by [ml2drender](https://github.com/Kanahiro/ml2drender) (`@ml2drender/node`), a pure-Rust 2D MapLibre renderer, as a Node-API addon
 - **Works with any MapLibre style** — remote URL or `POST` the JSON inline
 - **Multiple outputs** — slippy tiles (`/tiles`), bounding-box clips (`/clip`), free-form views (`/view`)
-- **Serverless-friendly** — small footprint, runs on AWS Lambda via Web Adapter (see [`cdk/`](./cdk))
 - **Pluggable caching** — `file` · `s3` · `gcs` backends for shared source assets, plus an in-process front cache
 - **Many protocols** — `http(s)` · `s3` · `gs` · `file` · `mbtiles` · `pmtiles`
 - **Library or server** — import the renderer directly into your Node.js pipeline
@@ -391,7 +390,6 @@ const cache = ChiitilerCache.withFrontCache(
 
 - **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables)
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
-- **AWS Lambda** — ready-to-deploy CDK app in [`cdk/`](./cdk)
 
 > [!WARNING]
 > **Do not expose chiitiler directly to the public internet.** Chiitiler fetches whatever the request tells it to: the `url` style and every source, glyph, and sprite URL inside the style (`GET` or `POST`). This allows SSRF — requests to internal networks or cloud metadata endpoints — and reads of local files (`file://`, `mbtiles://`) and buckets (`s3://`, `gs://`) with the server's credentials. Accept requests only from trusted clients, e.g. behind an authenticating proxy or a private network.
@@ -421,7 +419,10 @@ placement differ).
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The `memory` method and `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` are
   removed: the front cache now also sits in front of `none`, so use `none` and raise
-  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead. The Docker image has no entrypoint script; the bundle is `build/main.mjs`. The image is distroless (no shell): its entrypoint is `node`, so a `command` override passes only the script and its arguments.
+  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead.
+- **Docker:** the image has no entrypoint script; the bundle is `build/main.mjs`. The image is
+  distroless (no shell): its entrypoint is `node`, so a `command` override passes only the script and
+  its arguments. The AWS Lambda Web Adapter and the `cdk/` app are removed.
 - **Library:**
   - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are replaced by
     the `renderTile`, `renderBbox` and `renderView` methods of a `Chiitiler` (`renderView` takes no
