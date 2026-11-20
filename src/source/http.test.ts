@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-import { getHttpSource } from './http.js';
+import { getHttpSource, MAX_BODY_BYTES } from './http.js';
 import { setUserAgent } from './userAgent.js';
 import { noneCache, withFrontCache } from '../cache/index.js';
 
@@ -95,6 +95,22 @@ describe('getHttpSource', () => {
         const fetchSpy = mockFetch(new Response('x'));
         await getHttpSource('https://example.com/a.webp');
         expect(fetchSpy.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('fails on a body larger than MAX_BODY_BYTES, without reading it all', async () => {
+        let sent = 0;
+        const endless = new ReadableStream<Uint8Array>({
+            pull: (controller) => {
+                sent += 1 << 20;
+                controller.enqueue(new Uint8Array(1 << 20));
+            },
+        });
+        mockFetch(new Response(endless));
+        const error = await getHttpSource('https://example.com/a').catch(
+            (e: Error) => e,
+        );
+        expect(String((error as Error).cause)).toContain('larger than');
+        expect(sent).toBeLessThan(MAX_BODY_BYTES + 4 * (1 << 20));
     });
 
     it('keeps the query (credentials) out of errors', async () => {

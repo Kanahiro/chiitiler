@@ -10,8 +10,27 @@ import { getUserAgent } from './userAgent.js';
  */
 const FETCH_TIMEOUT_MS = 30_000;
 
+/**
+ * The largest response read. A style can point at any URL: an endless or huge body must fail the
+ * render, not exhaust memory.
+ */
+const MAX_BODY_BYTES = 64 * 1024 * 1024;
+
 /** Statuses meaning the resource does not exist. */
 const MISSING = new Set([403, 404, 410]);
+
+async function readBody(res: Response): Promise<Buffer> {
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    // throwing out of the loop cancels the body
+    for await (const chunk of res.body ?? []) {
+        size += chunk.byteLength;
+        if (size > MAX_BODY_BYTES)
+            throw new Error(`response larger than ${MAX_BODY_BYTES} bytes`);
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks, size);
+}
 
 async function getHttpSource(
     uri: string,
@@ -37,8 +56,12 @@ async function getHttpSource(
     }
     // タイルが存在しない: 空タイルとして扱わせる。403はS3等のバケットが
     // 存在しないオブジェクトに返すもの(一覧権限がない場合)
-    if (MISSING.has(res.status)) return null;
+    if (MISSING.has(res.status)) {
+        await res.body?.cancel(); // release the connection
+        return null;
+    }
     if (!res.ok) {
+        await res.body?.cancel();
         // それ以外(5xx・429・401・408など)は一時的な障害や設定ミスでタイルの有無が不明。
         // 空タイルを返すとCDN等に欠損タイルがキャッシュされうるので、throwしてレンダリングを失敗させる
         throw new Error(`upstream error ${res.status} for ${where}`);
@@ -47,9 +70,9 @@ async function getHttpSource(
     if (res.status === 204) return null;
     let buf: Buffer;
     try {
-        buf = Buffer.from(await res.arrayBuffer());
+        buf = await readBody(res);
     } catch (e) {
-        // the body broke off or timed out
+        // the body broke off, timed out or was too large
         throw new Error(`failed to fetch ${where}`, { cause: e });
     }
     if (buf.length === 0) return null;
@@ -57,4 +80,4 @@ async function getHttpSource(
     return buf;
 }
 
-export { FETCH_TIMEOUT_MS, getHttpSource };
+export { FETCH_TIMEOUT_MS, MAX_BODY_BYTES, getHttpSource };
