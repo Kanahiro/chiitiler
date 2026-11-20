@@ -1,7 +1,7 @@
 {
     "type": "module",
     "name": "chiitiler",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "Tiny map rendering server for MapLibre Style Spec",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -40,22 +40,22 @@
     "devDependencies": {
         "@aws-sdk/client-s3": "^3.1168.0",
         "@biomejs/biome": "^2.6.7",
-        "@google-cloud/storage": "^7.22.0",
+        "@google-cloud/storage": "^8.4.0",
         "@hono/node-server": "^2.1.8",
         "@maplibre/maplibre-gl-style-spec": "^26.7.0",
         "@napi-rs/image": "^1.16.0",
         "@tsconfig/node24": "^24.0.6",
         "@types/autocannon": "^7.12.7",
-        "@types/node": "^25.9.9",
-        "@vitest/coverage-v8": "^4.1.12",
-        "autocannon": "^8.0.0",
+        "@types/node": "^26.6.6",
+        "@vitest/coverage-v8": "^5.1.0",
+        "autocannon": "^9.0.0",
         "esbuild": "^0.28.2",
         "hono": "^4.13.18",
         "image-size": "^2.1.0",
         "tsx": "^4.23.15",
         "typedoc": "^0.28.20",
         "typescript": "^6.0.3",
-        "vitest": "^4.1.12"
+        "vitest": "^5.1.0"
     },
     "dependencies": {
         "@ml2drender/node": "^0.4.3",
@@ -64,7 +64,7 @@
     },
     "peerDependencies": {
         "@aws-sdk/client-s3": "^3.0.0",
-        "@google-cloud/storage": "^7.0.0",
+        "@google-cloud/storage": "^8.0.0 || ^9.0.0",
         "@maplibre/maplibre-gl-style-spec": "^26.4.4",
         "@napi-rs/image": "^1.16.0"
     },
