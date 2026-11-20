@@ -131,3 +131,21 @@ describe('getPmtilesSource (http)', () => {
         expect(buf!.length).toBeGreaterThan(0);
     });
 });
+
+describe.runIf(process.platform === 'linux')('local archives', () => {
+    const open = () => fs.readdirSync('/proc/self/fd').length;
+
+    it('read a tile, and leave no file handle open', async () => {
+        const local = path.join(process.cwd(), 'localdata/school.pmtiles');
+        const before = open();
+        expect(
+            await getPmtilesSource(`pmtiles://${local}/0/0/0`),
+        ).not.toBeNull();
+        // not archives: each fails, and must not keep its file open
+        for (let i = 0; i < 20; i++)
+            await getPmtilesSource(
+                `pmtiles://${'/.'.repeat(i)}/etc/hostname/0/0/0`,
+            ).catch(() => {});
+        expect(open()).toBe(before);
+    });
+});

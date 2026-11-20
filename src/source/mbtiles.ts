@@ -26,9 +26,16 @@ async function getMbtilesSource(uri: string): Promise<Buffer | null> {
     let entry = mbtilesCache.get(mbtilesFilepath);
     if (entry === undefined) {
         const db = new DatabaseSync(mbtilesFilepath, { readOnly: true });
-        const statement = db.prepare(
-            'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
-        );
+        let statement: StatementSync;
+        try {
+            statement = db.prepare(
+                'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
+            );
+        } catch (e) {
+            // not an MBTiles file: it is not cached, close it here
+            db.close();
+            throw e;
+        }
         entry = { db, statement };
         mbtilesCache.set(mbtilesFilepath, entry);
     }

@@ -21,21 +21,26 @@ const pmtilesCache = new LRUCache<string, PMTiles>({
 
 class FilesystemSource implements Source {
     filepath: string;
-    fileHandle: Promise<fs.promises.FileHandle>;
 
     constructor(filepath: string) {
         this.filepath = filepath;
-        this.fileHandle = fs.promises.open(filepath, 'r');
     }
 
     getKey() {
         return this.filepath;
     }
 
+    /** Opened per read: an archive evicted from the cache leaves no file handle open. */
     async getBytes(offset: number, length: number): Promise<RangeResponse> {
-        const buf = Buffer.alloc(length);
-        await (await this.fileHandle).read(buf, 0, length, offset);
-        return { data: buf.buffer };
+        const file = await fs.promises.open(this.filepath, 'r');
+        try {
+            const buf = Buffer.alloc(length);
+            const { bytesRead } = await file.read(buf, 0, length, offset);
+            // fewer bytes at the end of the file (e.g. a header read from a small archive)
+            return { data: buf.buffer.slice(0, bytesRead) };
+        } finally {
+            await file.close();
+        }
     }
 }
 

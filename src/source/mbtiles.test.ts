@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -34,5 +34,18 @@ describe('getMbtilesSource', () => {
         await expect(
             getMbtilesSource(mbtiles(Buffer.from([0x1f, 0x8b, 0, 0]))),
         ).rejects.toThrow();
+    });
+});
+
+describe.runIf(process.platform === 'linux')('file handles', () => {
+    const open = () => readdirSync('/proc/self/fd').length;
+
+    it('closes a file that is not an MBTiles', async () => {
+        const path = join(mkdtempSync(join(tmpdir(), 'mbtiles-')), 'x.mbtiles');
+        writeFileSync(path, 'not sqlite');
+        const before = open();
+        for (let i = 0; i < 20; i++)
+            await getMbtilesSource(`mbtiles://${path}/0/0/0`).catch(() => {});
+        expect(open()).toBe(before);
     });
 });
