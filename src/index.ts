@@ -1,4 +1,4 @@
-export { Chiitiler } from './render/index.js';
+export { Chiitiler, encode } from './render/index.js';
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';
@@ -7,6 +7,7 @@ export type {
     ChiitilerOptions,
     Crs,
     RenderBboxOptions,
+    RenderedImage,
     RenderTileOptions,
     RenderViewOptions,
     SupportedFormat,

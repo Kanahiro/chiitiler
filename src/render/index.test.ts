@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
-import { Chiitiler } from './index.js';
+import { Chiitiler, encode } from './index.js';
 import type { Cache } from '../cache/index.js';
 import type { Protocols } from '../source/index.js';
 
@@ -48,17 +48,15 @@ describe('library resources', () => {
             cache: { get: async () => undefined, set: async () => {} },
             protocols,
         });
-        const png = await chiitiler.renderTile({
+        const image = await chiitiler.renderTile({
             stylejson: 'test://style.json',
             z: 5,
             x: 28,
             y: 12,
             tileSize: 256,
             margin: 0,
-            ext: 'png',
-            quality: 100,
         });
-        expect([...png.slice(0, 4)]).toEqual(PNG);
+        expect([...(await image.toPng()).slice(0, 4)]).toEqual(PNG);
         expect(urls[0]).toBe('test://style.json');
         expect(urls).toContain('test://tiles/4/14/6.pbf');
     });
@@ -88,8 +86,6 @@ describe('library resources', () => {
                 y: 12,
                 tileSize: 256,
                 margin: 0,
-                ext: 'png',
-                quality: 100,
             });
         await render(style);
         const url = 'https://tiles.test/4/14/6.pbf';
@@ -109,18 +105,66 @@ describe('library resources', () => {
             cache: { get: async () => undefined, set: async () => {} },
         });
         const size = async (n: number) => {
-            const png = await chiitiler.renderBbox({
+            const image = await chiitiler.renderBbox({
                 stylejson: { version: 8, sources: {}, layers: [] },
                 bbox: [100, 30, 150, 60],
                 size: n,
-                ext: 'png',
-                quality: 100,
             });
-            const view = new DataView(png.buffer, png.byteOffset);
-            return [view.getUint32(16), view.getUint32(20)];
+            expect(image.data.length).toBe(image.width * image.height * 4);
+            return [image.width, image.height];
         };
         expect(await size(1024)).toEqual([1024, 901]);
         expect(await size(512)).toEqual([512, 451]);
+    });
+});
+
+describe('formats', () => {
+    it('encodes WebP lossy below quality 100 and lossless at 100, and AVIF', async () => {
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+            protocols: {
+                test: async (url) =>
+                    url === 'test://style.json'
+                        ? new TextEncoder().encode(
+                              JSON.stringify(
+                                  circles('test://tiles/{z}/{x}/{y}.pbf'),
+                              ),
+                          )
+                        : tile(url.replace('test://tiles/', '')),
+            },
+        });
+        const image = await chiitiler.renderTile({
+            stylejson: 'test://style.json',
+            z: 5,
+            x: 28,
+            y: 12,
+            tileSize: 256,
+            margin: 0,
+        });
+        const fourcc = async (quality: number) =>
+            new TextDecoder().decode(
+                (await image.toWebp(quality)).slice(8, 16),
+            );
+        // A transparent tile: lossy WebP keeps its alpha in the extended format.
+        expect(await fourcc(80)).toBe('WEBPVP8X');
+        expect(await fourcc(100)).toBe('WEBPVP8L');
+        const avif = await image.toAvif(60);
+        expect(new TextDecoder().decode(avif.slice(4, 12))).toBe('ftypavif');
+    });
+});
+
+describe('encode', () => {
+    it('encodes edited or new RGBA pixels, and rejects a size the bytes do not have', async () => {
+        const data = new Uint8Array(3 * 2 * 4).fill(255);
+        const png = await encode({ data, width: 3, height: 2 }, 'png');
+        expect([...png.slice(0, 4)]).toEqual(PNG);
+        const view = new DataView(png.buffer, png.byteOffset);
+        expect([view.getUint32(16), view.getUint32(20)]).toEqual([3, 2]);
+        const jpeg = await encode({ data, width: 3, height: 2 }, 'jpg', 80);
+        expect([...jpeg.slice(0, 2)]).toEqual([0xff, 0xd8]);
+        await expect(
+            encode({ data, width: 2, height: 2 }, 'png'),
+        ).rejects.toThrow(RangeError);
     });
 });
 
@@ -138,7 +182,7 @@ describe('preset CRSs', () => {
         expect(files.length).toBeGreaterThan(0);
         for (const file of files) {
             const crs = JSON.parse(await readFile(`crs/${file}`, 'utf8'));
-            const png = await chiitiler.renderProjectedTile({
+            const image = await chiitiler.renderProjectedTile({
                 stylejson: style,
                 crs,
                 z: 0,
@@ -146,10 +190,8 @@ describe('preset CRSs', () => {
                 y: 0,
                 tileSize: 64,
                 margin: 0,
-                ext: 'png',
-                quality: 100,
             });
-            expect([...png.slice(0, 4)], file).toEqual(PNG);
+            expect([...(await image.toPng()).slice(0, 4)], file).toEqual(PNG);
         }
     });
 });

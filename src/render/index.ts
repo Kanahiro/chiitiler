@@ -2,11 +2,16 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { availableParallelism } from 'node:os';
 import { LRUCache } from 'lru-cache';
 
-import { type Crs, MapRenderer, type RenderedImage } from './ml2drender.js';
+import {
+    type Crs,
+    image as rgba,
+    MapRenderer,
+    type RenderedImage,
+} from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
 import { getSource, type Protocols } from '../source/index.js';
 
-type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp';
+type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp' | 'avif';
 
 type ChiitilerOptions = {
     /** Where fetched sources are kept (see `ChiitilerCache`). */
@@ -25,28 +30,27 @@ type RenderTileOptions = {
     tileSize: number;
     /** Extra pixels rendered around the tile (half on each side) and cropped away. */
     margin: number;
-    ext: SupportedFormat;
-    /** JPEG quality; WebP is always lossless. */
-    quality: number;
+    /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
+    pixelRatio?: number;
 };
 
 type RenderBboxOptions = {
     stylejson: string | StyleSpecification;
     bbox: [number, number, number, number];
     size: number;
-    ext: SupportedFormat;
-    quality: number;
+    /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
+    pixelRatio?: number;
 };
 
 type RenderViewOptions = {
     stylejson: string | StyleSpecification;
-    ext: SupportedFormat;
-    quality: number;
     bearing: number;
     zoom: number;
     center: [number, number];
     height: number;
     width: number;
+    /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
+    pixelRatio?: number;
 };
 
 const DEFAULT_MAX_SIZE = 4096;
@@ -69,11 +73,26 @@ const STYLE_TTL_MS = 60_000;
 /** Renderers of a style draw this many renders in parallel on libuv's thread pool (4 threads). */
 const CONCURRENCY = Math.min(4, availableParallelism());
 
+/**
+ * Encode RGBA pixels (`width` × `height` × 4 bytes, e.g. a `RenderedImage`'s, edited or not) as `ext`.
+ * `quality` (default 100) applies to JPEG, AVIF, and WebP below 100.
+ */
 function encode(
-    image: RenderedImage,
+    pixels: Pick<RenderedImage, 'data' | 'width' | 'height'>,
     ext: SupportedFormat,
-    quality: number,
+    quality = 100,
 ): Promise<Uint8Array<ArrayBuffer>> {
+    const { data, width, height } = pixels;
+    if (
+        !(Number.isInteger(width) && Number.isInteger(height)) ||
+        width < 1 ||
+        height < 1 ||
+        data.length !== width * height * 4
+    )
+        return Promise.reject(
+            new RangeError('data must be width × height × 4 bytes of RGBA'),
+        );
+    const image = rgba(data, width);
     switch (ext) {
         case 'png':
             return image.toPng();
@@ -81,7 +100,9 @@ function encode(
         case 'jpg':
             return image.toJpeg(quality);
         case 'webp':
-            return image.toWebp();
+            return image.toWebp(quality);
+        case 'avif':
+            return image.toAvif(quality);
     }
 }
 
@@ -110,45 +131,45 @@ class Chiitiler {
         this.maxSize = maxSize ?? DEFAULT_MAX_SIZE;
     }
 
-    /** Render a slippy-map tile and encode it as `ext`. */
-    renderTile(options: RenderTileOptions): Promise<Uint8Array<ArrayBuffer>> {
+    /** Render a slippy-map tile. */
+    renderTile(options: RenderTileOptions): Promise<RenderedImage> {
         return this.tile(options);
     }
 
-    /** Render tile `z/x/y` of `crs`'s grid (`tileSize` its width) and encode it as `ext`. */
+    /** Render tile `z/x/y` of `crs`'s grid (`tileSize` its width). */
     renderProjectedTile(
         options: RenderTileOptions & { crs: Crs },
-    ): Promise<Uint8Array<ArrayBuffer>> {
+    ): Promise<RenderedImage> {
         return this.tile(options, options.crs);
     }
 
-    /** Render a lon/lat bounding box and encode it as `ext`. */
-    renderBbox(options: RenderBboxOptions): Promise<Uint8Array<ArrayBuffer>> {
+    /** Render a lon/lat bounding box. */
+    renderBbox(options: RenderBboxOptions): Promise<RenderedImage> {
         return this.bbox(options);
     }
 
     /**
-     * Render a box of `crs` (`bbox` in its units, easting first, y up) and encode it as `ext`.
+     * Render a box of `crs` (`bbox` in its units, easting first, y up).
      * `crs` needs no grid.
      */
     renderProjectedBbox(
         options: RenderBboxOptions & { crs: Crs },
-    ): Promise<Uint8Array<ArrayBuffer>> {
+    ): Promise<RenderedImage> {
         return this.bbox(options, options.crs);
     }
 
-    /** Render a 2D camera (center, zoom, bearing; no pitch) and encode it as `ext`. */
-    renderView(options: RenderViewOptions): Promise<Uint8Array<ArrayBuffer>> {
+    /** Render a 2D camera (center, zoom, bearing; no pitch). */
+    renderView(options: RenderViewOptions): Promise<RenderedImage> {
         return this.view(options);
     }
 
     /**
      * Render a 2D camera in `crs` (center in degrees, zoom of its grid: tile 0/0/0 512 px wide at
-     * zoom 0) and encode it as `ext`.
+     * zoom 0).
      */
     renderProjectedView(
         options: RenderViewOptions & { crs: Crs },
-    ): Promise<Uint8Array<ArrayBuffer>> {
+    ): Promise<RenderedImage> {
         return this.view(options, options.crs);
     }
 
@@ -161,11 +182,10 @@ class Chiitiler {
             y,
             tileSize,
             margin,
-            ext,
-            quality,
+            pixelRatio = 1,
         }: RenderTileOptions,
         crs?: Crs,
-    ): Promise<Uint8Array<ArrayBuffer>> {
+    ): Promise<RenderedImage> {
         const m = 2 * Math.floor(margin / 2);
         // An OGC grid's tiles may be taller than wide.
         const level =
@@ -175,32 +195,38 @@ class Chiitiler {
         const height = level
             ? (tileSize * level.tileHeight) / level.tileWidth
             : tileSize;
-        this.checkSize([tileSize + m, height + m]);
+        this.checkSize([tileSize + m, height + m], pixelRatio);
         const renderer = await this.renderer(stylejson);
-        const tile = { z, x, y, tileSize, margin: Math.floor(margin / 2) };
-        const image = crs
-            ? await renderer.renderProjected(crs, { tile })
-            : await renderer.renderTile(tile);
-        return encode(image, ext, quality);
+        const tile = {
+            z,
+            x,
+            y,
+            tileSize,
+            pixelRatio,
+            margin: Math.floor(margin / 2),
+        };
+        return crs
+            ? renderer.renderProjected(crs, { tile })
+            : renderer.renderTile(tile);
     }
 
     private async bbox(
-        { stylejson, bbox, size, ext, quality }: RenderBboxOptions,
+        { stylejson, bbox, size, pixelRatio = 1 }: RenderBboxOptions,
         crs?: Crs,
-    ): Promise<Uint8Array<ArrayBuffer>> {
-        this.checkSize([size]);
+    ): Promise<RenderedImage> {
+        this.checkSize([size], pixelRatio);
         const renderer = await this.renderer(stylejson);
-        const image = crs
-            ? await renderer.renderProjected(crs, { box: { bbox, size } })
-            : await renderer.render({ bbox, size });
-        return encode(image, ext, quality);
+        return crs
+            ? renderer.renderProjected(crs, { box: { bbox, size, pixelRatio } })
+            : renderer.render({ bbox, size, pixelRatio });
     }
 
     private async view(
         options: RenderViewOptions,
         crs?: Crs,
-    ): Promise<Uint8Array<ArrayBuffer>> {
-        this.checkSize([options.width, options.height]);
+    ): Promise<RenderedImage> {
+        const pixelRatio = options.pixelRatio ?? 1;
+        this.checkSize([options.width, options.height], pixelRatio);
         const renderer = await this.renderer(options.stylejson);
         const view = {
             center: options.center,
@@ -208,16 +234,19 @@ class Chiitiler {
             bearing: options.bearing,
             width: options.width,
             height: options.height,
+            pixelRatio,
         };
-        const image = crs
-            ? await renderer.renderProjected(crs, { view })
-            : await renderer.renderView(view);
-        return encode(image, options.ext, options.quality);
+        return crs
+            ? renderer.renderProjected(crs, { view })
+            : renderer.renderView(view);
     }
 
-    /** Refuse images larger than `maxSize` on a side: one request must not take the process down. */
-    private checkSize(sides: number[]) {
-        if (sides.some((side) => side > this.maxSize))
+    /**
+     * Refuse images larger than `maxSize` device pixels on a side (CSS `sides` times `pixelRatio`):
+     * one request must not take the process down.
+     */
+    private checkSize(sides: number[], pixelRatio: number) {
+        if (sides.some((side) => side * pixelRatio > this.maxSize))
             throw new RangeError(
                 `image sides must be at most ${this.maxSize} px`,
             );
@@ -289,7 +318,9 @@ export {
     Chiitiler,
     type ChiitilerOptions,
     type Crs,
+    encode,
     type RenderBboxOptions,
+    type RenderedImage,
     type RenderTileOptions,
     type RenderViewOptions,
     type SupportedFormat,
