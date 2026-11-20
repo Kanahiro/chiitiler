@@ -89,7 +89,7 @@ CSS pixels, so a client keeps its `tileSize` (e.g. 512) and only changes the URL
 | `url` | — | Style JSON URL (required for `GET`) |
 | `tileSize` | `512` | Tile size in pixels |
 | `quality` | `100` | JPEG and AVIF quality (use less than `100` for AVIF: `100` is near-lossless and large). WebP is lossy below `100` (alpha stays lossless) when `@napi-rs/image` is installed, as in the Docker image, and lossless otherwise |
-| `margin` | `0` | Extra pixels rendered around the tile (half on each side) and cropped, e.g. to keep labels across tile edges |
+| `margin` | `0` | Pixels rendered on each side of the tile and cropped, e.g. to keep labels across tile edges |
 | `bbox` | — | `/clip` bounding box: `minLon,minLat,maxLon,maxLat` |
 | `size` | `1024` | `/clip` longest edge in pixels |
 
@@ -451,6 +451,8 @@ placement differ).
 - **Formats:** WebP is lossless unless `@napi-rs/image` is installed (then `quality` below 100 is
   lossy; the Docker image includes it); JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
+- **`margin`** is per side (pixels rendered on each side of the tile), as in other renderers: 1.x's
+  was the total, so `margin=100` of 1.x is `margin=50`.
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
   `400` instead of `500`.
 - **Server:** the `tile-server` command and its options are removed: start chiitiler without
@@ -476,6 +478,7 @@ placement differ).
     `cache`, `protocols` and `maxSize` are given once to `new Chiitiler(...)`, the style to every
     call. The `*Stream` variants (Sharp)
     and `prewarm()` are removed.
+  - Only the package root is importable (`exports`): `chiitiler/dist/...` paths are not.
   - Cache values are `Uint8Array` and `name` is optional, so any `{ get, set }` object is a cache.
   - `memoryCache` is removed (use `withFrontCache(noneCache(), …)`), `withMemoryCache` is renamed
     `withFrontCache`, and `Cache.memory` is renamed `Cache.front`.
