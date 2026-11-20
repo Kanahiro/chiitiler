@@ -1,4 +1,4 @@
-import { getS3 } from '../s3.js';
+import { getS3, s3Timeout } from '../s3.js';
 import { loadWithDecodedPathFallback } from './path.js';
 
 async function getS3Source(uri: string) {
@@ -16,7 +16,7 @@ async function getS3Source(uri: string) {
             Key: candidate,
         });
         try {
-            const obj = await client.send(cmd);
+            const obj = await client.send(cmd, { abortSignal: s3Timeout() });
             if (obj.Body === undefined) return null;
             return await obj.Body.transformToByteArray();
         } catch (e: any) {

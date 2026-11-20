@@ -10,7 +10,7 @@ import {
 import type { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { LRUCache } from 'lru-cache';
 
-import { getS3 } from '../s3.js';
+import { getS3, s3Timeout } from '../s3.js';
 import { type Cache, noneCache } from '../cache/index.js';
 import { getUserAgent } from './userAgent.js';
 import { FETCH_TIMEOUT_MS } from './http.js';
@@ -78,6 +78,7 @@ class S3Source implements Source {
                     Range: 'bytes=' + offset + '-' + (offset + length - 1),
                     IfMatch: etag,
                 }),
+                { abortSignal: s3Timeout() },
             );
         } catch (e: unknown) {
             if (

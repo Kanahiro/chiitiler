@@ -1,4 +1,4 @@
-import { getStorage } from '../gcs.js';
+import { download, getStorage } from '../gcs.js';
 import { loadWithDecodedPathFallback } from './path.js';
 
 async function getGCSSource(uri: string) {
@@ -13,7 +13,7 @@ async function getGCSSource(uri: string) {
     return loadWithDecodedPathFallback(path, async (candidate) => {
         try {
             const file = storageClient.bucket(bucket).file(candidate);
-            const [buffer] = await file.download();
+            const buffer = await download(file);
             return buffer;
         } catch (e: any) {
             // 404: オブジェクトが存在しない。空タイルとして扱わせる

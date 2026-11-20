@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Cache, Value } from './index.js';
-import { getStorage } from '../gcs.js';
+import { download, getStorage } from '../gcs.js';
 import type { File } from '@google-cloud/storage';
 
 type GCSCacheOptions = {
@@ -38,7 +38,7 @@ function gcsCache(options: GCSCacheOptions): Cache {
         get: async (key: string): Promise<Value | undefined> => {
             try {
                 const file = await bucketFile(key);
-                const [content] = await file.download();
+                const content = await download(file);
                 return content;
             } catch {
                 // miss or any error

@@ -1,4 +1,5 @@
-import type { Storage } from '@google-cloud/storage';
+import { addAbortSignal } from 'node:stream';
+import type { File, Storage } from '@google-cloud/storage';
 
 type StorageOptions = {
     projectId?: string;
@@ -30,4 +31,18 @@ async function getStorage(options: StorageOptions): Promise<Storage> {
     return client;
 }
 
-export { getStorage };
+/**
+ * The bytes of `file`, failing after 30 s (body included). Renders wait on sources, and a stalled
+ * bucket must not stall them: the client's `timeout` does not apply to downloads.
+ */
+async function download(file: File): Promise<Buffer> {
+    // destroys the stream when it fires (toArray's own signal is only read between chunks)
+    const stream = addAbortSignal(
+        AbortSignal.timeout(30_000),
+        file.createReadStream(),
+    );
+    const chunks = await stream.toArray();
+    return Buffer.concat(chunks);
+}
+
+export { download, getStorage };

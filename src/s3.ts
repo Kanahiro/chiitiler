@@ -7,6 +7,12 @@ type S3Options = {
     forcePathStyle?: boolean;
 };
 
+/**
+ * How long an S3 request may take, body included: pass `{ abortSignal: s3Timeout() }` to `send`.
+ * Renders wait on sources, and a stalled bucket must not stall them (the SDK waits indefinitely).
+ */
+const s3Timeout = () => AbortSignal.timeout(30_000);
+
 let sdk: Promise<S3Sdk> | undefined;
 /** `@aws-sdk/client-s3`, an optional peer dependency: loaded on first use. */
 function loadSdk(): Promise<S3Sdk> {
@@ -37,4 +43,4 @@ async function getS3(
     return { client, sdk: s3 };
 }
 
-export { getS3 };
+export { getS3, s3Timeout };

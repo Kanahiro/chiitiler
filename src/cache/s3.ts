@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { Cache, Value } from './index.js';
-import { getS3 } from '../s3.js';
+import { getS3, s3Timeout } from '../s3.js';
 
 type S3CacheOptions = {
     bucket: string;
@@ -25,7 +25,7 @@ function s3Cache(options: S3CacheOptions): Cache {
                 Key: objectName(key),
                 Body: value,
             });
-            await client.send(cmd);
+            await client.send(cmd, { abortSignal: s3Timeout() });
         },
         get: async (key: string): Promise<Value | undefined> => {
             try {
@@ -34,7 +34,9 @@ function s3Cache(options: S3CacheOptions): Cache {
                     Bucket: options.bucket,
                     Key: objectName(key),
                 });
-                const obj = await client.send(cmd);
+                const obj = await client.send(cmd, {
+                    abortSignal: s3Timeout(),
+                });
                 if (obj.Body === undefined) return undefined;
                 return await obj.Body.transformToByteArray();
             } catch {

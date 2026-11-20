@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { send } = vi.hoisted(() => ({ send: vi.fn() }));
 
 vi.mock('../s3.js', () => ({
+    s3Timeout: () => 'timeout signal',
     getS3: async () => ({
         client: { send },
         sdk: await vi.importActual('@aws-sdk/client-s3'),
@@ -20,6 +21,16 @@ import { type Cache, withFrontCache } from '../cache/index.js';
 describe('getS3Source', () => {
     beforeEach(() => {
         send.mockReset();
+    });
+
+    it('times out: a stalled bucket must not stall renders', async () => {
+        send.mockRejectedValueOnce(
+            Object.assign(new Error('missing'), { name: 'NoSuchKey' }),
+        );
+        await getS3Source('s3://bucket/key');
+        expect(send.mock.calls[0][1]).toEqual({
+            abortSignal: 'timeout signal',
+        });
     });
 
     it('loads a percent-encoded key using its decoded form first', async () => {
