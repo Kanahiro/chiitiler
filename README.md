@@ -70,13 +70,19 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` / `POST` | `/tiles/{z}/{x}/{y}.{ext}` | Slippy-map raster tile |
-| `GET` / `POST` | `/clip.{ext}` | Bounding-box cut-out |
-| `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}` | Free-form view (2D: no pitch) |
+| `GET` / `POST` | `/tiles/{z}/{x}/{y}[@{n}x].{ext}` | Slippy-map raster tile |
+| `GET` / `POST` | `/clip[@{n}x].{ext}` | Bounding-box cut-out |
+| `GET` / `POST` | `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}[@{n}x].{ext}` | Free-form view (2D: no pitch) |
 | `GET` | `/crs`, `/crs/{id}` | Ids of the registered CRSs, and a CRS's `{ projjson, tileMatrixSet }` (see Custom projections) |
 | `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) | — `/debug` switches between the registered CRSs
 
 `ext` is one of `png`, `jpeg`, `jpg`, `webp`, `avif` (`avif` needs `@napi-rs/image`; without it, `500`).
+
+**High-DPI (`@2x`)**: `@{n}x` before the extension (e.g. `/tiles/5/27/12@2x.png`) renders the same
+map in `n` times the pixels: labels, lines and icons keep their size on a high-DPI screen, and the
+style's sprite is read from `sprite@{n}x`. `tileSize`, `margin`, `size` and `width`/`height` stay in
+CSS pixels, so a client keeps its `tileSize` (e.g. 512) and only changes the URL. A larger
+`tileSize` instead shows a wider area with smaller labels.
 
 **Query parameters**
 
@@ -170,6 +176,7 @@ const png = await chiitiler.renderTile({
     ext: 'png',
     quality: 100,
     margin: 0,
+    // pixelRatio: 2,       @2x: the same tile in twice the pixels
 });
 ```
 
@@ -299,7 +306,7 @@ Within a process, rendering and encoding run on libuv's thread pool (up to 4 ren
 parallel), so the server keeps answering (e.g. `/health`) while it draws.
 
 `CHIITILER_MAX_SIZE` bounds every image side in pixels (tiles with their margin, `/clip` sizes, `/view`
-dimensions); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
+dimensions, times `@{n}x`); larger requests answer `400`. `POST` bodies are limited to 16 MiB (`413`).
 
 `CHIITILER_CACHE_CONTROL` sets `Cache-Control` on rendered images (e.g. `public, max-age=86400` for a CDN to
 keep them; chiitiler doesn't cache rendered images itself). `GET` images carry an `ETag`, so

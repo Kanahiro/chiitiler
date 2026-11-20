@@ -145,10 +145,20 @@ function param(c: Context, name: string): string {
     return c.req.param(name) ?? '';
 }
 
-/** `name.ext` → ext if supported. */
-function format(c: Context, nameExt: string): SupportedFormat | Response {
-    const ext = nameExt.split('.')[1];
-    return isSupportedFormat(ext) ? ext : c.body('invalid format', 400);
+/**
+ * `name.ext` or `name@<n>x.ext` (the retina suffix of Mapbox and TileServer GL: `n` device pixels per
+ * CSS pixel, the same area in `n` times the pixels) → name, pixelRatio and ext if supported.
+ */
+function filename(
+    c: Context,
+    nameExt: string,
+): { name: string; pixelRatio: number; ext: SupportedFormat } | Response {
+    const [, name, n, ext] =
+        nameExt.match(/^(.*?)(?:@(\d+)x)?\.([^.]*)$/) ?? [];
+    if (!isSupportedFormat(ext)) return c.body('invalid format', 400);
+    const pixelRatio = n === undefined ? 1 : Number(n);
+    if (pixelRatio < 1) return c.body('invalid pixel ratio', 400);
+    return { name, pixelRatio, ext };
 }
 
 function registerRoutes(app: Hono, options: RouteOptions) {
@@ -180,18 +190,19 @@ function registerRoutes(app: Hono, options: RouteOptions) {
         (c, crs) => {
             const z = Number(param(c, 'z'));
             const x = Number(param(c, 'x'));
-            const y = Number(param(c, 'y_ext').split('.')[0]);
+            const file = filename(c, param(c, 'y_ext'));
+            if (file instanceof Response) return file;
+            const y = Number(file.name);
             // a CRS's grid need not be 2^z x 2^z: the renderer checks its tiles
             const n = crs ? Infinity : 2 ** z;
             if (x < 0 || y < 0 || z < 0 || x >= n || y >= n)
                 return c.body('invalid xyz', 400);
-            const ext = format(c, param(c, 'y_ext'));
-            if (ext instanceof Response) return ext;
             return {
                 z,
                 x,
                 y,
-                ext,
+                ext: file.ext,
+                pixelRatio: file.pixelRatio,
                 tileSize: Number(c.req.query('tileSize') ?? 512),
                 margin: Number(c.req.query('margin') ?? 0),
             };
@@ -204,20 +215,21 @@ function registerRoutes(app: Hono, options: RouteOptions) {
 
     imageRoute(
         app,
-        // only clip.<ext>: other paths are not found
-        '/:file{clip\\.[^/]*}',
+        // only clip.<ext> and clip@<n>x.<ext>: other paths are not found
+        '/:file{clip(?:@\\d+x)?\\.[^/]*}',
         options,
         'failed to render tile',
         (c) => {
-            const ext = format(c, param(c, 'file'));
-            if (ext instanceof Response) return ext;
+            const file = filename(c, param(c, 'file'));
+            if (file instanceof Response) return file;
             const bbox = c.req.query('bbox'); // ?bbox=minx,miny,maxx,maxy
             if (bbox === undefined) return c.body('bbox is required', 400);
             const [minx, miny, maxx, maxy] = bbox.split(',').map(Number);
             if (!(minx < maxx && miny < maxy))
                 return c.body('invalid bbox', 400);
             return {
-                ext,
+                ext: file.ext,
+                pixelRatio: file.pixelRatio,
                 bbox: [minx, miny, maxx, maxy] as [
                     number,
                     number,
@@ -239,12 +251,9 @@ function registerRoutes(app: Hono, options: RouteOptions) {
         options,
         'failed to render static image',
         (c) => {
-            const ext = format(c, param(c, 'dimensions_ext'));
-            if (ext instanceof Response) return ext;
-            const [width, height] = param(c, 'dimensions_ext')
-                .split('.')[0]
-                .split('x')
-                .map(Number);
+            const file = filename(c, param(c, 'dimensions_ext'));
+            if (file instanceof Response) return file;
+            const [width, height] = file.name.split('x').map(Number);
             if (Number.isNaN(width) || Number.isNaN(height))
                 return c.body('invalid dimensions', 400);
             const [zoom, lat, lon, bearing] = (
@@ -260,7 +269,8 @@ function registerRoutes(app: Hono, options: RouteOptions) {
             )
                 return c.body('invalid view', 400);
             return {
-                ext,
+                ext: file.ext,
+                pixelRatio: file.pixelRatio,
                 center: [lon, lat] as [number, number],
                 zoom,
                 bearing,

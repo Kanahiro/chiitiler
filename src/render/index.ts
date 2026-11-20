@@ -28,6 +28,8 @@ type RenderTileOptions = {
     ext: SupportedFormat;
     /** JPEG and AVIF quality; WebP quality below 100 (lossless at 100) with `@napi-rs/image` installed. */
     quality: number;
+    /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
+    pixelRatio?: number;
 };
 
 type RenderBboxOptions = {
@@ -36,6 +38,8 @@ type RenderBboxOptions = {
     size: number;
     ext: SupportedFormat;
     quality: number;
+    /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
+    pixelRatio?: number;
 };
 
 type RenderViewOptions = {
@@ -47,6 +51,8 @@ type RenderViewOptions = {
     center: [number, number];
     height: number;
     width: number;
+    /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
+    pixelRatio?: number;
 };
 
 const DEFAULT_MAX_SIZE = 4096;
@@ -165,6 +171,7 @@ class Chiitiler {
             margin,
             ext,
             quality,
+            pixelRatio = 1,
         }: RenderTileOptions,
         crs?: Crs,
     ): Promise<Uint8Array<ArrayBuffer>> {
@@ -177,9 +184,16 @@ class Chiitiler {
         const height = level
             ? (tileSize * level.tileHeight) / level.tileWidth
             : tileSize;
-        this.checkSize([tileSize + m, height + m]);
+        this.checkSize([tileSize + m, height + m], pixelRatio);
         const renderer = await this.renderer(stylejson);
-        const tile = { z, x, y, tileSize, margin: Math.floor(margin / 2) };
+        const tile = {
+            z,
+            x,
+            y,
+            tileSize,
+            pixelRatio,
+            margin: Math.floor(margin / 2),
+        };
         const image = crs
             ? await renderer.renderProjected(crs, { tile })
             : await renderer.renderTile(tile);
@@ -187,14 +201,23 @@ class Chiitiler {
     }
 
     private async bbox(
-        { stylejson, bbox, size, ext, quality }: RenderBboxOptions,
+        {
+            stylejson,
+            bbox,
+            size,
+            ext,
+            quality,
+            pixelRatio = 1,
+        }: RenderBboxOptions,
         crs?: Crs,
     ): Promise<Uint8Array<ArrayBuffer>> {
-        this.checkSize([size]);
+        this.checkSize([size], pixelRatio);
         const renderer = await this.renderer(stylejson);
         const image = crs
-            ? await renderer.renderProjected(crs, { box: { bbox, size } })
-            : await renderer.render({ bbox, size });
+            ? await renderer.renderProjected(crs, {
+                  box: { bbox, size, pixelRatio },
+              })
+            : await renderer.render({ bbox, size, pixelRatio });
         return encode(image, ext, quality);
     }
 
@@ -202,7 +225,8 @@ class Chiitiler {
         options: RenderViewOptions,
         crs?: Crs,
     ): Promise<Uint8Array<ArrayBuffer>> {
-        this.checkSize([options.width, options.height]);
+        const pixelRatio = options.pixelRatio ?? 1;
+        this.checkSize([options.width, options.height], pixelRatio);
         const renderer = await this.renderer(options.stylejson);
         const view = {
             center: options.center,
@@ -210,6 +234,7 @@ class Chiitiler {
             bearing: options.bearing,
             width: options.width,
             height: options.height,
+            pixelRatio,
         };
         const image = crs
             ? await renderer.renderProjected(crs, { view })
@@ -217,9 +242,12 @@ class Chiitiler {
         return encode(image, options.ext, options.quality);
     }
 
-    /** Refuse images larger than `maxSize` on a side: one request must not take the process down. */
-    private checkSize(sides: number[]) {
-        if (sides.some((side) => side > this.maxSize))
+    /**
+     * Refuse images larger than `maxSize` device pixels on a side (CSS `sides` times `pixelRatio`):
+     * one request must not take the process down.
+     */
+    private checkSize(sides: number[], pixelRatio: number) {
+        if (sides.some((side) => side * pixelRatio > this.maxSize))
             throw new RangeError(
                 `image sides must be at most ${this.maxSize} px`,
             );
