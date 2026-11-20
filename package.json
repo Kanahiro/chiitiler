@@ -38,28 +38,28 @@
         "url": "git+https://github.com/Kanahiro/chiitiler.git"
     },
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1131.0",
-        "@biomejs/biome": "^2.6.6",
+        "@aws-sdk/client-s3": "^3.1168.0",
+        "@biomejs/biome": "^2.6.7",
         "@google-cloud/storage": "^7.22.0",
-        "@hono/node-server": "^2.1.1",
-        "@maplibre/maplibre-gl-style-spec": "^26.4.4",
+        "@hono/node-server": "^2.1.8",
+        "@maplibre/maplibre-gl-style-spec": "^26.7.0",
         "@napi-rs/image": "^1.16.0",
-        "@tsconfig/node24": "^24.0.5",
+        "@tsconfig/node24": "^24.0.6",
         "@types/autocannon": "^7.12.7",
-        "@types/node": "^25.9.6",
-        "@vitest/coverage-v8": "^4.1.4",
+        "@types/node": "^25.9.9",
+        "@vitest/coverage-v8": "^4.1.12",
         "autocannon": "^8.0.0",
         "esbuild": "^0.28.2",
-        "hono": "^4.13.7",
-        "image-size": "^2.0.2",
-        "tsx": "^4.23.13",
+        "hono": "^4.13.18",
+        "image-size": "^2.1.0",
+        "tsx": "^4.23.15",
         "typedoc": "^0.28.20",
         "typescript": "^6.0.3",
-        "vitest": "^4.1.4"
+        "vitest": "^4.1.12"
     },
     "dependencies": {
-        "@ml2drender/node": "^0.4.0",
-        "lru-cache": "^11.5.2",
+        "@ml2drender/node": "^0.4.3",
+        "lru-cache": "^11.5.3",
         "pmtiles": "^4.5.0"
     },
     "peerDependencies": {
