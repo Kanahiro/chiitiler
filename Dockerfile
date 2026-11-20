@@ -15,7 +15,8 @@ FROM builder AS dev
 FROM builder AS deps
 RUN rm -rf node_modules && pnpm install --frozen-lockfile --prod
 
-FROM node:24.22.3-bookworm-slim AS runtime
+# Distroless: no shell, npm or apt. Entrypoint is /nodejs/bin/node (Node 24.22.3 at this digest).
+FROM gcr.io/distroless/nodejs24-debian13@sha256:24bc0fe0225c7518f202a822587dad74fe143b96326b81fe5cc08c1df8bed03e AS runtime
 
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.1 /lambda-adapter /opt/extensions/lambda-adapter
 ENV AWS_LWA_PORT=3000
@@ -27,4 +28,4 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY crs ./crs
 ENV CHIITILER_CRS_DIR=/app/crs
 
-CMD ["node", "/app/build/main.mjs"]
+CMD ["/app/build/main.mjs"]

@@ -416,7 +416,7 @@ placement differ).
   old escaped names could collide) and the file cache stores raw bytes: entries written by 1.x are
   not read, and can be deleted. The `memory` method and `CHIITILER_MEMORYCACHE_MAXITEMCOUNT` are
   removed: the front cache now also sits in front of `none`, so use `none` and raise
-  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead. The Docker image has no entrypoint script; the bundle is `build/main.mjs`.
+  `CHIITILER_FRONT_CACHE_TTL_SEC` (default `10`) / `CHIITILER_FRONT_CACHE_MAX_BYTES` instead. The Docker image has no entrypoint script; the bundle is `build/main.mjs`. The image is distroless (no shell): its entrypoint is `node`, so a `command` override passes only the script and its arguments.
 - **Library:**
   - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are replaced by
     the `renderTile`, `renderBbox` and `renderView` methods of a `Chiitiler` (`renderView` takes no
