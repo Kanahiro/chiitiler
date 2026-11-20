@@ -8,7 +8,7 @@ command) refuses: checkouts from before 2.0 can't be benchmarked by this harness
 
 ## Setup
 
-- Style: [`tests/fixtures/bench-style.json`](../tests/fixtures/bench-style.json)
+- Style: [`tests/fixtures/bench-style.json`](./fixtures/bench-style.json)
   — single `file://` vector source, no external network dependencies,
   so results measure warm HTTP serving, local source access, rendering and encoding without remote I/O.
 - Target tile: `/tiles/5/28/12.png`.

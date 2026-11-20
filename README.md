@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="./logo.svg" alt="chiitiler" width="200" />
-
 # chiitiler
 
 **A tiny raster tile server for MapLibre styles.**
@@ -445,7 +443,7 @@ pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
-pnpm test:benchmark   # see bench/BENCHMARK.md
+pnpm test:benchmark   # see tests/BENCHMARK.md
 pnpm build            # bundle to build/main.mjs (loads @ml2drender/node from node_modules)
 ```
 
