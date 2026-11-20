@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import type { Cache } from './cache/index.js';
-import { Chiitiler, type SupportedFormat } from './render/index.js';
+import { Chiitiler, encode, type SupportedFormat } from './render/index.js';
 
 type Bbox = [number, number, number, number];
 
@@ -91,7 +91,7 @@ function readArgs(args: string[]) {
  */
 async function generateTile(args: string[], cache: Cache) {
     const { output, force, ...options } = readArgs(args);
-    const { bbox, minzoom, maxzoom, ...render } = options;
+    const { bbox, minzoom, maxzoom, ext, quality, ...render } = options;
     // No requests to guard against here: any size the machine can draw.
     const chiitiler = new Chiitiler({ cache, maxSize: Infinity });
 
@@ -106,7 +106,9 @@ async function generateTile(args: string[], cache: Cache) {
             let stored: unknown;
             try {
                 stored = db
-                    .prepare("SELECT value FROM metadata WHERE name = 'chiitiler'")
+                    .prepare(
+                        "SELECT value FROM metadata WHERE name = 'chiitiler'",
+                    )
                     .get()?.value;
             } catch {} // not an MBTiles file
             if (stored !== key)
@@ -123,7 +125,7 @@ async function generateTile(args: string[], cache: Cache) {
             const meta = db.prepare('INSERT INTO metadata VALUES (?, ?)');
             for (const [name, value] of Object.entries({
                 name: basename(output, '.mbtiles'),
-                format: render.ext === 'jpeg' ? 'jpg' : render.ext,
+                format: ext === 'jpeg' ? 'jpg' : ext,
                 type: 'baselayer',
                 bounds: bbox.join(','),
                 minzoom,
@@ -160,12 +162,13 @@ async function generateTile(args: string[], cache: Cache) {
         await Promise.all(
             Array.from({ length: IN_FLIGHT }, async () => {
                 for (const { z, x, y, row } of queue) {
-                    const data = await chiitiler.renderTile({
+                    const image = await chiitiler.renderTile({
                         ...render,
                         z,
                         x,
                         y,
                     });
+                    const data = await encode(image, ext, quality);
                     insert.run(z, x, row, data);
                     if (++done % 1000 === 0) console.error(`${done} tiles`);
                 }

@@ -7,9 +7,9 @@ export type {
     ChiitilerOptions,
     Crs,
     RenderBboxOptions,
+    RenderedImage,
     RenderTileOptions,
     RenderViewOptions,
-    SupportedFormat,
 } from './render/index.js';
 export type { Cache, Value } from './cache/index.js';
 export type { Protocol, Protocols } from './source/index.js';

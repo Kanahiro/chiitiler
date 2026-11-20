@@ -143,8 +143,9 @@ shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own dir
 
 ## Library Usage
 
-Chiitiler is also published to npm. A `Chiitiler` renders any style and returns the encoded image as
-a `Uint8Array`.
+Chiitiler is also published to npm. A `Chiitiler` renders any style and returns a `RenderedImage`:
+its pixels (`data`: `width` × `height` × 4 bytes of RGBA) to process further, and encoders to
+`Uint8Array`s: `toPng()`, `toJpeg(quality)`, `toWebp(quality)` and `toAvif(quality)`.
 
 ```bash
 npm install chiitiler @maplibre/maplibre-gl-style-spec
@@ -169,15 +170,14 @@ const chiitiler = new Chiitiler({
     // maxSize: 4096,       the largest image side in pixels
 });
 
-const png = await chiitiler.renderTile({
+const image = await chiitiler.renderTile({
     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
     z: 5, x: 27, y: 12,
     tileSize: 512,
-    ext: 'png',
-    quality: 100,
     margin: 0,
     // pixelRatio: 2,       @2x: the same tile in twice the pixels
 });
+const png = await image.toPng(); // or edit image.data (RGBA) first
 ```
 
 Methods: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long side) and
@@ -197,9 +197,7 @@ const png = await chiitiler.renderProjectedBbox({
     crs,
     bbox: [-20000, -60000, 20000, -30000], // meters of JGD2011 / Japan Plane Rectangular CS IX
     size: 1024,
-    ext: 'png',
-    quality: 100,
-});
+}).then((image) => image.toPng());
 ```
 
 `stylejson` is a URL or a style object, and may differ on every call. An instance keeps renderers of
@@ -249,9 +247,9 @@ const protocols: Protocols = {
 };
 
 const chiitiler = new Chiitiler({ cache, protocols });
-const png = await chiitiler.renderTile({
+const image = await chiitiler.renderTile({
     stylejson: { version: 8, sources: { t: { type: 'vector', tiles: ['db://tiles/{z}/{x}/{y}'] } }, layers: [/* … */] },
-    z: 5, x: 27, y: 12, tileSize: 512, ext: 'png', quality: 100, margin: 0,
+    z: 5, x: 27, y: 12, tileSize: 512, margin: 0,
 });
 ```
 
@@ -265,7 +263,7 @@ import type {
     RenderTileOptions,
     RenderBboxOptions,
     RenderViewOptions,
-    SupportedFormat,
+    RenderedImage,
     Cache,
     Protocol,
     Protocols,
@@ -459,7 +457,9 @@ placement differ).
 - **Library:**
   - `getRenderedTileBuffer`, `getRenderedClipBuffer` and `getRenderedCameraBuffer` are replaced by
     the `renderTile`, `renderBbox` and `renderView` methods of a `Chiitiler` (`renderView` takes no
-    `pitch`; its options type is `RenderViewOptions`, and so on), which resolve to a `Uint8Array`.
+    `pitch`; its options type is `RenderViewOptions`, and so on), which resolve to a `RenderedImage`
+    (RGBA pixels, encoded with `toPng()`, `toJpeg(quality)`, `toWebp(quality)` or `toAvif(quality)`)
+    and take no `ext` or `quality`.
     `cache`, `protocols` and `maxSize` are given once to `new Chiitiler(...)`, the style to every
     call. The `*Stream` variants (Sharp)
     and `prewarm()` are removed.

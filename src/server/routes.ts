@@ -5,7 +5,13 @@ import { bodyLimit } from 'hono/body-limit';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { isSupportedFormat, isValidStylejson } from './utils.js';
-import { Chiitiler, type Crs, type SupportedFormat } from '../render/index.js';
+import {
+    Chiitiler,
+    type Crs,
+    encode,
+    type RenderedImage,
+    type SupportedFormat,
+} from '../render/index.js';
 import type { Cache } from '../cache/index.js';
 
 type RouteOptions = {
@@ -28,13 +34,7 @@ type CrsCatalog = {
 /** Bodies of POST requests (styles, inline GeoJSON included). */
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
 
-type Common = {
-    stylejson: string | StyleSpecification;
-    ext: SupportedFormat;
-    quality: number;
-};
-
-type Input = { stylejson: Common['stylejson']; crs?: Crs };
+type Input = { stylejson: string | StyleSpecification; crs?: Crs };
 
 const isObject = (v: unknown): v is object =>
     v !== null && typeof v === 'object';
@@ -51,9 +51,9 @@ function imageRoute<P extends { ext: SupportedFormat }>(
     failure: string,
     parse: (c: Context, crs: Crs | undefined) => P | Response,
     render: (
-        params: P & Common,
+        params: P & Pick<Input, 'stylejson'>,
         crs: Crs | undefined,
-    ) => Promise<Uint8Array<ArrayBuffer>>,
+    ) => Promise<RenderedImage>,
 ) {
     const handle = async (
         c: Context,
@@ -70,13 +70,10 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         const params = parse(c, crs);
         if (params instanceof Response) return params;
         try {
-            const image = await render(
-                {
-                    ...params,
-                    stylejson: input.stylejson,
-                    quality: Number(c.req.query('quality') ?? 100),
-                },
-                crs,
+            const image = await encode(
+                await render({ ...params, stylejson: input.stylejson }, crs),
+                params.ext,
+                Number(c.req.query('quality') ?? 100),
             );
             const type = params.ext === 'jpg' ? 'jpeg' : params.ext;
             const headers: Record<string, string> = {
