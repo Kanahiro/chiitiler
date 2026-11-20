@@ -1,6 +1,6 @@
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { createHash } from 'node:crypto';
-import { availableParallelism } from 'node:os';
+import process from 'node:process';
 import { LRUCache } from 'lru-cache';
 
 import {
@@ -60,8 +60,8 @@ const DEFAULT_MAX_SIZE = 4096;
 /** How long a style read from a URL is used before it is read again. */
 const STYLE_TTL_MS = 60_000;
 
-/** Renderers of a style draw this many renders in parallel on libuv's thread pool (4 threads). */
-const CONCURRENCY = Math.min(4, availableParallelism());
+/** Renderers of a style draw as many renders in parallel as libuv's thread pool has threads. */
+const CONCURRENCY = Number(process.env.UV_THREADPOOL_SIZE) || 4;
 
 /**
  * Encode RGBA pixels (`width` × `height` × 4 bytes, e.g. a `RenderedImage`'s, edited or not) as `ext`.
@@ -332,6 +332,7 @@ class Chiitiler {
 
 export {
     Chiitiler,
+    CONCURRENCY,
     type ChiitilerOptions,
     type Crs,
     encode,

@@ -2,18 +2,24 @@ import { existsSync, rmSync } from 'node:fs';
 import { basename, extname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { pathToFileURL } from 'node:url';
+import process from 'node:process';
 import { parseArgs } from 'node:util';
 
 import type { Cache } from './cache/index.js';
-import { Chiitiler, encode, type SupportedFormat } from './render/index.js';
+import {
+    Chiitiler,
+    CONCURRENCY,
+    encode,
+    type SupportedFormat,
+} from './render/index.js';
 
 type Bbox = [number, number, number, number];
 
 const MAX_LAT = 85.0511287798066;
 const WORLD: Bbox = [-180, -MAX_LAT, 180, MAX_LAT];
 const FORMATS = ['png', 'jpeg', 'jpg', 'webp', 'avif'];
-/** Tiles in flight: the renderer draws 4 at a time, the rest wait fetched and ready. */
-const IN_FLIGHT = 8;
+/** Tiles in flight: the renderer draws CONCURRENCY at a time, the rest wait fetched and ready. */
+const IN_FLIGHT = 2 * CONCURRENCY;
 
 const USAGE = `usage: chiitiler generate-tile --style <url|path> --output <file.mbtiles> --maxzoom <z>
     [--minzoom 0] [--bbox minLon,minLat,maxLon,maxLat] [--ext png] [--tile-size 512] [--quality 100] [--margin 0] [--force]`;
@@ -100,6 +106,15 @@ async function generateTile(args: string[], cache: Cache) {
             rmSync(file, { force: true });
     const resume = existsSync(output);
     const db = new DatabaseSync(output);
+    // Handled, not left to the default: node as PID 1 (Docker) ignores signals it has no handler
+    // for. The tiles in flight finish and the file closes; a second signal quits at once.
+    let stopping = false;
+    const stop = () => {
+        if (stopping) process.exit(130);
+        stopping = true;
+        console.error('stopping after the tiles in flight (again to quit now)');
+    };
+    process.on('SIGINT', stop).on('SIGTERM', stop);
     try {
         const key = JSON.stringify(options);
         if (resume) {
@@ -162,6 +177,7 @@ async function generateTile(args: string[], cache: Cache) {
         await Promise.all(
             Array.from({ length: IN_FLIGHT }, async () => {
                 for (const { z, x, y, row } of queue) {
+                    if (stopping) break;
                     const image = await chiitiler.renderTile({
                         ...render,
                         z,
@@ -177,9 +193,11 @@ async function generateTile(args: string[], cache: Cache) {
         // A finished file is a single file again, readable read-only.
         db.exec('PRAGMA journal_mode = DELETE');
         console.error(
-            `${done} tiles written to ${output}${skipped ? ` (${skipped} already there)` : ''}`,
+            `${done} tiles written to ${output}${skipped ? ` (${skipped} already there)` : ''}${stopping ? ': stopped, run again to resume' : ''}`,
         );
+        if (stopping) process.exitCode = 130;
     } finally {
+        process.off('SIGINT', stop).off('SIGTERM', stop);
         db.close();
     }
 }

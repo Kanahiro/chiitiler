@@ -147,8 +147,15 @@ async function run(args: string[], env: Env = process.env) {
         );
     const { processes, ...options } = readConfig(env);
     if (cluster.isPrimary && processes !== 1) {
-        // Workers inherit the environment, and initialize their own renderer and cache.
-        for (let i = 0; i < processes; i++) cluster.fork();
+        // Workers inherit the environment, and initialize their own renderer and cache. Each gets
+        // its share of the thread pool (threadpool.ts), not a pool of its own of every CPU.
+        const threads =
+            Number(process.env.UV_THREADPOOL_SIZE) || availableParallelism();
+        const UV_THREADPOOL_SIZE = String(
+            Math.max(1, Math.floor(threads / processes)),
+        );
+        for (let i = 0; i < processes; i++)
+            cluster.fork({ UV_THREADPOOL_SIZE });
         return;
     }
     if (options.debug) {
