@@ -2,7 +2,12 @@ import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { availableParallelism } from 'node:os';
 import { LRUCache } from 'lru-cache';
 
-import { type Crs, MapRenderer, type RenderedImage } from './ml2drender.js';
+import {
+    type Crs,
+    image as rgba,
+    MapRenderer,
+    type RenderedImage,
+} from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
 import { getSource, type Protocols } from '../source/index.js';
 
@@ -68,12 +73,26 @@ const STYLE_TTL_MS = 60_000;
 /** Renderers of a style draw this many renders in parallel on libuv's thread pool (4 threads). */
 const CONCURRENCY = Math.min(4, availableParallelism());
 
-/** `image` as `ext` (for the server and `generate-tile`). */
+/**
+ * Encode RGBA pixels (`width` × `height` × 4 bytes, e.g. a `RenderedImage`'s, edited or not) as `ext`.
+ * `quality` (default 100) applies to JPEG, AVIF, and WebP below 100.
+ */
 function encode(
-    image: RenderedImage,
+    pixels: Pick<RenderedImage, 'data' | 'width' | 'height'>,
     ext: SupportedFormat,
-    quality: number,
+    quality = 100,
 ): Promise<Uint8Array<ArrayBuffer>> {
+    const { data, width, height } = pixels;
+    if (
+        !(Number.isInteger(width) && Number.isInteger(height)) ||
+        width < 1 ||
+        height < 1 ||
+        data.length !== width * height * 4
+    )
+        return Promise.reject(
+            new RangeError('data must be width × height × 4 bytes of RGBA'),
+        );
+    const image = rgba(data, width);
     switch (ext) {
         case 'png':
             return image.toPng();

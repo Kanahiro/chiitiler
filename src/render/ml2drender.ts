@@ -457,7 +457,7 @@ function checkQuality(quality: number): void {
 }
 
 /** `width` device pixels wide; the height follows from the bytes (tiles of a grid need not be square). */
-function image(data: Bytes, width: number): RenderedImage {
+export function image(data: Bytes, width: number): RenderedImage {
     const height = data.length / 4 / width;
     return {
         width,

@@ -1,4 +1,4 @@
-export { Chiitiler } from './render/index.js';
+export { Chiitiler, encode } from './render/index.js';
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';
@@ -10,6 +10,7 @@ export type {
     RenderedImage,
     RenderTileOptions,
     RenderViewOptions,
+    SupportedFormat,
 } from './render/index.js';
 export type { Cache, Value } from './cache/index.js';
 export type { Protocol, Protocols } from './source/index.js';

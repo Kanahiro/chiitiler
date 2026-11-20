@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
-import { Chiitiler } from './index.js';
+import { Chiitiler, encode } from './index.js';
 import type { Cache } from '../cache/index.js';
 import type { Protocols } from '../source/index.js';
 
@@ -150,6 +150,21 @@ describe('formats', () => {
         expect(await fourcc(100)).toBe('WEBPVP8L');
         const avif = await image.toAvif(60);
         expect(new TextDecoder().decode(avif.slice(4, 12))).toBe('ftypavif');
+    });
+});
+
+describe('encode', () => {
+    it('encodes edited or new RGBA pixels, and rejects a size the bytes do not have', async () => {
+        const data = new Uint8Array(3 * 2 * 4).fill(255);
+        const png = await encode({ data, width: 3, height: 2 }, 'png');
+        expect([...png.slice(0, 4)]).toEqual(PNG);
+        const view = new DataView(png.buffer, png.byteOffset);
+        expect([view.getUint32(16), view.getUint32(20)]).toEqual([3, 2]);
+        const jpeg = await encode({ data, width: 3, height: 2 }, 'jpg', 80);
+        expect([...jpeg.slice(0, 2)]).toEqual([0xff, 0xd8]);
+        await expect(
+            encode({ data, width: 2, height: 2 }, 'png'),
+        ).rejects.toThrow(RangeError);
     });
 });
 

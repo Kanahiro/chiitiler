@@ -180,6 +180,20 @@ const image = await chiitiler.renderTile({
 const png = await image.toPng(); // or edit image.data (RGBA) first
 ```
 
+`encode(pixels, ext, quality?)` encodes any `{ data, width, height }` of RGBA pixels as `png`, `jpeg`
+(`jpg`), `webp` or `avif`, e.g. new pixels made from a rendered image:
+
+```ts
+import { encode } from 'chiitiler';
+
+const gray = new Uint8Array(image.data);
+for (let i = 0; i < gray.length; i += 4) {
+    const v = (gray[i] + gray[i + 1] + gray[i + 2]) / 3;
+    gray.fill(v, i, i + 3);
+}
+const webp = await encode({ data: gray, width: image.width, height: image.height }, 'webp', 80);
+```
+
 Methods: `renderTile` (an XYZ tile), `renderBbox` (a lon/lat box, `size` px on the long side) and
 `renderView` (`center`, `zoom`, `bearing`, `width` and `height`; 2D only, no pitch).
 
@@ -264,6 +278,7 @@ import type {
     RenderBboxOptions,
     RenderViewOptions,
     RenderedImage,
+    SupportedFormat,
     Cache,
     Protocol,
     Protocols,
