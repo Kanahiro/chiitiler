@@ -290,7 +290,7 @@ docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
 | Option | Default | Notes |
 | --- | --- | --- |
 | `--style` | (required) | Style URL, or a local path |
-| `--output`, `-o` | (required) | A `.mbtiles` file; an existing one is not overwritten |
+| `--output`, `-o` | (required) | A `.mbtiles` file |
 | `--maxzoom` | (required) | |
 | `--minzoom` | `0` | |
 | `--bbox` | the world | `minLon,minLat,maxLon,maxLat` |
@@ -298,8 +298,11 @@ docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
 | `--tile-size` | `512` | |
 | `--quality` | `100` | As the server's `quality` |
 | `--margin` | `0` | As the server's `margin` |
+| `--force` | | Delete an existing `--output` first |
 
-Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …). A failed run removes its file.
+An interrupted or failed run keeps the tiles it wrote: run it again with the same options to resume, skipping them.
+An existing file generated with other options (or not by `generate-tile`) is left alone with an error; `--force` replaces it.
+Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …).
 
 ## Configuration
 

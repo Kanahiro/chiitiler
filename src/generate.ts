@@ -16,7 +16,7 @@ const FORMATS = ['png', 'jpeg', 'jpg', 'webp', 'avif'];
 const IN_FLIGHT = 8;
 
 const USAGE = `usage: chiitiler generate-tile --style <url|path> --output <file.mbtiles> --maxzoom <z>
-    [--minzoom 0] [--bbox minLon,minLat,maxLon,maxLat] [--ext png] [--tile-size 512] [--quality 100] [--margin 0]`;
+    [--minzoom 0] [--bbox minLon,minLat,maxLon,maxLat] [--ext png] [--tile-size 512] [--quality 100] [--margin 0] [--force]`;
 
 /** The XYZ tiles of zoom `z` covering `bbox`: [minX, minY, maxX, maxY]. */
 function tileRange([w, s, e, n]: Bbox, z: number): Bbox {
@@ -53,6 +53,7 @@ function readArgs(args: string[]) {
             'tile-size': { type: 'string', default: '512' },
             quality: { type: 'string', default: '100' },
             margin: { type: 'string', default: '0' },
+            force: { type: 'boolean', default: false },
         },
     });
     const { style, output, maxzoom } = values;
@@ -61,7 +62,6 @@ function readArgs(args: string[]) {
     // ponytail: MBTiles only; a directory or .pmtiles output would branch on the extension here.
     if (extname(output) !== '.mbtiles')
         throw new Error(`--output must be a .mbtiles file (got ${output})`);
-    if (existsSync(output)) throw new Error(`${output} already exists`);
     if (!FORMATS.includes(values.ext))
         throw new Error(`--ext must be one of ${FORMATS.join(', ')}`);
     const bbox = (values.bbox?.split(',').map(Number) ?? WORLD) as Bbox;
@@ -74,6 +74,7 @@ function readArgs(args: string[]) {
             ? style
             : pathToFileURL(resolve(style)).href,
         output,
+        force: values.force,
         bbox,
         minzoom,
         maxzoom: int('maxzoom', maxzoom, minzoom, 30),
@@ -84,64 +85,99 @@ function readArgs(args: string[]) {
     };
 }
 
-/** Render the tiles of a style into an MBTiles file, without a server. */
+/**
+ * Render the tiles of a style into an MBTiles file, without a server. An existing file of the same
+ * options is resumed: its tiles are kept and skipped. `--force` starts over.
+ */
 async function generateTile(args: string[], cache: Cache) {
-    const { output, bbox, minzoom, maxzoom, ...render } = readArgs(args);
+    const { output, force, ...options } = readArgs(args);
+    const { bbox, minzoom, maxzoom, ...render } = options;
     // No requests to guard against here: any size the machine can draw.
     const chiitiler = new Chiitiler({ cache, maxSize: Infinity });
 
-    function* tiles() {
-        for (let z = minzoom; z <= maxzoom; z++) {
-            const [minX, minY, maxX, maxY] = tileRange(bbox, z);
-            for (let x = minX; x <= maxX; x++)
-                for (let y = minY; y <= maxY; y++) yield { z, x, y };
-        }
-    }
-
+    if (force)
+        for (const file of [output, `${output}-wal`, `${output}-shm`])
+            rmSync(file, { force: true });
+    const resume = existsSync(output);
     const db = new DatabaseSync(output);
     try {
-        db.exec(`
-            CREATE TABLE metadata (name TEXT, value TEXT);
-            CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB);
-            CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row);
-            BEGIN;
-        `);
-        const meta = db.prepare('INSERT INTO metadata VALUES (?, ?)');
-        for (const [name, value] of Object.entries({
-            name: basename(output, '.mbtiles'),
-            format: render.ext === 'jpeg' ? 'jpg' : render.ext,
-            type: 'baselayer',
-            bounds: bbox.join(','),
-            minzoom,
-            maxzoom,
-        }))
-            meta.run(name, String(value));
+        const key = JSON.stringify(options);
+        if (resume) {
+            let stored: unknown;
+            try {
+                stored = db
+                    .prepare("SELECT value FROM metadata WHERE name = 'chiitiler'")
+                    .get()?.value;
+            } catch {} // not an MBTiles file
+            if (stored !== key)
+                throw new Error(
+                    `${output} exists and was not generated with these options: --force to replace it`,
+                );
+        } else {
+            db.exec(`
+                BEGIN;
+                CREATE TABLE metadata (name TEXT, value TEXT);
+                CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB);
+                CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row);
+            `);
+            const meta = db.prepare('INSERT INTO metadata VALUES (?, ?)');
+            for (const [name, value] of Object.entries({
+                name: basename(output, '.mbtiles'),
+                format: render.ext === 'jpeg' ? 'jpg' : render.ext,
+                type: 'baselayer',
+                bounds: bbox.join(','),
+                minzoom,
+                maxzoom,
+                chiitiler: key, // the options, to resume with
+            }))
+                meta.run(name, String(value));
+            db.exec('COMMIT');
+        }
 
+        // Every tile commits on its own, so an interrupted run keeps what it wrote.
+        db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
+
+        const exists = db.prepare(
+            'SELECT 1 FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
+        );
         const insert = db.prepare('INSERT INTO tiles VALUES (?, ?, ?, ?)');
+        let skipped = 0;
+        function* tiles() {
+            for (let z = minzoom; z <= maxzoom; z++) {
+                const [minX, minY, maxX, maxY] = tileRange(bbox, z);
+                for (let x = minX; x <= maxX; x++)
+                    for (let y = minY; y <= maxY; y++) {
+                        const row = 2 ** z - 1 - y; // MBTiles rows are TMS
+                        if (exists.get(z, x, row)) skipped++;
+                        else yield { z, x, y, row };
+                    }
+            }
+        }
+
         const queue = tiles();
         let done = 0;
         // Workers share one iterator, so each tile is taken once.
         await Promise.all(
             Array.from({ length: IN_FLIGHT }, async () => {
-                for (const { z, x, y } of queue) {
+                for (const { z, x, y, row } of queue) {
                     const data = await chiitiler.renderTile({
                         ...render,
                         z,
                         x,
                         y,
                     });
-                    insert.run(z, x, 2 ** z - 1 - y, data); // MBTiles rows are TMS
+                    insert.run(z, x, row, data);
                     if (++done % 1000 === 0) console.error(`${done} tiles`);
                 }
             }),
         );
-        db.exec('COMMIT');
+        // A finished file is a single file again, readable read-only.
+        db.exec('PRAGMA journal_mode = DELETE');
+        console.error(
+            `${done} tiles written to ${output}${skipped ? ` (${skipped} already there)` : ''}`,
+        );
+    } finally {
         db.close();
-        console.error(`${done} tiles written to ${output}`);
-    } catch (error) {
-        db.close();
-        rmSync(output, { force: true });
-        throw error;
     }
 }
 

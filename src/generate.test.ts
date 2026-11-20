@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import {
+    existsSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -108,21 +114,63 @@ describe('generateTile', () => {
         }
     });
 
-    it('keeps an existing file and removes a failed one', async () => {
-        const { dir, output } = tmp();
+    it('resumes a file of the same options, and replaces it with --force', async () => {
+        const { dir, style, output } = tmp();
+        const args = ['--style', style, '-o', output, '--maxzoom', '1'];
+        const count = () => {
+            const db = new DatabaseSync(output, { readOnly: true });
+            const rows = db.prepare('SELECT tile_data FROM tiles').all();
+            db.close();
+            return rows.length;
+        };
         try {
-            writeFileSync(output, 'mine');
-            await expect(
-                generateTile(['--style', 'x', '-o', output, '--maxzoom', '0'], noneCache()),
-            ).rejects.toThrow('already exists');
-            rmSync(output);
+            // A failed run keeps its file to resume.
             await expect(
                 generateTile(
-                    ['--style', join(dir, 'missing.json'), '-o', output, '--maxzoom', '0'],
+                    [...args.slice(2), '--style', join(dir, 'missing.json')],
                     noneCache(),
                 ),
             ).rejects.toThrow('style not found');
-            expect(existsSync(output)).toBe(false);
+            expect(existsSync(output)).toBe(true);
+            await expect(generateTile(args, noneCache())).rejects.toThrow(
+                'not generated with these options',
+            );
+            rmSync(output);
+
+            await generateTile(args, noneCache());
+            const db = new DatabaseSync(output);
+            db.exec(`
+                DELETE FROM tiles WHERE zoom_level = 1 AND tile_column = 0 AND tile_row = 0;
+                UPDATE tiles SET tile_data = x'00' WHERE zoom_level = 0;
+            `);
+            db.close();
+            await generateTile(args, noneCache());
+            expect(count()).toBe(5);
+            const kept = new DatabaseSync(output, { readOnly: true });
+            expect(
+                kept.prepare('SELECT tile_data FROM tiles WHERE zoom_level = 0').get()
+                    ?.tile_data,
+            ).toEqual(new Uint8Array([0]));
+            kept.close();
+
+            await expect(
+                generateTile([...args, '--maxzoom', '0'], noneCache()),
+            ).rejects.toThrow('not generated with these options');
+            await generateTile([...args, '--maxzoom', '0', '--force'], noneCache());
+            expect(count()).toBe(1);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('leaves a file it did not write', async () => {
+        const { dir, style, output } = tmp();
+        try {
+            writeFileSync(output, 'mine');
+            await expect(
+                generateTile(['--style', style, '-o', output, '--maxzoom', '0'], noneCache()),
+            ).rejects.toThrow('not generated with these options');
+            expect(readFileSync(output, 'utf8')).toBe('mine');
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }
