@@ -1,13 +1,6 @@
 {
   "version": 8,
   "sources": {
-    "osm": {
-      "type": "raster",
-      "tiles": [
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      ],
-      "tileSize": 256
-    },
     "dir": {
       "type": "vector",
       "tiles": [
@@ -52,12 +45,6 @@
     }
   },
   "layers": [
-    {
-      "id": "osm",
-      "source": "osm",
-      "type": "raster",
-      "paint": {}
-    },
     {
       "id": "dir",
       "source": "dir",

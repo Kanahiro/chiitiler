@@ -30,8 +30,8 @@ jobs:
               run: docker compose up -d
             - name: install dependencies
               run: pnpm install --frozen-lockfile
-            # the app container installs dependencies at startup, so listening
-            # begins well after `docker compose up -d` returns
+            # the app container compiles on start (tsx watch), so listening begins
+            # a little after `docker compose up -d` returns
             - name: wait for server
               run: |
                   timeout 300 bash -c 'until curl -sf http://localhost:3000/health > /dev/null; do sleep 2; done' \

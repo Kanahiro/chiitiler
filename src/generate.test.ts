@@ -64,14 +64,15 @@ describe('generateTile', () => {
                     'SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles ORDER BY 1, 2, 3',
                 )
                 .all();
-            expect(tiles.map((t) => [t.zoom_level, t.tile_column, t.tile_row]))
-                .toEqual([
-                    [0, 0, 0],
-                    [1, 0, 0],
-                    [1, 0, 1],
-                    [1, 1, 0],
-                    [1, 1, 1],
-                ]);
+            expect(
+                tiles.map((t) => [t.zoom_level, t.tile_column, t.tile_row]),
+            ).toEqual([
+                [0, 0, 0],
+                [1, 0, 0],
+                [1, 0, 1],
+                [1, 1, 0],
+                [1, 1, 1],
+            ]);
             expect([...(tiles[0].tile_data as Uint8Array).slice(0, 4)]).toEqual(
                 [0x89, 0x50, 0x4e, 0x47],
             );
@@ -148,15 +149,19 @@ describe('generateTile', () => {
             expect(count()).toBe(5);
             const kept = new DatabaseSync(output, { readOnly: true });
             expect(
-                kept.prepare('SELECT tile_data FROM tiles WHERE zoom_level = 0').get()
-                    ?.tile_data,
+                kept
+                    .prepare('SELECT tile_data FROM tiles WHERE zoom_level = 0')
+                    .get()?.tile_data,
             ).toEqual(new Uint8Array([0]));
             kept.close();
 
             await expect(
                 generateTile([...args, '--maxzoom', '0'], noneCache()),
             ).rejects.toThrow('not generated with these options');
-            await generateTile([...args, '--maxzoom', '0', '--force'], noneCache());
+            await generateTile(
+                [...args, '--maxzoom', '0', '--force'],
+                noneCache(),
+            );
             expect(count()).toBe(1);
         } finally {
             rmSync(dir, { recursive: true, force: true });
@@ -168,7 +173,10 @@ describe('generateTile', () => {
         try {
             writeFileSync(output, 'mine');
             await expect(
-                generateTile(['--style', style, '-o', output, '--maxzoom', '0'], noneCache()),
+                generateTile(
+                    ['--style', style, '-o', output, '--maxzoom', '0'],
+                    noneCache(),
+                ),
             ).rejects.toThrow('not generated with these options');
             expect(readFileSync(output, 'utf8')).toBe('mine');
         } finally {

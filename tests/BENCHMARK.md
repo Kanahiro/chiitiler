@@ -18,13 +18,13 @@ command) refuses: checkouts from before 2.0 can't be benchmarked by this harness
 
 ## Scenarios
 
-| Scenario | What it stresses |
-|---|---|
-| `png c=1` | baseline render + PNG encode |
-| `png c=10` | render under concurrency (renderer-pool saturation) |
-| `webp c=1` | WebP encode path |
-| `jpeg c=1` | JPEG encode path |
-| `png tileSize=1024 c=1` | larger output buffer |
+| Scenario                | What it stresses                                    |
+| ----------------------- | --------------------------------------------------- |
+| `png c=1`               | baseline render + PNG encode                        |
+| `png c=10`              | render under concurrency (renderer-pool saturation) |
+| `webp c=1`              | WebP encode path                                    |
+| `jpeg c=1`              | JPEG encode path                                    |
+| `png tileSize=1024 c=1` | larger output buffer                                |
 
 ## Running
 
@@ -112,10 +112,10 @@ node --import tsx tests/compare-benchmarks.ts benchmark-results/results.json ben
 
 M1 MacBook Air, `CHIITILER_BENCH_DURATION=5`:
 
-| Scenario | Conns | Req/s (mean) | p50 (ms) | p90 (ms) | p99 (ms) | Errors | non-2xx |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| png c=1 | 1 | 190.0 | 4.0 | 5.0 | 9.0 | 0 | 0 |
-| png c=10 | 10 | 419.0 | 24.0 | 33.0 | 47.0 | 0 | 0 |
-| webp c=1 | 1 | 112.0 | 8.0 | 9.0 | 13.0 | 0 | 0 |
-| jpeg c=1 | 1 | 190.6 | 5.0 | 6.0 | 10.0 | 0 | 0 |
-| png tileSize=1024 c=1 | 1 | 178.0 | 5.0 | 6.0 | 11.0 | 0 | 0 |
+| Scenario              | Conns | Req/s (mean) | p50 (ms) | p90 (ms) | p99 (ms) | Errors | non-2xx |
+| --------------------- | ----: | -----------: | -------: | -------: | -------: | -----: | ------: |
+| png c=1               |     1 |        190.0 |      4.0 |      5.0 |      9.0 |      0 |       0 |
+| png c=10              |    10 |        419.0 |     24.0 |     33.0 |     47.0 |      0 |       0 |
+| webp c=1              |     1 |        112.0 |      8.0 |      9.0 |     13.0 |      0 |       0 |
+| jpeg c=1              |     1 |        190.6 |      5.0 |      6.0 |     10.0 |      0 |       0 |
+| png tileSize=1024 c=1 |     1 |        178.0 |      5.0 |      6.0 |     11.0 |      0 |       0 |

@@ -3,9 +3,13 @@ services:
         build:
             context: ./
             target: dev
+        depends_on:
+            createbuckets:
+                condition: service_completed_successfully
+            fake-gcs-server:
+                condition: service_started
         volumes:
             - ./src:/app/src
-            - ./.cache:/app/.cache
             - ./localdata:/app/localdata
             - ./crs:/app/crs
         ports:
@@ -22,9 +26,8 @@ services:
             - AWS_ACCESS_KEY_ID=rustfsadmin
             - AWS_SECRET_ACCESS_KEY=rustfsadmin
             - CHIITILER_GCS_API_ENDPOINT=http://fake-gcs-server:4443
-            - CHIITILER_GCS_CACHE_BUCKET=tiles
     rustfs:
-        image: rustfs/rustfs:latest
+        image: rustfs/rustfs:1.0.6
         ports:
             - 9000:9000 # S3-compatible API
             - 9001:9001 # Web Console
@@ -32,26 +35,27 @@ services:
             - RUSTFS_ACCESS_KEY=rustfsadmin
             - RUSTFS_SECRET_KEY=rustfsadmin
     createbuckets:
-        image: amazon/aws-cli:latest
+        image: amazon/aws-cli:2.41.2
         depends_on:
             - rustfs
         entrypoint: >
-            /bin/sh -c "
+            /bin/sh -ec "
             until aws --endpoint-url http://rustfs:9000 s3 ls > /dev/null 2>&1; do sleep 1; done;
             aws --endpoint-url http://rustfs:9000 s3 mb s3://chiitiler;
             aws --endpoint-url http://rustfs:9000 s3 mb s3://tiles;
             aws --endpoint-url http://rustfs:9000 s3 cp /initdata/tiles/ s3://tiles/ --recursive;
+            aws --endpoint-url http://rustfs:9000 s3 cp /initdata/school.pmtiles s3://tiles/school.pmtiles;
             "
         environment:
             - AWS_ACCESS_KEY_ID=rustfsadmin
             - AWS_SECRET_ACCESS_KEY=rustfsadmin
             - AWS_DEFAULT_REGION=us-east-1
         volumes:
-            - ./localdata:/initdata
+            - ./localdata:/initdata:ro
     fake-gcs-server:
-        image: fsouza/fake-gcs-server:latest
+        image: fsouza/fake-gcs-server:1.56.1
         ports:
             - "4443:4443"
         volumes:
-            - ./localdata/tiles:/data/tiles
+            - ./localdata/tiles:/data/tiles:ro
         command: -scheme http
