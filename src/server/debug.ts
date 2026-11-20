@@ -7,6 +7,17 @@ function getDebugPage(c: Context) {
     const margin = Number(c.req.query('margin') ?? 0);
     const quality = Number(c.req.query('quality') ?? 100);
     const tileSize = Number(c.req.query('tileSize') ?? 512);
+    // The query is the requester's: encoded, and written into the script as a JSON string whose
+    // `<` is escaped (a `</script>` in it would end the script).
+    const query = new URLSearchParams({
+        url,
+        quality: String(quality),
+        margin: String(margin),
+        tileSize: String(tileSize),
+    });
+    const tilePath = JSON.stringify(
+        `/tiles/{z}/{x}/{y}.webp?${query}`,
+    ).replaceAll('<', '\\u003c');
 
     // show tile in MapLibre GL JS
     return c.html(`<!DOCTYPE html>
@@ -41,7 +52,7 @@ function getDebugPage(c: Context) {
             <script type="module">
                 import * as maplibregl from 'https://unpkg.com/maplibre-gl@6/dist/maplibre-gl.mjs';
                 // hostname
-                let tileUrl = window.location.origin + '/tiles/{z}/{x}/{y}.webp?url=${url}&quality=${quality}&margin=${margin}&tileSize=${tileSize}';
+                let tileUrl = window.location.origin + ${tilePath};
 
                 // ?crs=<id>: tiles of that CRS, shown in it
                 const params = new URLSearchParams(window.location.search);

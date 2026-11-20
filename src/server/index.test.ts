@@ -42,6 +42,14 @@ describe('initServer', () => {
 
         const editor = await app.request('/editor');
         expect(editor.status).toBe(200);
+
+        // the url is the requester's: it must not end the string or the script
+        const url = "x';alert(1);//</script><script>alert(2)//";
+        const page = await (
+            await app.request(`/debug?url=${encodeURIComponent(url)}`)
+        ).text();
+        expect(page).not.toContain("x';alert");
+        expect(page).not.toContain('</script><script>alert');
     });
 
     it('tiles', async () => {
