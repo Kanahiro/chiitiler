@@ -11,7 +11,7 @@ type Bbox = [number, number, number, number];
 
 const MAX_LAT = 85.0511287798066;
 const WORLD: Bbox = [-180, -MAX_LAT, 180, MAX_LAT];
-const FORMATS = ['png', 'jpeg', 'jpg', 'webp'];
+const FORMATS = ['png', 'jpeg', 'jpg', 'webp', 'avif'];
 /** Tiles in flight: the renderer draws 4 at a time, the rest wait fetched and ready. */
 const IN_FLIGHT = 8;
 

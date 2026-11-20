@@ -284,7 +284,7 @@ chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default
 
 ```bash
 docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
-  node /app/build/main.mjs generate-tile --style style.json --output out.mbtiles --maxzoom 8 --bbox 139,35,141,37
+  /app/build/main.mjs generate-tile --style style.json --output out.mbtiles --maxzoom 8 --bbox 139,35,141,37
 ```
 
 | Option | Default | Notes |
@@ -294,9 +294,9 @@ docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
 | `--maxzoom` | (required) | |
 | `--minzoom` | `0` | |
 | `--bbox` | the world | `minLon,minLat,maxLon,maxLat` |
-| `--ext` | `png` | `png`, `jpeg`, `jpg` or `webp` |
+| `--ext` | `png` | `png`, `jpeg`, `jpg`, `webp` or `avif` |
 | `--tile-size` | `512` | |
-| `--quality` | `100` | JPEG quality |
+| `--quality` | `100` | As the server's `quality` |
 | `--margin` | `0` | As the server's `margin` |
 
 Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …). A failed run removes its file.
