@@ -301,11 +301,19 @@ class Chiitiler {
                 concurrency: CONCURRENCY,
                 // null = 404 (empty vector tile, missing raster); errors fail the render
                 loadResource: async (url) => {
-                    const buf = await getSource(
-                        url,
-                        this.cache,
-                        this.protocols,
-                    );
+                    let buf: Uint8Array | null;
+                    try {
+                        buf = await getSource(url, this.cache, this.protocols);
+                    } catch (error) {
+                        // A failed resource is the server's failure (500), whatever its class:
+                        // RangeErrors and TypeErrors (undici's) must not read as bad requests.
+                        if (
+                            error instanceof RangeError ||
+                            error instanceof TypeError
+                        )
+                            throw new Error(error.message, { cause: error });
+                        throw error;
+                    }
                     return buf === null || buf.length === 0 ? null : buf;
                 },
             });

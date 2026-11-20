@@ -276,3 +276,30 @@ describe('renderers', () => {
         init.mockRestore();
     });
 });
+
+describe('errors', () => {
+    const none = { get: async () => undefined, set: async () => {} };
+    const tile = { z: 0, x: 0, y: 0, tileSize: 64, margin: 0 };
+
+    it('a failing resource is not a bad request, even in a CRS', async () => {
+        const chiitiler = new Chiitiler({
+            cache: none,
+            protocols: {
+                // undici throws TypeError('terminated') when a body breaks off
+                test: async () => {
+                    throw new TypeError('terminated');
+                },
+            },
+        });
+        const crs = JSON.parse(await readFile('crs/EPSG-3031.json', 'utf8'));
+        const error = await chiitiler
+            .renderProjectedTile({
+                stylejson: circles('test://{z}/{x}/{y}.pbf'),
+                crs,
+                ...tile,
+            })
+            .catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(Error);
+        expect(error).not.toBeInstanceOf(RangeError);
+    });
+});

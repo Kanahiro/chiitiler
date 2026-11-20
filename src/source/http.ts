@@ -45,7 +45,13 @@ async function getHttpSource(
     }
     // 204/空ボディはキャッシュ汚染を避けるため書き込まずnullを返す
     if (res.status === 204) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
+    let buf: Buffer;
+    try {
+        buf = Buffer.from(await res.arrayBuffer());
+    } catch (e) {
+        // the body broke off or timed out
+        throw new Error(`failed to fetch ${where}`, { cause: e });
+    }
     if (buf.length === 0) return null;
     cache.set(uri, buf);
     return buf;
