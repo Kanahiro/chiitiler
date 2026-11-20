@@ -7,7 +7,7 @@
 Point it at any `style.json` and get back PNG / WebP / JPEG / AVIF tiles, static images, or map cut-outs.
 
 [![Release](https://img.shields.io/github/v/release/Kanahiro/chiitiler?label=ghcr.io%2Fkanahiro%2Fchiitiler&color=0ea5e9)](https://github.com/Kanahiro/chiitiler/pkgs/container/chiitiler)
-[![Unit Tests](https://img.shields.io/github/actions/workflow/status/Kanahiro/chiitiler/test:unit.yml?label=unit)](https://github.com/Kanahiro/chiitiler/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/Kanahiro/chiitiler/ci.yml?label=ci)](https://github.com/Kanahiro/chiitiler/actions)
 [![Integration](https://img.shields.io/github/actions/workflow/status/Kanahiro/chiitiler/test:integration.yml?label=integration)](https://github.com/Kanahiro/chiitiler/actions)
 [![codecov](https://codecov.io/gh/Kanahiro/chiitiler/graph/badge.svg?token=9RVLAJG126)](https://codecov.io/gh/Kanahiro/chiitiler)
 [![License](https://img.shields.io/github/license/Kanahiro/chiitiler?color=blue)](./LICENSE)
@@ -440,7 +440,8 @@ const cache = ChiitilerCache.withFrontCache(
 
 ## Deployment
 
-- **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables)
+- **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables).
+  `latest` is the latest release, `next` the latest prerelease, and `v<version>` each one (npm: `chiitiler@latest` / `chiitiler@next`).
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
 
 > [!WARNING]
