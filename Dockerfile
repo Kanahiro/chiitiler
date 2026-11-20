@@ -11,9 +11,13 @@ RUN pnpm build
 # Dev image for docker-compose: dependencies installed at build time, src from a bind mount.
 FROM builder AS dev
 
-# Runtime dependencies the bundle leaves external: the renderer addon (@ml2drender/node).
+# Runtime dependencies the bundle leaves external: the renderer addon (@ml2drender/node), and
+# @napi-rs/image for lossy WebP. --prod leaves out that optional peer, so npm installs the locked
+# version on its own (with only this platform's addon).
 FROM builder AS deps
-RUN rm -rf node_modules && pnpm install --frozen-lockfile --prod
+RUN v=$(node -p "require('./node_modules/@napi-rs/image/package.json').version") \
+    && rm -rf node_modules && pnpm install --frozen-lockfile --prod \
+    && npm install --prefix /opt/napi-image --no-save --no-package-lock --no-audit --no-fund "@napi-rs/image@$v"
 
 FROM node:24.22.3-bookworm-slim AS runtime
 
@@ -24,6 +28,7 @@ ENV AWS_LWA_READINESS_CHECK_PATH=/health
 WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /opt/napi-image/node_modules/@napi-rs ./node_modules/@napi-rs
 COPY crs ./crs
 ENV CHIITILER_CRS_DIR=/app/crs
 

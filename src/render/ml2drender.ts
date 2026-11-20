@@ -62,8 +62,11 @@ export interface RenderedImage {
     data: Uint8Array<ArrayBuffer>;
     /** Encoders run on libuv's thread pool. */
     toPng(): Promise<Uint8Array<ArrayBuffer>>;
-    /** Lossless. */
-    toWebp(): Promise<Uint8Array<ArrayBuffer>>;
+    /**
+     * Lossy at `quality` below 100 (alpha stays lossless) with `@napi-rs/image` installed;
+     * lossless otherwise.
+     */
+    toWebp(quality: number): Promise<Uint8Array<ArrayBuffer>>;
     /** `quality` 1–100, flattened over black. */
     toJpeg(quality: number): Promise<Uint8Array<ArrayBuffer>>;
 }
@@ -437,6 +440,18 @@ async function drawProjected(
     }
 }
 
+let napiImage: Promise<typeof import('@napi-rs/image') | null> | undefined;
+/** `@napi-rs/image`, an optional peer dependency for lossy WebP: loaded on first use, null if absent. */
+function loadNapiImage(): Promise<typeof import('@napi-rs/image') | null> {
+    napiImage ??= import('@napi-rs/image').catch(() => {
+        console.warn(
+            'lossy WebP needs @napi-rs/image: install it. Encoding lossless WebP instead.',
+        );
+        return null;
+    });
+    return napiImage;
+}
+
 /** `width` device pixels wide; the height follows from the bytes (tiles of a grid need not be square). */
 function image(data: Bytes, width: number): RenderedImage {
     const height = data.length / 4 / width;
@@ -445,7 +460,18 @@ function image(data: Bytes, width: number): RenderedImage {
         height,
         data,
         toPng: () => encodePng(data, width, height) as Promise<Bytes>,
-        toWebp: () => encodeWebp(data, width, height) as Promise<Bytes>,
+        toWebp: async (quality) => {
+            if (!Number.isFinite(quality))
+                throw new RangeError('quality must be finite');
+            const napi = quality < 100 ? await loadNapiImage() : null;
+            if (!napi) return encodeWebp(data, width, height) as Promise<Bytes>;
+            const webp = await napi.Transformer.fromRgbaPixels(
+                data,
+                width,
+                height,
+            ).webp(Math.max(0, quality));
+            return webp as Bytes;
+        },
         toJpeg: async (quality) => {
             if (!Number.isFinite(quality))
                 throw new RangeError('quality must be finite');

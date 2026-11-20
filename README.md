@@ -85,7 +85,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | --- | --- | --- |
 | `url` | — | Style JSON URL (required for `GET`) |
 | `tileSize` | `512` | Tile size in pixels |
-| `quality` | `100` | JPEG quality (WebP is always lossless) |
+| `quality` | `100` | JPEG quality. WebP is lossy below `100` (alpha stays lossless) when `@napi-rs/image` is installed, as in the Docker image, and lossless otherwise |
 | `margin` | `0` | Extra pixels rendered around the tile (half on each side) and cropped, e.g. to keep labels across tile edges |
 | `bbox` | — | `/clip` bounding box: `minLon,minLat,maxLon,maxLat` |
 | `size` | `1024` | `/clip` longest edge in pixels |
@@ -134,6 +134,7 @@ shifts are ignored (as by the renderer). Set `CHIITILER_CRS_DIR` to your own dir
 - `fill-extrusion` layers are drawn as flat fills. 3D, terrain, globe, sky and light are not rendered.
 - Bidirectional text and Arabic shaping are not supported, and glyphs come only from the style's `glyphs` (no local font fallback).
 - JPEG has no alpha: transparent areas become black. Chroma is subsampled 4:2:0 at every quality (as sharp did by default).
+- Lossy WebP (libwebp, via `@napi-rs/image`) takes about 10 times longer to encode than lossless WebP or JPEG (about 25 ms for a 512px tile): cache the rendered tiles (e.g. behind a CDN) if you use it.
 
 ## Library Usage
 
@@ -146,10 +147,13 @@ npm install chiitiler @maplibre/maplibre-gl-style-spec
 npm install @aws-sdk/client-s3
 # only for gs:// sources and the GCS cache
 npm install @google-cloud/storage
+# only for lossy WebP (quality below 100)
+npm install @napi-rs/image
 ```
 
-`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs are
-optional ones, loaded when first used.
+`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs and
+`@napi-rs/image` are optional ones, loaded when first used. Without `@napi-rs/image`, WebP is lossless
+at every quality (with a warning the first time a lower quality is asked for).
 
 ```ts
 import { Chiitiler, ChiitilerCache } from 'chiitiler';
@@ -402,7 +406,8 @@ placement differ).
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
   `/camera` is renamed `/view` and has no pitch segment:
   `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
-- **Formats:** WebP is lossless, so `quality` applies to JPEG only; JPEG uses 4:2:0 chroma and
+- **Formats:** WebP is lossless unless `@napi-rs/image` is installed (then `quality` below 100 is
+  lossy; the Docker image includes it); JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **Errors:** parameters the renderer rejects (e.g. a `tileSize` that isn't a positive integer) answer
   `400` instead of `500`.
@@ -428,8 +433,9 @@ placement differ).
   - `memoryCache` is removed (use `withFrontCache(noneCache(), …)`), `withMemoryCache` is renamed
     `withFrontCache`, and `Cache.memory` is renamed `Cache.front`.
   - New `protocols` option for custom URL schemes.
-  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
-    `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
+  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3`,
+    `@google-cloud/storage` and `@napi-rs/image` optional ones: install them for `s3://` / `gs://`
+    sources and caches, and lossy WebP.
   - The renderer comes from `@ml2drender/node`, which has prebuilt addons for linux-x64 and
     linux-arm64 (glibc), darwin-x64, darwin-arm64 and win32-x64.
 

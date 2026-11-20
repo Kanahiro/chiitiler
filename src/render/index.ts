@@ -26,7 +26,7 @@ type RenderTileOptions = {
     /** Extra pixels rendered around the tile (half on each side) and cropped away. */
     margin: number;
     ext: SupportedFormat;
-    /** JPEG quality; WebP is always lossless. */
+    /** JPEG quality; WebP quality below 100 (lossless at 100) with `@napi-rs/image` installed. */
     quality: number;
 };
 
@@ -81,7 +81,7 @@ function encode(
         case 'jpg':
             return image.toJpeg(quality);
         case 'webp':
-            return image.toWebp();
+            return image.toWebp(quality);
     }
 }
 
