@@ -40,7 +40,7 @@
     "devDependencies": {
         "@aws-sdk/client-s3": "^3.1168.0",
         "@biomejs/biome": "^2.6.7",
-        "@google-cloud/storage": "^7.22.0",
+        "@google-cloud/storage": "^8.4.0",
         "@hono/node-server": "^2.1.8",
         "@maplibre/maplibre-gl-style-spec": "^26.7.0",
         "@napi-rs/image": "^1.16.0",
