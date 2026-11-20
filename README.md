@@ -407,7 +407,7 @@ The `CHIITILER_S3_*` settings also apply to `s3://` sources (`CHIITILER_GCS_*` b
 prefix to `gs://` sources). Credentials come from the standard AWS / GCP environment
 (`AWS_ACCESS_KEY_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, …). `@google-cloud/storage` 9
 authenticates even with `CHIITILER_GCS_API_ENDPOINT`: an emulator without auth, such as
-fake-gcs-server, needs 7 or 8.
+fake-gcs-server, needs 8.
 
 A cache method keeps `http(s)://` sources only (`pmtiles://http(s)://` tiles included): local
 files, `s3://`, `gs://`, `mbtiles://` and local `pmtiles://` are as close as the cache would be.
