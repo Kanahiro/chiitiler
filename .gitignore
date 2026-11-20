@@ -4,6 +4,5 @@ dist/
 .cache/
 coverage/
 .claude/worktrees
-benchmark-results/
 docs/
 build/

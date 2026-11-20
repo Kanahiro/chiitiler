@@ -498,7 +498,7 @@ pnpm dev              # tsx watch mode
 pnpm lint             # biome lint + format check
 pnpm test:unit        # vitest
 pnpm test:integration # end-to-end
-pnpm test:benchmark   # see tests/BENCHMARK.md
+pnpm test:benchmark   # [<baseline checkout>] see tests/benchmark.ts
 pnpm build            # bundle to build/main.mjs (loads @ml2drender/node from node_modules)
 ```
 
