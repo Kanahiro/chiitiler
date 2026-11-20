@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { basename, join } from 'node:path';
 
+import { generateTile } from './generate.js';
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
 import type { Crs } from './render/index.js';
@@ -141,11 +142,16 @@ function readConfig(env: Env = process.env): Config {
     };
 }
 
-/** Start the tile server configured by environment variables. It takes no arguments. */
+/**
+ * Start the tile server configured by environment variables, or with `generate-tile`, render tiles
+ * into a file without one.
+ */
 async function run(args: string[], env: Env = process.env) {
+    if (args[0] === 'generate-tile')
+        return generateTile(args.slice(1), readCache(env));
     if (args.length > 0)
         throw new Error(
-            `chiitiler takes no command-line arguments (got ${args.join(' ')}): configure it with CHIITILER_* environment variables`,
+            `chiitiler takes no command-line arguments but generate-tile (got ${args.join(' ')}): configure the server with CHIITILER_* environment variables`,
         );
     const { processes, ...options } = readConfig(env);
     if (cluster.isPrimary && processes !== 1) {

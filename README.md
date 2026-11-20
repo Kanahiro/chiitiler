@@ -268,10 +268,33 @@ that package, the two structurally-different types are not assignable to each ot
 
 chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default, so the runtime's default is used (Node sends `node`). Some tile providers (e.g. OpenStreetMap) require an identifying User-Agent — set one with `setUserAgent('my-app/1.0')` or the `CHIITILER_USER_AGENT` environment variable.
 
+## Generating tiles
+
+`generate-tile` renders the tiles of a style into an MBTiles file, without a server:
+
+```bash
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
+  node /app/build/main.mjs generate-tile --style style.json --output out.mbtiles --maxzoom 8 --bbox 139,35,141,37
+```
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `--style` | (required) | Style URL, or a local path |
+| `--output`, `-o` | (required) | A `.mbtiles` file; an existing one is not overwritten |
+| `--maxzoom` | (required) | |
+| `--minzoom` | `0` | |
+| `--bbox` | the world | `minLon,minLat,maxLon,maxLat` |
+| `--ext` | `png` | `png`, `jpeg`, `jpg` or `webp` |
+| `--tile-size` | `512` | |
+| `--quality` | `100` | JPEG quality |
+| `--margin` | `0` | As the server's `margin` |
+
+Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …). A failed run removes its file.
+
 ## Configuration
 
 The server is configured with environment variables only; it takes no command-line arguments
-(not even 1.x's `tile-server` command). Empty values count as unset, and an invalid value stops
+(not even 1.x's `tile-server` command) but `generate-tile`. Empty values count as unset, and an invalid value stops
 startup with an error naming the variable.
 
 ```bash
