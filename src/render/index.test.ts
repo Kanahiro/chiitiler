@@ -303,3 +303,28 @@ describe('errors', () => {
         expect(error).not.toBeInstanceOf(RangeError);
     });
 });
+
+describe('margin', () => {
+    it('is per side: the image with its margins must fit maxSize', async () => {
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+            maxSize: 100,
+        });
+        const style: StyleSpecification = {
+            version: 8,
+            sources: {},
+            layers: [{ id: 'bg', type: 'background' }],
+        };
+        const render = (tileSize: number) =>
+            chiitiler.renderTile({
+                stylejson: style,
+                z: 0,
+                x: 0,
+                y: 0,
+                tileSize,
+                margin: 5,
+            });
+        expect((await render(90)).width).toBe(90); // 5 + 90 + 5, cropped
+        await expect(render(91)).rejects.toBeInstanceOf(RangeError);
+    });
+});

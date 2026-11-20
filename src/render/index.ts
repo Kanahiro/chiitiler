@@ -30,7 +30,7 @@ type RenderTileOptions = {
     x: number;
     y: number;
     tileSize: number;
-    /** Extra pixels rendered around the tile (half on each side) and cropped away. */
+    /** CSS pixels rendered on each side of the tile and cropped away (labels then cross tile edges). */
     margin: number;
     /** Device pixels per CSS pixel (`@2x` = 2): sizes stay in CSS pixels. Default: 1. */
     pixelRatio?: number;
@@ -197,7 +197,6 @@ class Chiitiler {
         }: RenderTileOptions,
         crs?: Crs,
     ): Promise<RenderedImage> {
-        const m = 2 * Math.floor(margin / 2);
         // An OGC grid's tiles may be taller than wide.
         const level =
             crs?.tileMatrixSet && 'tileMatrices' in crs.tileMatrixSet
@@ -206,7 +205,10 @@ class Chiitiler {
         const height = level
             ? (tileSize * level.tileHeight) / level.tileWidth
             : tileSize;
-        this.checkSize([tileSize + m, height + m], pixelRatio);
+        this.checkSize(
+            [tileSize + 2 * margin, height + 2 * margin],
+            pixelRatio,
+        );
         const renderer = await this.renderer(stylejson);
         const tile = {
             z,
@@ -214,7 +216,7 @@ class Chiitiler {
             y,
             tileSize,
             pixelRatio,
-            margin: Math.floor(margin / 2),
+            margin,
         };
         return crs
             ? renderer.renderProjected(crs, { tile })
