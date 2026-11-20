@@ -21,6 +21,8 @@ type InitServerOptions = {
     corsOrigins?: string[];
     /** CRSs requests can render in with `?crs=<id>`. Default: none. */
     crs?: CrsCatalog;
+    /** Renders in progress (waiting included) beyond which requests answer 503. Default: no limit. */
+    maxRenders?: number;
 };
 
 type InitializedServer = {
@@ -50,6 +52,7 @@ function initServer(options: InitServerOptions): InitializedServer {
         maxSize: options.maxSize,
         cacheControl: options.cacheControl,
         crs: options.crs,
+        maxRenders: options.maxRenders,
     });
 
     return {

@@ -1,4 +1,5 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -568,5 +569,50 @@ describe('initServer', () => {
             expect(res.status).toBe(200);
         clearInterval(timer);
         expect(longest).toBeLessThan(50);
+    });
+});
+
+describe('load', () => {
+    it('answers 503 beyond maxRenders, and serves again once they end', async () => {
+        // an upstream answering after 300 ms keeps renders in progress
+        const upstream = http
+            .createServer((_, res) => {
+                setTimeout(() => res.writeHead(404).end(), 300);
+            })
+            .listen(0);
+        await new Promise((resolve) => upstream.once('listening', resolve));
+        const { port } = upstream.address() as { port: number };
+        try {
+            const { app } = initServer({
+                port: 0,
+                cache: cache.noneCache(),
+                debug: false,
+                maxRenders: 2,
+            });
+            const style = {
+                version: 8,
+                sources: {
+                    r: {
+                        type: 'raster',
+                        tiles: [`http://127.0.0.1:${port}/{z}/{x}/{y}`],
+                    },
+                },
+                layers: [{ id: 'r', type: 'raster', source: 'r' }],
+            };
+            const post = (x: number) =>
+                app.request(`/tiles/1/${x % 2}/0.png`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ style }),
+                });
+            const responses = await Promise.all([0, 1, 2, 3].map(post));
+            const statuses = responses.map((r) => r.status).sort();
+            expect(statuses).toEqual([200, 200, 503, 503]);
+            const busy = responses.find((r) => r.status === 503);
+            expect(busy?.headers.get('Retry-After')).toBe('1');
+            expect((await post(0)).status).toBe(200);
+        } finally {
+            upstream.close();
+        }
     });
 });

@@ -23,6 +23,8 @@ type RouteOptions = {
     cacheControl?: string;
     /** CRSs requests can render in with `?crs=<id>`. */
     crs?: CrsCatalog;
+    /** Renders in progress (waiting included) beyond which requests answer 503. Default: no limit. */
+    maxRenders?: number;
 };
 
 /** CRSs by id. */
@@ -48,7 +50,12 @@ const isObject = (v: unknown): v is object =>
 function imageRoute<P extends { ext: SupportedFormat }>(
     app: Hono,
     path: string,
-    { cacheControl, crs: catalog }: RouteOptions,
+    {
+        cacheControl,
+        crs: catalog,
+        maxRenders = Number.POSITIVE_INFINITY,
+        renders,
+    }: RouteOptions & { renders: { count: number } },
     failure: string,
     parse: (c: Context, crs: Crs | undefined) => P | Response,
     render: (
@@ -70,6 +77,13 @@ function imageRoute<P extends { ext: SupportedFormat }>(
         }
         const params = parse(c, crs);
         if (params instanceof Response) return params;
+        // Shed load rather than queue without bound: waiting requests hold memory and sockets, and
+        // would answer too late anyway.
+        if (renders.count >= maxRenders)
+            return c.text('too many renders in progress', 503, {
+                'Retry-After': '1',
+            });
+        renders.count++;
         try {
             const image = await encode(
                 await render({ ...params, stylejson: input.stylejson }, crs),
@@ -102,6 +116,8 @@ function imageRoute<P extends { ext: SupportedFormat }>(
                 error: e,
             });
             return c.text(failure, 500);
+        } finally {
+            renders.count--;
         }
     };
     app.get(path, (c) =>
@@ -163,7 +179,9 @@ function filename(
     return { name, pixelRatio, ext };
 }
 
-function registerRoutes(app: Hono, options: RouteOptions) {
+function registerRoutes(app: Hono, routeOptions: RouteOptions) {
+    // one count for every image route
+    const options = { ...routeOptions, renders: { count: 0 } };
     const chiitiler = new Chiitiler(options);
     // CRS definitions, for clients showing the tiles (MapLibre GL JS's addProjection takes the grid)
     app.get('/crs', async (c) => {

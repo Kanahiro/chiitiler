@@ -123,6 +123,8 @@ function readConfig(env: Env = process.env): Config {
         debug: boolean(env, 'CHIITILER_DEBUG'),
         processes: processes === 0 ? availableParallelism() : processes,
         maxSize: integer(env, 'CHIITILER_MAX_SIZE', 4096, 1),
+        // 0: no limit
+        maxRenders: integer(env, 'CHIITILER_MAX_RENDERS', 64, 0) || undefined,
         cacheControl: read(env, 'CHIITILER_CACHE_CONTROL'),
         crs: readCrs(env),
         corsOrigins: read(env, 'CHIITILER_CORS')
