@@ -542,9 +542,9 @@ describe('initServer', () => {
             cache: cache.noneCache(),
             debug: false,
         });
-        // ~15,000 circles: about 100 ms of drawing per tile
-        const url = `file://${process.cwd()}/tests/fixtures/bench-style.json`;
-        const path = `/tiles/5/28/12.png?url=${encodeURIComponent(url)}`;
+        // a dense city tile with labels: tens of ms of drawing
+        const url = `file://${process.cwd()}/tests/fixtures/bench/style.json`;
+        const path = `/tiles/12/2175/1492.png?url=${encodeURIComponent(url)}`;
         expect((await app.request(path)).status).toBe(200); // load resources
         let last = performance.now();
         let longest = 0;

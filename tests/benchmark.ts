@@ -1,11 +1,16 @@
-// Tile-rendering throughput over HTTP, measured with autocannon.
+// Rendering throughput over HTTP, measured with autocannon.
 //
 //   pnpm test:benchmark               this checkout only
 //   pnpm test:benchmark <checkout>    paired comparison: <checkout> (baseline) vs this one
 //
-// Each checkout's own src/ and node_modules serve one process with the source cache
-// off; fixtures (tests/fixtures/bench-style.json, local files only) come from this
-// checkout, so both sides render the same thing with no network I/O.
+// Fixture (tests/fixtures/bench/): an OSM extract of Florence (Protomaps basemap,
+// ODbL, from the PMTiles spec samples), the protomaps-themes-base 3.1.0 "light" style
+// (fills, lines and labels) and its Noto Sans (OFL) Latin glyphs from protomaps/basemaps-assets,
+// all local files: no network I/O.
+// Tile scenarios cycle through every z12-z15 tile of the extract.
+// Each checkout's own src/ and node_modules serve one process with no source cache
+// (the in-process front cache still holds recently read bytes); fixtures and crs/
+// come from this checkout, so both sides render the same thing.
 // Both servers run side by side and every scenario is measured back to back,
 // alternating which side goes first each round, so runner drift hits both equally.
 // Shared CI runners are noisy: a Δ of a few % is noise, so rerun before trusting it.
@@ -26,15 +31,42 @@ const DURATION = Number(process.env.CHIITILER_BENCH_DURATION ?? 5);
 const ROUNDS = Number(process.env.CHIITILER_BENCH_ROUNDS ?? 3);
 const WARMUP = Number(process.env.CHIITILER_BENCH_WARMUP ?? 2);
 
-const style = `url=${encodeURIComponent(pathToFileURL(path.resolve('tests/fixtures/bench-style.json')).href)}`;
+const style = `url=${encodeURIComponent(pathToFileURL(path.resolve('tests/fixtures/bench/style.json')).href)}`;
+
+// Every z12-z15 tile over the extract's bounds.
+const [W, S, E, N] = [11.221144, 43.745121, 11.287543, 43.789306];
+const tiles: string[] = [];
+for (let z = 12; z <= 15; z++) {
+    const n = 2 ** z;
+    const tx = (lon: number) => Math.floor(((lon + 180) / 360) * n);
+    const ty = (lat: number) => {
+        const r = (lat * Math.PI) / 180;
+        return Math.floor(
+            ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n,
+        );
+    };
+    for (let x = tx(W); x <= tx(E); x++)
+        for (let y = ty(N); y <= ty(S); y++) tiles.push(`${z}/${x}/${y}`);
+}
+const tilePaths = (ext: string, query = '') =>
+    tiles.map((t) => `/tiles/${t}.${ext}?${style}${query}`);
+
 const scenarios = [
-    { name: 'png', path: `/tiles/5/28/12.png?${style}`, connections: 1 },
-    { name: 'png c=10', path: `/tiles/5/28/12.png?${style}`, connections: 10 },
-    { name: 'webp', path: `/tiles/5/28/12.webp?${style}`, connections: 1 },
-    { name: 'jpeg', path: `/tiles/5/28/12.jpeg?${style}`, connections: 1 },
+    { name: 'png', paths: tilePaths('png'), connections: 1 },
+    { name: 'png c=10', paths: tilePaths('png'), connections: 10 },
+    { name: 'webp', paths: tilePaths('webp'), connections: 1 },
+    { name: 'avif', paths: tilePaths('avif'), connections: 1 },
     {
-        name: 'png tileSize=1024',
-        path: `/tiles/5/28/12.png?${style}&tileSize=1024`,
+        // LAEA Europe tiles over the extract: reprojected rendering
+        name: 'png crs=EPSG-3035',
+        paths: ['1173/1200', '1173/1201', '1174/1200', '1174/1201'].map(
+            (xy) => `/tiles/11/${xy}.png?${style}&crs=EPSG-3035`,
+        ),
+        connections: 1,
+    },
+    {
+        name: 'view 1024x1024 png',
+        paths: [`/view/14/43.7696/11.2558/0/1024x1024.png?${style}`],
         connections: 1,
     },
 ];
@@ -79,6 +111,7 @@ async function start(label: string, dir: string): Promise<Server> {
                 ...process.env,
                 CHIITILER_PORT: String(port),
                 CHIITILER_CACHE_METHOD: 'none',
+                CHIITILER_CRS_DIR: path.resolve('crs'),
                 CHIITILER_PROCESSES: '1',
             },
             stdio: ['ignore', 'ignore', 'inherit'],
@@ -103,7 +136,8 @@ async function measure(
     duration: number,
 ): Promise<Sample> {
     const r = await autocannon({
-        url: server.url + scenario.path,
+        url: server.url,
+        requests: scenario.paths.map((path) => ({ path })),
         connections: scenario.connections,
         duration,
         timeout: 30,
@@ -118,7 +152,7 @@ async function measure(
 // The served image must be the real thing, not an error page.
 async function preflight(server: Server) {
     for (const s of scenarios) {
-        const res = await fetch(server.url + s.path);
+        const res = await fetch(server.url + s.paths[0]);
         const type = res.headers.get('content-type') ?? '';
         if (!res.ok || !type.startsWith('image/'))
             throw new Error(

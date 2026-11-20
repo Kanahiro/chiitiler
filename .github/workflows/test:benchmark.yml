@@ -12,6 +12,7 @@ on:
             - "src/**"
             - "tests/benchmark.ts"
             - "tests/fixtures/**"
+            - "crs/**"
             - "package.json"
             - "pnpm-lock.yaml"
             - ".github/workflows/test:benchmark.yml"
