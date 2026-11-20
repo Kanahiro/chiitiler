@@ -62,10 +62,15 @@ export interface RenderedImage {
     data: Uint8Array<ArrayBuffer>;
     /** Encoders run on libuv's thread pool. */
     toPng(): Promise<Uint8Array<ArrayBuffer>>;
-    /** Lossless. */
-    toWebp(): Promise<Uint8Array<ArrayBuffer>>;
+    /**
+     * Lossy at `quality` below 100 (alpha stays lossless) with `@napi-rs/image` installed;
+     * lossless otherwise.
+     */
+    toWebp(quality: number): Promise<Uint8Array<ArrayBuffer>>;
     /** `quality` 1–100, flattened over black. */
     toJpeg(quality: number): Promise<Uint8Array<ArrayBuffer>>;
+    /** `quality` 0–100, full (4:4:4) chroma. Throws without `@napi-rs/image`. */
+    toAvif(quality: number): Promise<Uint8Array<ArrayBuffer>>;
 }
 
 /** Style Spec layers supported by the 2D renderer. */
@@ -437,6 +442,20 @@ async function drawProjected(
     }
 }
 
+type NapiImage = typeof import('@napi-rs/image');
+let napiImage: Promise<NapiImage | null> | undefined;
+/** `@napi-rs/image`, an optional peer dependency for lossy WebP and AVIF: loaded on first use, null if absent. */
+function loadNapiImage(): Promise<NapiImage | null> {
+    napiImage ??= import('@napi-rs/image').catch(() => null);
+    return napiImage;
+}
+let warnedLossless = false;
+
+function checkQuality(quality: number): void {
+    if (!Number.isFinite(quality))
+        throw new RangeError('quality must be finite');
+}
+
 /** `width` device pixels wide; the height follows from the bytes (tiles of a grid need not be square). */
 function image(data: Bytes, width: number): RenderedImage {
     const height = data.length / 4 / width;
@@ -445,12 +464,48 @@ function image(data: Bytes, width: number): RenderedImage {
         height,
         data,
         toPng: () => encodePng(data, width, height) as Promise<Bytes>,
-        toWebp: () => encodeWebp(data, width, height) as Promise<Bytes>,
+        toWebp: async (quality) => {
+            checkQuality(quality);
+            const napi = quality < 100 ? await loadNapiImage() : null;
+            if (!napi) {
+                if (quality < 100 && !warnedLossless) {
+                    warnedLossless = true;
+                    console.warn(
+                        'lossy WebP needs @napi-rs/image: install it. Encoding lossless WebP instead.',
+                    );
+                }
+                return encodeWebp(data, width, height) as Promise<Bytes>;
+            }
+            const webp = await napi.Transformer.fromRgbaPixels(
+                data,
+                width,
+                height,
+            ).webp(Math.max(0, quality));
+            return webp as Bytes;
+        },
         toJpeg: async (quality) => {
-            if (!Number.isFinite(quality))
-                throw new RangeError('quality must be finite');
+            checkQuality(quality);
             const q = Math.min(100, Math.max(1, Math.round(quality)));
             return encodeJpeg(data, width, height, q) as Promise<Bytes>;
+        },
+        toAvif: async (quality) => {
+            checkQuality(quality);
+            const napi = await loadNapiImage();
+            if (!napi) throw new Error('AVIF needs @napi-rs/image: install it');
+            // rav1e's fastest preset: the default (4) takes 20–30 times longer for a 20% smaller
+            // tile. Full chroma (the default): unlike lossy WebP's 4:2:0, it keeps thin colored
+            // lines sharp, and beats WebP at the same size from mid quality on. One thread, as
+            // encodes already run in parallel on libuv's thread pool.
+            const avif = await napi.Transformer.fromRgbaPixels(
+                data,
+                width,
+                height,
+            ).avif({
+                quality: Math.min(100, Math.max(0, quality)),
+                speed: 10,
+                threads: 1,
+            });
+            return avif as Bytes;
         },
     };
 }
