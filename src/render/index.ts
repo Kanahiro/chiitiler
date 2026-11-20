@@ -9,6 +9,7 @@ import {
     type RenderedImage,
 } from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
+import { log } from '../log.js';
 import { getSource, type Protocols } from '../source/index.js';
 
 type SupportedFormat = 'png' | 'jpeg' | 'jpg' | 'webp' | 'avif';
@@ -107,6 +108,27 @@ function encode(
 }
 
 /**
+ * `cache` whose writes never reject: sources store without awaiting, and a failed write (a cache
+ * that is down) must cost a cache miss, not an unhandled rejection that exits the process.
+ */
+function loggingWrites(cache: Cache): Cache {
+    return {
+        ...cache,
+        set: async (key, value) => {
+            try {
+                await cache.set(key, value);
+            } catch (error) {
+                log('WARNING', 'cache write failed', {
+                    cache: cache.name,
+                    error,
+                });
+            }
+        },
+        front: cache.front && loggingWrites(cache.front),
+    };
+}
+
+/**
  * Renders any number of styles, fetching their sources through one cache and set of protocols.
  * Renderers of recently used styles are kept with their decoded tiles, glyphs and sprites: create
  * one instance and render every style with it.
@@ -126,7 +148,7 @@ class Chiitiler {
     });
 
     constructor({ cache, protocols, maxSize }: ChiitilerOptions) {
-        this.cache = cache;
+        this.cache = loggingWrites(cache);
         this.protocols = protocols;
         this.maxSize = maxSize ?? DEFAULT_MAX_SIZE;
     }

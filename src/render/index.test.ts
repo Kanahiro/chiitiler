@@ -195,3 +195,33 @@ describe('preset CRSs', () => {
         }
     });
 });
+
+describe('cache writes', () => {
+    it('a cache that rejects writes costs a warning, not the process', async () => {
+        const body = await tile('5/28/12.pbf');
+        vi.stubGlobal('fetch', async () => new Response(body));
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const chiitiler = new Chiitiler({
+            cache: {
+                get: async () => undefined,
+                set: async () => {
+                    throw new Error('cache down');
+                },
+            },
+        });
+        await chiitiler.renderTile({
+            stylejson: circles('https://example.com/{z}/{x}/{y}.pbf'),
+            z: 5,
+            x: 28,
+            y: 12,
+            tileSize: 256,
+            margin: 0,
+        });
+        // the write is not awaited by the source: let it settle
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        expect(error).toHaveBeenCalledWith(
+            expect.stringContaining('cache write failed'),
+        );
+        error.mockRestore();
+    });
+});

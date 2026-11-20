@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import type { Cache, Value } from './index.js';
-import { log } from '../log.js';
 import { getStorage } from '../gcs.js';
 import type { File } from '@google-cloud/storage';
 
@@ -33,18 +32,8 @@ function gcsCache(options: GCSCacheOptions): Cache {
     return {
         name: 'gcs',
         set: async (key: string, value: Value) => {
-            try {
-                const file = await bucketFile(key);
-                await file.save(value, {
-                    resumable: false,
-                });
-            } catch (e) {
-                // a cache that cannot be written still serves: warn, do not fail
-                log('WARNING', 'cache write failed', {
-                    cache: 'gcs',
-                    error: e,
-                });
-            }
+            const file = await bucketFile(key);
+            await file.save(value, { resumable: false });
         },
         get: async (key: string): Promise<Value | undefined> => {
             try {

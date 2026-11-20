@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 
 import type { Cache, Value } from './index.js';
-import { log } from '../log.js';
 import { getS3 } from '../s3.js';
 
 type S3CacheOptions = {
@@ -20,18 +19,13 @@ function s3Cache(options: S3CacheOptions): Cache {
     return {
         name: 's3',
         set: async (key: string, value: Value) => {
-            try {
-                const { client, sdk } = await s3();
-                const cmd = new sdk.PutObjectCommand({
-                    Bucket: options.bucket,
-                    Key: objectName(key),
-                    Body: value,
-                });
-                await client.send(cmd);
-            } catch (e) {
-                // a cache that cannot be written still serves: warn, do not fail
-                log('WARNING', 'cache write failed', { cache: 's3', error: e });
-            }
+            const { client, sdk } = await s3();
+            const cmd = new sdk.PutObjectCommand({
+                Bucket: options.bucket,
+                Key: objectName(key),
+                Body: value,
+            });
+            await client.send(cmd);
         },
         get: async (key: string): Promise<Value | undefined> => {
             try {

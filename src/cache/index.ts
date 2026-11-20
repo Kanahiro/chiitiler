@@ -18,7 +18,7 @@ type Cache = {
     name?: string;
     /** The bytes stored under `key`, or undefined for a miss. */
     get: (key: string) => Promise<Value | undefined>;
-    /** Store `value` under `key`. Rejections are logged by the built-in caches; yours may throw. */
+    /** Store `value` under `key`. It may reject: `Chiitiler` logs the failure and carries on. */
     set: (key: string, value: Value) => Promise<void>;
     /** Short-lived in-process layer (set by withFrontCache), applied to every source. */
     front?: Cache;

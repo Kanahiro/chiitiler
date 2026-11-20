@@ -10,7 +10,6 @@ import {
 import { join } from 'node:path';
 
 import type { Cache, Value } from './index.js';
-import { log } from '../log.js';
 
 type fileCacheOptions = {
     dir: string;
@@ -35,11 +34,8 @@ const fileCache: (options: fileCacheOptions) => Cache = ({ dir, ttl }) => {
                 await writeFile(temporary, value);
                 await rename(temporary, file);
             } catch (e) {
-                log('WARNING', 'cache write failed', {
-                    cache: 'file',
-                    error: e,
-                });
                 await unlink(temporary).catch(() => {});
+                throw e;
             }
         },
         get: async (key: string): Promise<Value | undefined> => {
