@@ -22,6 +22,8 @@ type ChiitilerOptions = {
     protocols?: Protocols;
     /** The largest image side in pixels, tile margins included. Default: 4096. */
     maxSize?: number;
+    /** Renders of a style drawn in parallel. Default: `CONCURRENCY`, libuv's thread pool size. */
+    concurrency?: number;
 };
 
 type RenderTileOptions = {
@@ -96,6 +98,9 @@ function encode(
     }
 }
 
+const hash = (text: string) =>
+    createHash('sha256').update(text).digest('base64url');
+
 /**
  * `cache` whose writes never reject: sources store without awaiting, and a failed write (a cache
  * that is down) must cost a cache miss, not an unhandled rejection that exits the process.
@@ -126,9 +131,10 @@ class Chiitiler {
     private readonly cache: Cache;
     private readonly protocols?: Protocols;
     private readonly maxSize: number;
+    private readonly concurrency: number;
     private readonly styles = new LRUCache<
         string,
-        { text: string; style: StyleSpecification; loadedAt: number }
+        { key: string; style: StyleSpecification; loadedAt: number }
     >({ max: 5 });
     // Each renderer keeps decoded tiles, glyphs and sprites for a few minutes
     // (ml2drender's default), so styles are reused.
@@ -136,10 +142,11 @@ class Chiitiler {
         max: 10,
     });
 
-    constructor({ cache, protocols, maxSize }: ChiitilerOptions) {
+    constructor({ cache, protocols, maxSize, concurrency }: ChiitilerOptions) {
         this.cache = loggingWrites(cache);
         this.protocols = protocols;
         this.maxSize = maxSize ?? DEFAULT_MAX_SIZE;
+        this.concurrency = concurrency ?? CONCURRENCY;
     }
 
     /** Render a slippy-map tile. */
@@ -265,12 +272,16 @@ class Chiitiler {
             );
     }
 
-    /** The style, and its JSON text (renderers are keyed by its hash). */
+    /**
+     * The style, and the hash of its JSON text its renderer is keyed by: concurrent and repeated reads
+     * of a style parse to distinct objects, but must share one renderer and its decoded resources.
+     * A hash keeps large inline styles out of keys.
+     */
     private async loadStyle(
         stylejson: string | StyleSpecification,
-    ): Promise<{ style: StyleSpecification; text: string }> {
+    ): Promise<{ style: StyleSpecification; key: string }> {
         if (typeof stylejson !== 'string')
-            return { style: stylejson, text: JSON.stringify(stylejson) };
+            return { style: stylejson, key: hash(JSON.stringify(stylejson)) };
         const cached = this.styles.get(stylejson);
         const now = performance.now();
         if (cached !== undefined && now - cached.loadedAt < STYLE_TTL_MS)
@@ -286,21 +297,20 @@ class Chiitiler {
         if (bytes === null) throw new Error('style not found');
         const text = new TextDecoder().decode(bytes);
         const style: StyleSpecification = JSON.parse(text);
-        this.styles.set(stylejson, { text, style, loadedAt: now });
-        return { style, text };
+        // Hashed once per read, not per render: a style can be tens of KB.
+        const key = hash(text);
+        this.styles.set(stylejson, { key, style, loadedAt: now });
+        return { style, key };
     }
 
     private async renderer(
         stylejson: string | StyleSpecification,
     ): Promise<MapRenderer> {
-        const { style, text } = await this.loadStyle(stylejson);
-        // By content: concurrent and repeated reads of a style parse to distinct objects, but must
-        // share one renderer and its decoded resources. A hash keeps large inline styles out of keys.
-        const key = createHash('sha256').update(text).digest('base64url');
+        const { style, key } = await this.loadStyle(stylejson);
         let renderer = this.renderers.get(key);
         if (renderer === undefined) {
             renderer = MapRenderer.init(style, {
-                concurrency: CONCURRENCY,
+                concurrency: this.concurrency,
                 // null = 404 (empty vector tile, missing raster); errors fail the render
                 loadResource: async (url) => {
                     let buf: Uint8Array | null;

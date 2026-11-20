@@ -18,8 +18,8 @@ type Bbox = [number, number, number, number];
 const MAX_LAT = 85.0511287798066;
 const WORLD: Bbox = [-180, -MAX_LAT, 180, MAX_LAT];
 const FORMATS = ['png', 'jpeg', 'jpg', 'webp', 'avif'];
-/** Tiles in flight: the renderer draws CONCURRENCY at a time, the rest wait fetched and ready. */
-const IN_FLIGHT = 2 * CONCURRENCY;
+/** Side of a block of tiles rendered by one renderer: the children of a tile 4 zooms up. */
+const BLOCK = 16;
 
 const USAGE = `usage: chiitiler generate-tile --style <url|path> --output <file.mbtiles> --maxzoom <z>
     [--minzoom 0] [--bbox minLon,minLat,maxLon,maxLat] [--ext png] [--tile-size 512] [--quality 100] [--margin 0] [--force]`;
@@ -37,6 +37,29 @@ function tileRange([w, s, e, n]: Bbox, z: number): Bbox {
         );
     };
     return [x(w), y(n), x(e), y(s)];
+}
+
+/**
+ * The tiles of zoom `z` in `bbox` by blocks of up to BLOCK × BLOCK (the children of one tile), smaller
+ * where a zoom has too few blocks to keep `lanes` busy.
+ */
+function* blocks(bbox: Bbox, z: number, lanes: number) {
+    const [minX, minY, maxX, maxY] = tileRange(bbox, z);
+    const count = (side: number) =>
+        (Math.floor(maxX / side) - Math.floor(minX / side) + 1) *
+        (Math.floor(maxY / side) - Math.floor(minY / side) + 1);
+    let side = BLOCK;
+    while (side > 1 && count(side) < 2 * lanes) side /= 2;
+    for (let bx = minX - (minX % side); bx <= maxX; bx += side)
+        for (let by = minY - (minY % side); by <= maxY; by += side) {
+            const block = [];
+            const lastX = Math.min(bx + side - 1, maxX);
+            const lastY = Math.min(by + side - 1, maxY);
+            for (let x = Math.max(bx, minX); x <= lastX; x++)
+                for (let y = Math.max(by, minY); y <= lastY; y++)
+                    block.push({ x, y });
+            yield block;
+        }
 }
 
 function int(name: string, value: string, min: number, max = Infinity) {
@@ -98,8 +121,13 @@ function readArgs(args: string[]) {
 async function generateTile(args: string[], cache: Cache) {
     const { output, force, ...options } = readArgs(args);
     const { bbox, minzoom, maxzoom, ext, quality, ...render } = options;
+    // A renderer per lane, each fed whole blocks: neighboring tiles share source tiles (all 16×16
+    // of a block overzoomed from one), which its renderer then decodes once, not every renderer.
     // No requests to guard against here: any size the machine can draw.
-    const chiitiler = new Chiitiler({ cache, maxSize: Infinity });
+    const lanes = Array.from(
+        { length: CONCURRENCY },
+        () => new Chiitiler({ cache, maxSize: Infinity, concurrency: 1 }),
+    );
 
     if (force)
         for (const file of [output, `${output}-wal`, `${output}-shm`])
@@ -151,55 +179,75 @@ async function generateTile(args: string[], cache: Cache) {
             db.exec('COMMIT');
         }
 
-        // Every tile commits on its own, so an interrupted run keeps what it wrote.
-        db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
+        // Commits block the JS thread every render waits on: tiles commit once a second, without
+        // fsync and without WAL (which writes every tile twice). A stopped or failed run keeps what it
+        // wrote; a killed one loses its last second; a power loss may corrupt the file (--force).
+        db.exec(
+            'PRAGMA journal_mode = DELETE; PRAGMA synchronous = OFF; BEGIN',
+        );
+        let committed = performance.now();
 
         const exists = db.prepare(
             'SELECT 1 FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
         );
         const insert = db.prepare('INSERT INTO tiles VALUES (?, ?, ?, ?)');
         let skipped = 0;
-        function* tiles() {
-            for (let z = minzoom; z <= maxzoom; z++) {
-                const [minX, minY, maxX, maxY] = tileRange(bbox, z);
-                for (let x = minX; x <= maxX; x++)
-                    for (let y = minY; y <= maxY; y++) {
+        function* queued() {
+            for (let z = minzoom; z <= maxzoom; z++)
+                for (const block of blocks(bbox, z, lanes.length)) {
+                    const todo = [];
+                    for (const { x, y } of block) {
                         const row = 2 ** z - 1 - y; // MBTiles rows are TMS
                         if (exists.get(z, x, row)) skipped++;
-                        else yield { z, x, y, row };
+                        else todo.push({ z, x, y, row });
                     }
-            }
+                    if (todo.length > 0) yield todo;
+                }
         }
 
-        const queue = tiles();
+        const queue = queued();
         let done = 0;
-        // Workers share one iterator, so each tile is taken once.
+        // Lanes share one iterator, so each block is taken once.
         await Promise.all(
-            Array.from({ length: IN_FLIGHT }, async () => {
-                for (const { z, x, y, row } of queue) {
-                    if (stopping) break;
-                    const image = await chiitiler.renderTile({
-                        ...render,
-                        z,
-                        x,
-                        y,
-                    });
-                    const data = await encode(image, ext, quality);
-                    insert.run(z, x, row, data);
-                    if (++done % 1000 === 0) console.error(`${done} tiles`);
+            lanes.map(async (chiitiler) => {
+                for (const block of queue) {
+                    const tiles = block.values();
+                    // Two in flight: one tile's sources load while the other draws.
+                    await Promise.all(
+                        [0, 1].map(async () => {
+                            for (const { z, x, y, row } of tiles) {
+                                if (stopping) return;
+                                const image = await chiitiler.renderTile({
+                                    ...render,
+                                    z,
+                                    x,
+                                    y,
+                                });
+                                const data = await encode(image, ext, quality);
+                                insert.run(z, x, row, data);
+                                if (performance.now() - committed > 1000) {
+                                    db.exec('COMMIT; BEGIN');
+                                    committed = performance.now();
+                                }
+                                if (++done % 1000 === 0)
+                                    console.error(`${done} tiles`);
+                            }
+                        }),
+                    );
+                    if (stopping) return;
                 }
             }),
         );
-        // A finished file is a single file again, readable read-only.
-        db.exec('PRAGMA journal_mode = DELETE');
+        db.exec('COMMIT');
         console.error(
             `${done} tiles written to ${output}${skipped ? ` (${skipped} already there)` : ''}${stopping ? ': stopped, run again to resume' : ''}`,
         );
         if (stopping) process.exitCode = 130;
     } finally {
         process.off('SIGINT', stop).off('SIGTERM', stop);
+        if (db.isTransaction) db.exec('COMMIT');
         db.close();
     }
 }
 
-export { generateTile, tileRange };
+export { blocks, generateTile, tileRange };
