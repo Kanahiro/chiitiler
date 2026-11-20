@@ -76,6 +76,12 @@ describe('getHttpSource', () => {
         );
     });
 
+    it('times out: an upstream that never answers must not stall renders', async () => {
+        const fetchSpy = mockFetch(new Response('x'));
+        await getHttpSource('https://example.com/a.webp');
+        expect(fetchSpy.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    });
+
     it('keeps the query (credentials) out of errors', async () => {
         mockFetch(new Response('', { status: 503 }));
         const error = await getHttpSource(

@@ -4,6 +4,12 @@
 import { type Cache, noneCache } from '../cache/index.js';
 import { getUserAgent } from './userAgent.js';
 
+/**
+ * How long a fetch may take, body included. Renderers fetch inside their render queue: one upstream
+ * that never answers would otherwise stall every render queued behind it (undici waits 300 s).
+ */
+const FETCH_TIMEOUT_MS = 30_000;
+
 async function getHttpSource(
     uri: string,
     cache: Cache = noneCache(),
@@ -19,6 +25,7 @@ async function getHttpSource(
         const userAgent = getUserAgent();
         res = await fetch(uri, {
             headers: userAgent ? { 'User-Agent': userAgent } : undefined,
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
     } catch (e) {
         // ネットワークエラー: タイルの有無が不明なまま透明タイルを返すと
@@ -41,4 +48,4 @@ async function getHttpSource(
     return buf;
 }
 
-export { getHttpSource };
+export { FETCH_TIMEOUT_MS, getHttpSource };

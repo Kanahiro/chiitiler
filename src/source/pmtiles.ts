@@ -13,6 +13,7 @@ import { LRUCache } from 'lru-cache';
 import { getS3 } from '../s3.js';
 import { type Cache, noneCache } from '../cache/index.js';
 import { getUserAgent } from './userAgent.js';
+import { FETCH_TIMEOUT_MS } from './http.js';
 
 const pmtilesCache = new LRUCache<string, PMTiles>({
     max: 50,
@@ -145,7 +146,12 @@ async function getPmtilesSource(
 
     const [z, x, y] = uri.replace(`pmtiles://${pmtilesUri}/`, '').split('/');
     const tile = await pmtiles
-        .getZxy(Number(z), Number(x), Number(y))
+        .getZxy(
+            Number(z),
+            Number(x),
+            Number(y),
+            isHttpSource ? AbortSignal.timeout(FETCH_TIMEOUT_MS) : undefined,
+        )
         .catch((err) => {
             // SharedPromiseCache retains rejected metadata promises. Rebuild after a
             // failure, without evicting a replacement created by a newer request.
