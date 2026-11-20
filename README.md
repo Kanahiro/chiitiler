@@ -524,24 +524,39 @@ their resources (`loadResource`) through chiitiler's sources and cache.
 ## Architecture
 
 ```mermaid
-graph LR
-    subgraph sources
-        direction LR
-        A[style.json]
-        B[z/x/y.pbf]
-        C[z/x/y.png/webp/jpg]
-        D[sprite]
-        E[glyphs]
-    end
+sequenceDiagram
+    participant C as Client
+    participant S as server
+    participant R as render
+    participant M as memory cache<br/>(short-lived, all sources)
+    participant B as persistent cache<br/>(file / s3 / gcs)
+    participant O as sources
 
-    subgraph chiitiler
-        cache
-        render
-        server
+    C->>S: GET /tiles/z/x/y.png
+    S->>R: render request
+    loop for each style / pbf / sprite / glyphs
+        R->>M: get
+        alt hit
+            M-->>R: data
+        else miss
+            alt http(s) source
+                R->>B: get
+                alt hit
+                    B-->>R: data
+                else miss
+                    R->>O: fetch
+                    O-->>R: data
+                    R->>B: set
+                end
+            else file / s3 / gs / mbtiles / pmtiles
+                R->>O: read directly
+                O-->>R: data
+            end
+            R->>M: set
+        end
     end
-
-    sources --> cache --> render --> server --/tiles/z/x/y--> png/webp/jpg
-    cache <--get/set--> file/s3/gcs
+    R-->>S: png / webp / jpg
+    S-->>C: image (rendered images are not cached)
 ```
 
 ## Credits
