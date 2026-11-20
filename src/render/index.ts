@@ -1,4 +1,5 @@
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
+import { createHash } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { LRUCache } from 'lru-cache';
 
@@ -55,18 +56,6 @@ type RenderViewOptions = {
 };
 
 const DEFAULT_MAX_SIZE = 4096;
-
-const ids = new WeakMap<object, number>();
-let lastId = 0;
-/** A number for `o` by identity. */
-function idOf(o: object): number {
-    let n = ids.get(o);
-    if (n === undefined) {
-        n = ++lastId;
-        ids.set(o, n);
-    }
-    return n;
-}
 
 /** How long a style read from a URL is used before it is read again. */
 const STYLE_TTL_MS = 60_000;
@@ -274,14 +263,16 @@ class Chiitiler {
             );
     }
 
+    /** The style, and its JSON text (renderers are keyed by its hash). */
     private async loadStyle(
         stylejson: string | StyleSpecification,
-    ): Promise<StyleSpecification> {
-        if (typeof stylejson !== 'string') return stylejson;
+    ): Promise<{ style: StyleSpecification; text: string }> {
+        if (typeof stylejson !== 'string')
+            return { style: stylejson, text: JSON.stringify(stylejson) };
         const cached = this.styles.get(stylejson);
         const now = performance.now();
         if (cached !== undefined && now - cached.loadedAt < STYLE_TTL_MS)
-            return cached.style;
+            return cached;
         // Styles change upstream: read them past the backing cache (which may never expire them),
         // through the short-lived front cache only.
         const frontOnly: Cache = {
@@ -292,25 +283,18 @@ class Chiitiler {
         const bytes = await getSource(stylejson, frontOnly, this.protocols);
         if (bytes === null) throw new Error('style not found');
         const text = new TextDecoder().decode(bytes);
-        // An unchanged style keeps its object, and with it its renderer and their decoded resources.
-        if (cached !== undefined && cached.text === text) {
-            cached.loadedAt = now;
-            return cached.style;
-        }
         const style: StyleSpecification = JSON.parse(text);
         this.styles.set(stylejson, { text, style, loadedAt: now });
-        return style;
+        return { style, text };
     }
 
     private async renderer(
         stylejson: string | StyleSpecification,
     ): Promise<MapRenderer> {
-        const style = await this.loadStyle(stylejson);
-        // A style read from a URL is one object until it changes, cheaper to key by than its JSON.
-        const key =
-            typeof stylejson === 'string'
-                ? `url:${idOf(style)}`
-                : `json:${JSON.stringify(style)}`;
+        const { style, text } = await this.loadStyle(stylejson);
+        // By content: concurrent and repeated reads of a style parse to distinct objects, but must
+        // share one renderer and its decoded resources. A hash keeps large inline styles out of keys.
+        const key = createHash('sha256').update(text).digest('base64url');
         let renderer = this.renderers.get(key);
         if (renderer === undefined) {
             renderer = MapRenderer.init(style, {

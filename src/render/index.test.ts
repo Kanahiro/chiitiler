@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import { Chiitiler, encode } from './index.js';
+import { MapRenderer } from './ml2drender.js';
 import type { Cache } from '../cache/index.js';
 import type { Protocols } from '../source/index.js';
 
@@ -223,5 +224,55 @@ describe('cache writes', () => {
             expect.stringContaining('cache write failed'),
         );
         error.mockRestore();
+    });
+});
+
+describe('renderers', () => {
+    const background = JSON.stringify({
+        version: 8,
+        sources: {},
+        layers: [{ id: 'bg', type: 'background' }],
+    });
+    const render = (chiitiler: Chiitiler, stylejson: string) =>
+        chiitiler.renderTile({
+            stylejson,
+            z: 0,
+            x: 0,
+            y: 0,
+            tileSize: 256,
+            margin: 0,
+        });
+
+    it('concurrent requests for a URL style share one renderer', async () => {
+        const init = vi.spyOn(MapRenderer, 'init');
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+            protocols: {
+                test: async () => new TextEncoder().encode(background),
+            },
+        });
+        await Promise.all(
+            Array.from({ length: 12 }, () =>
+                render(chiitiler, 'test://a.json'),
+            ),
+        );
+        expect(init).toHaveBeenCalledTimes(1);
+        init.mockRestore();
+    });
+
+    it('a URL style read again, unchanged, keeps its renderer', async () => {
+        const init = vi.spyOn(MapRenderer, 'init');
+        const chiitiler = new Chiitiler({
+            cache: { get: async () => undefined, set: async () => {} },
+            protocols: {
+                test: async () => new TextEncoder().encode(background),
+            },
+        });
+        // more URLs than the style LRU keeps: each is read again on its second round
+        const urls = Array.from({ length: 6 }, (_, i) => `test://${i}.json`);
+        for (const round of [1, 2])
+            for (const url of urls) await render(chiitiler, url);
+        expect(init).toHaveBeenCalledTimes(1);
+        init.mockRestore();
     });
 });
