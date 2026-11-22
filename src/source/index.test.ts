@@ -73,6 +73,15 @@ describe('getSource', () => {
         expect(data).toBeNull();
     });
 
+    it('keeps a missing resource in the front cache', async () => {
+        const load = vi.fn(async () => null);
+        const cache = withFrontCache(noneCache());
+        const protocols = { miss: load };
+        expect(await getSource('miss://a', cache, protocols)).toBeNull();
+        expect(await getSource('miss://a', cache, protocols)).toBeNull();
+        expect(load).toHaveBeenCalledTimes(1);
+    });
+
     it('single-flight: concurrent requests for the same uri share one fetch', async () => {
         const uri = 'https://demotiles.maplibre.org/style.json';
         const fetchSpy = vi.spyOn(globalThis, 'fetch');

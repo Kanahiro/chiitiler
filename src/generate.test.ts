@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { execFileSync } from 'node:child_process';
 import {
     existsSync,
     mkdtempSync,
@@ -201,6 +202,46 @@ describe('generateTile', () => {
                 ),
             ).rejects.toThrow('not generated with these options');
             expect(readFileSync(output, 'utf8')).toBe('mine');
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('draws in renderer processes', () => {
+        const { dir, style, output } = tmp();
+        // The CLI: renderer processes are cluster workers of its entry.
+        const cli = (styleArg: string) =>
+            execFileSync(
+                process.execPath,
+                [
+                    '--import',
+                    'tsx',
+                    'src/main.ts',
+                    'generate-tile',
+                    '--style',
+                    styleArg,
+                    '-o',
+                    output,
+                    '--maxzoom',
+                    '3',
+                    '--force',
+                ],
+                {
+                    env: { ...process.env, CHIITILER_PROCESSES: '2' },
+                    stdio: 'pipe',
+                },
+            );
+        try {
+            cli(style);
+            const db = new DatabaseSync(output, { readOnly: true });
+            const { n } =
+                db.prepare('SELECT count(*) AS n FROM tiles').get() ?? {};
+            db.close();
+            expect(n).toBe(1 + 4 + 16 + 64);
+            // A renderer's failure fails the run.
+            expect(() => cli(join(dir, 'missing.json'))).toThrow(
+                'a renderer process failed',
+            );
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }

@@ -314,7 +314,18 @@ docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
 
 An interrupted or failed run keeps the tiles it wrote: run it again with the same options to resume, skipping them.
 An existing file generated with other options (or not by `generate-tile`) is left alone with an error; `--force` replaces it.
-Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …).
+Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …). To keep remote sources
+between runs (e.g. to resume, or to render more zooms later) in a file cache that does not expire:
+
+```bash
+docker run --rm -v "$PWD:/data" -w /data \
+  -e CHIITILER_CACHE_METHOD=file -e CHIITILER_FILECACHE_DIR=/data/.cache -e CHIITILER_CACHE_TTL_SEC=0 \
+  ghcr.io/kanahiro/chiitiler:latest \
+  /app/build/main.mjs generate-tile --style https://demotiles.maplibre.org/style.json --output out.mbtiles --maxzoom 8
+```
+
+Its front cache keeps sources for the run (`CHIITILER_FRONT_CACHE_TTL_SEC` defaults to a week here, within `CHIITILER_FRONT_CACHE_MAX_BYTES`), so each style, tile and glyph is fetched once.
+Tiles are drawn by `CHIITILER_PROCESSES` renderer processes (unset or `0`: one per 8 threads of `UV_THREADPOOL_SIZE`, which defaults to the CPU count), sharing the thread pool between them; the main process writes the file and fetches their `http(s)://` sources.
 
 ## Configuration
 
@@ -423,6 +434,7 @@ Whatever the method, each process also keeps what it reads in memory, for every 
 
 Set either to `0` to turn the front cache off. Entries live for the TTL from when they were read,
 even past their expiry in the cache method. With `none`, the front cache is the only cache.
+It also keeps missing resources (404s), so areas without data are not asked for again.
 
 #### Renderers and styles
 
