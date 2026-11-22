@@ -324,7 +324,6 @@ docker run --rm -v "$PWD:/data" -w /data \
   /app/build/main.mjs generate-tile --style https://demotiles.maplibre.org/style.json --output out.mbtiles --maxzoom 8
 ```
 
-Its front cache keeps sources for the run (`CHIITILER_FRONT_CACHE_TTL_SEC` defaults to a week here, within `CHIITILER_FRONT_CACHE_MAX_BYTES`), so each style, tile and glyph is fetched once.
 Tiles are drawn by `CHIITILER_PROCESSES` renderer processes (unset or `0`: one per 8 threads of `UV_THREADPOOL_SIZE`, which defaults to the CPU count), sharing the thread pool between them; the main process writes the file and fetches their `http(s)://` sources.
 
 ## Configuration

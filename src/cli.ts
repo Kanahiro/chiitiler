@@ -142,13 +142,7 @@ async function run(args: string[], env: Env = process.env) {
     if (args[0] === 'generate-tile')
         return generateTile(
             args.slice(1),
-            // A run reads each source again for every zoom: its front cache keeps them for a week
-            // (as its size allows), not seconds, unless set.
-            readCache({
-                ...env,
-                CHIITILER_FRONT_CACHE_TTL_SEC:
-                    read(env, 'CHIITILER_FRONT_CACHE_TTL_SEC') ?? '604800',
-            }),
+            readCache(env),
             // Unset: a process per 8 threads. Past that, one process's JS thread and thread-pool
             // queue (a lock every render takes, several times) bound how many cheap tiles it draws.
             integer(env, 'CHIITILER_PROCESSES', 0, 0) ||
