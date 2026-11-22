@@ -1,10 +1,14 @@
-import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
+import type {
+    LayerSpecification,
+    StyleSpecification,
+} from '@maplibre/maplibre-gl-style-spec';
 import { createHash } from 'node:crypto';
 import process from 'node:process';
 import { LRUCache } from 'lru-cache';
 
 import {
     type Crs,
+    defaultTransformLayers,
     image as rgba,
     MapRenderer,
     type RenderedImage,
@@ -24,6 +28,19 @@ type ChiitilerOptions = {
     maxSize?: number;
     /** Renders of a style drawn in parallel. Default: `CONCURRENCY`, libuv's thread pool size. */
     concurrency?: number;
+    /**
+     * Called for every layer of every style, in order, before it is rendered; the layer is
+     * replaced with the returned layers (`[]` drops it, several stand in for it). Each returned
+     * layer must be the given layer itself or one of a type the 2D renderer supports (all but
+     * fill-extrusion), or the render rejects.
+     *
+     * Default: `defaultTransformLayers`, which turns a fill-extrusion into a fill keeping its
+     * other properties (id, source, filter, zoom range, …) and visibility, whose `fill-color`,
+     * `fill-opacity`, `fill-pattern`, `fill-translate` and `fill-translate-anchor` (and their
+     * transitions) are the `fill-extrusion-*` ones (height and base are dropped), and keeps every
+     * other layer as is.
+     */
+    transformLayers?: (layer: LayerSpecification) => LayerSpecification[];
 };
 
 type RenderTileOptions = {
@@ -132,6 +149,7 @@ class Chiitiler {
     private readonly protocols?: Protocols;
     private readonly maxSize: number;
     private readonly concurrency: number;
+    private readonly transformLayers?: ChiitilerOptions['transformLayers'];
     private readonly styles = new LRUCache<
         string,
         { key: string; style: StyleSpecification; loadedAt: number }
@@ -142,11 +160,18 @@ class Chiitiler {
         max: 10,
     });
 
-    constructor({ cache, protocols, maxSize, concurrency }: ChiitilerOptions) {
+    constructor({
+        cache,
+        protocols,
+        maxSize,
+        concurrency,
+        transformLayers,
+    }: ChiitilerOptions) {
         this.cache = loggingWrites(cache);
         this.protocols = protocols;
         this.maxSize = maxSize ?? DEFAULT_MAX_SIZE;
         this.concurrency = concurrency ?? CONCURRENCY;
+        this.transformLayers = transformLayers;
     }
 
     /** Render a slippy-map tile. */
@@ -311,6 +336,7 @@ class Chiitiler {
         if (renderer === undefined) {
             renderer = MapRenderer.init(style, {
                 concurrency: this.concurrency,
+                transformLayers: this.transformLayers,
                 // null = 404 (empty vector tile, missing raster); errors fail the render
                 loadResource: async (url) => {
                     let buf: Uint8Array | null;
@@ -345,6 +371,7 @@ export {
     CONCURRENCY,
     type ChiitilerOptions,
     type Crs,
+    defaultTransformLayers,
     encode,
     type RenderBboxOptions,
     type RenderedImage,

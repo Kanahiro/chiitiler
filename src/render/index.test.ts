@@ -277,6 +277,53 @@ describe('renderers', () => {
     });
 });
 
+describe('transformLayers', () => {
+    const style: StyleSpecification = {
+        version: 8,
+        sources: {},
+        layers: [
+            {
+                id: 'bg',
+                type: 'background',
+                paint: { 'background-color': 'red' },
+            },
+        ],
+    };
+    const render = (chiitiler: Chiitiler) =>
+        chiitiler.renderTile({
+            stylejson: style,
+            z: 0,
+            x: 0,
+            y: 0,
+            tileSize: 256,
+            margin: 0,
+        });
+    const cache = { get: async () => undefined, set: async () => {} };
+
+    it('rewrites the layers of the rendered style', async () => {
+        const chiitiler = new Chiitiler({
+            cache,
+            transformLayers: (layer) => [
+                { ...layer, paint: { 'background-color': 'blue' } } as never,
+            ],
+        });
+        const { data } = await render(chiitiler);
+        expect([...data.slice(0, 4)]).toEqual([0, 0, 255, 255]);
+    });
+
+    it('rejects a render when a returned layer is unsupported', async () => {
+        const chiitiler = new Chiitiler({
+            cache,
+            transformLayers: (layer) => [
+                { ...layer, type: 'fill-extrusion' } as never,
+            ],
+        });
+        await expect(render(chiitiler)).rejects.toThrow(
+            'Invalid replacement for background layer bg',
+        );
+    });
+});
+
 describe('errors', () => {
     const none = { get: async () => undefined, set: async () => {} };
     const tile = { z: 0, x: 0, y: 0, tileSize: 64, margin: 0 };

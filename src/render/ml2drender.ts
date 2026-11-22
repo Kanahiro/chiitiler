@@ -304,7 +304,10 @@ function flattenFillExtrusion(
     };
 }
 
-function defaultTransform(layer: LayerSpecification): LayerSpecification[] {
+/** `transformLayers`' default: a fill-extrusion is flattened into a fill, other layers are kept. */
+export function defaultTransformLayers(
+    layer: LayerSpecification,
+): LayerSpecification[] {
     return [
         layer.type === 'fill-extrusion' ? flattenFillExtrusion(layer) : layer,
     ];
@@ -312,7 +315,9 @@ function defaultTransform(layer: LayerSpecification): LayerSpecification[] {
 
 function prepareStyle(
     style: StyleSpecification,
-    transform: NonNullable<InitOptions['transformLayers']> = defaultTransform,
+    transform: NonNullable<
+        InitOptions['transformLayers']
+    > = defaultTransformLayers,
 ): StyleSpecification {
     if (!style || typeof style !== 'object' || !Array.isArray(style.layers)) {
         throw new Error('Style must contain a layers array');

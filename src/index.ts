@@ -1,4 +1,4 @@
-export { Chiitiler, encode } from './render/index.js';
+export { Chiitiler, defaultTransformLayers, encode } from './render/index.js';
 
 export * as ChiitilerCache from './cache/index.js';
 export { setUserAgent } from './source/userAgent.js';
@@ -17,4 +17,7 @@ export type { Protocol, Protocols } from './source/index.js';
 
 // re-exported so consumers can reference exactly the style-spec version
 // chiitiler is built against, without depending on their own resolution
-export type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
+export type {
+    LayerSpecification,
+    StyleSpecification,
+} from '@maplibre/maplibre-gl-style-spec';

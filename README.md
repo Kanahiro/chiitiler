@@ -167,6 +167,7 @@ const chiitiler = new Chiitiler({
     cache: ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 }),
     // protocols: { ... },  custom URL schemes (below)
     // maxSize: 4096,       the largest image side in pixels
+    // transformLayers: (layer) => [layer],  rewrite each style layer (below)
 });
 
 const image = await chiitiler.renderTile({
@@ -266,12 +267,38 @@ const image = await chiitiler.renderTile({
 });
 ```
 
+### Transforming layers
+
+`transformLayers` is called for every layer of every style, in order, before it is rendered, and
+replaces the layer with the layers it returns: `[]` drops it, several stand in for it. Each returned
+layer must be the given layer itself or one of a type the 2D renderer supports (all but
+`fill-extrusion`), or the render rejects.
+
+The default, exported as `defaultTransformLayers`, turns a `fill-extrusion` into a `fill` and keeps
+every other layer as is. The fill keeps the layer's other properties (id, source, filter, zoom range,
+…) and visibility; its `fill-color`, `fill-opacity`, `fill-pattern`, `fill-translate` and
+`fill-translate-anchor` (and their transitions) are the `fill-extrusion-*` ones, and height and base
+are dropped. A custom function replaces the default, so call it for the layers you leave alone:
+
+```ts
+import { Chiitiler, defaultTransformLayers } from 'chiitiler';
+
+const chiitiler = new Chiitiler({
+    cache,
+    transformLayers: (layer) =>
+        layer.type === 'fill-extrusion'
+            ? [] // drop buildings instead of flattening them
+            : defaultTransformLayers(layer),
+});
+```
+
 Types are re-exported as well, so you can annotate call sites without depending on
 `@maplibre/maplibre-gl-style-spec` resolution in your own tree:
 
 ```ts
 import type {
     StyleSpecification,
+    LayerSpecification,
     ChiitilerOptions,
     RenderTileOptions,
     RenderBboxOptions,
