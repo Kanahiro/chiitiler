@@ -137,9 +137,14 @@ export interface InitOptions {
      */
     concurrency?: number;
     /**
-     * Replace each layer of a type the 2D renderer does not support with the returned layers
-     * (none drops it; the layer itself is kept as is). Default: a fill-extrusion becomes a fill
-     * preserving its 2D appearance.
+     * Called for every style layer, in order; the layer is replaced with the returned layers
+     * (`[]` drops it, several stand in for it). Each returned layer must be the given layer itself
+     * or one of a type the 2D renderer supports (all but fill-extrusion).
+     *
+     * Default: a fill-extrusion becomes a fill keeping its other properties (id, source, filter,
+     * zoom range, …) and visibility, whose `fill-color`, `fill-opacity`, `fill-pattern`, `fill-translate` and
+     * `fill-translate-anchor` (and their transitions) are the `fill-extrusion-*` ones; height and
+     * base are dropped. Every other layer is kept as is.
      */
     transformLayers?: (layer: LayerSpecification) => LayerSpecification[];
 }
@@ -313,12 +318,7 @@ function prepareStyle(
         throw new Error('Style must contain a layers array');
     }
     const layers = style.layers.flatMap((layer: unknown) => {
-        if (
-            !layer ||
-            typeof layer !== 'object' ||
-            !('type' in layer) ||
-            SUPPORTED_LAYERS.has(layer.type as string)
-        )
+        if (!layer || typeof layer !== 'object' || !('type' in layer))
             return [layer];
         const replacements = transform(layer as LayerSpecification);
         if (
