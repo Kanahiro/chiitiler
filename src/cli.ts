@@ -7,7 +7,7 @@ import { basename, join } from 'node:path';
 import { generateTile } from './generate.js';
 import { initServer, type InitServerOptions } from './server/index.js';
 import * as caches from './cache/index.js';
-import type { Crs } from './render/index.js';
+import { CONCURRENCY, type Crs } from './render/index.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -140,7 +140,14 @@ function readConfig(env: Env = process.env): Config {
  */
 async function run(args: string[], env: Env = process.env) {
     if (args[0] === 'generate-tile')
-        return generateTile(args.slice(1), readCache(env));
+        return generateTile(
+            args.slice(1),
+            readCache(env),
+            // Unset: a process per 8 threads. Past that, one process's JS thread and thread-pool
+            // queue (a lock every render takes, several times) bound how many cheap tiles it draws.
+            integer(env, 'CHIITILER_PROCESSES', 0, 0) ||
+                Math.ceil(CONCURRENCY / 8),
+        );
     if (args.length > 0)
         throw new Error(
             `chiitiler takes no command-line arguments but generate-tile (got ${args.join(' ')}): configure the server with CHIITILER_* environment variables`,

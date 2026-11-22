@@ -18,7 +18,8 @@ type Protocols = Record<string, Protocol>;
 /**
  * Every source reads through the short-lived in-process front cache.
  * Only http(s) sources also persist to the backing cache (in fetchSource).
- * Empty results are not cached.
+ * A missing resource is kept there too, as empty bytes (an empty result is one): areas without
+ * data (the sea) are otherwise asked for again by every render.
  */
 async function cached(
     uri: string,
@@ -26,10 +27,10 @@ async function cached(
     load: () => Promise<Uint8Array | null>,
 ): Promise<Uint8Array | null> {
     const val = await cache.get(uri);
-    if (val !== undefined) return val;
+    if (val !== undefined) return val.length === 0 ? null : val;
     const buf = await load();
-    if (buf !== null && buf.length > 0) cache.set(uri, buf);
-    return buf;
+    cache.set(uri, buf ?? new Uint8Array());
+    return buf === null || buf.length === 0 ? null : buf;
 }
 
 async function fetchSource(
