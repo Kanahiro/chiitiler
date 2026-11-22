@@ -137,10 +137,11 @@ export interface InitOptions {
      */
     concurrency?: number;
     /**
-     * Replace each layer of a type the 2D renderer does not support; returning the layer itself
-     * leaves it as is. Default: a fill-extrusion becomes a fill preserving its 2D appearance.
+     * Replace each layer of a type the 2D renderer does not support with the returned layers
+     * (none drops it; the layer itself is kept as is). Default: a fill-extrusion becomes a fill
+     * preserving its 2D appearance.
      */
-    transformLayers?: (layer: LayerSpecification) => LayerSpecification;
+    transformLayers?: (layer: LayerSpecification) => LayerSpecification[];
 }
 
 /** A renderer shared by overlapping renders (they take turns on it); dropped once retired and idle. */
@@ -298,10 +299,10 @@ function flattenFillExtrusion(
     };
 }
 
-function defaultTransform(layer: LayerSpecification): LayerSpecification {
-    return layer.type === 'fill-extrusion'
-        ? flattenFillExtrusion(layer)
-        : layer;
+function defaultTransform(layer: LayerSpecification): LayerSpecification[] {
+    return [
+        layer.type === 'fill-extrusion' ? flattenFillExtrusion(layer) : layer,
+    ];
 }
 
 function prepareStyle(
@@ -311,26 +312,30 @@ function prepareStyle(
     if (!style || typeof style !== 'object' || !Array.isArray(style.layers)) {
         throw new Error('Style must contain a layers array');
     }
-    const layers = style.layers.map((layer: unknown) => {
+    const layers = style.layers.flatMap((layer: unknown) => {
         if (
             !layer ||
             typeof layer !== 'object' ||
             !('type' in layer) ||
             SUPPORTED_LAYERS.has(layer.type as string)
         )
-            return layer;
-        const replacement = transform(layer as LayerSpecification);
+            return [layer];
+        const replacements = transform(layer as LayerSpecification);
         if (
-            replacement !== layer &&
-            (!replacement ||
-                typeof replacement.id !== 'string' ||
-                !SUPPORTED_LAYERS.has(replacement.type))
+            !Array.isArray(replacements) ||
+            !replacements.every(
+                (r) =>
+                    r === layer ||
+                    (r &&
+                        typeof r.id === 'string' &&
+                        SUPPORTED_LAYERS.has(r.type)),
+            )
         ) {
             throw new Error(
                 `Invalid replacement for ${String(layer.type)} layer ${'id' in layer ? String(layer.id) : ''}`,
             );
         }
-        return replacement;
+        return replacements;
     });
     return { ...style, layers } as StyleSpecification;
 }
