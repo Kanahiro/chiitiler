@@ -121,7 +121,6 @@ export type StyleLayer = Exclude<
     LayerSpecification,
     FillExtrusionLayerSpecification
 >;
-export type FillExtrusionLayer = FillExtrusionLayerSpecification;
 
 export interface InitOptions {
     /** Load complete resource bytes, or null for a missing resource (HTTP 404). Other failures must reject. */
@@ -137,8 +136,11 @@ export interface InitOptions {
      * parallel on libuv's thread pool. Default: 1.
      */
     concurrency?: number;
-    /** Replace each fill-extrusion layer. Defaults to a fill preserving its 2D appearance. */
-    transformFillExtrusion?: (layer: FillExtrusionLayer) => StyleLayer;
+    /**
+     * Replace each layer of a type the 2D renderer does not support; returning the layer itself
+     * leaves it as is. Default: a fill-extrusion becomes a fill preserving its 2D appearance.
+     */
+    transformLayers?: (layer: LayerSpecification) => LayerSpecification;
 }
 
 /** A renderer shared by overlapping renders (they take turns on it); dropped once retired and idle. */
@@ -270,7 +272,7 @@ function fitLngLat({
 }
 
 function flattenFillExtrusion(
-    layer: FillExtrusionLayer,
+    layer: FillExtrusionLayerSpecification,
 ): FillLayerSpecification {
     const { type, paint, layout, ...base } = layer;
     // Shared paint properties have the same defaults; leaving absent values unset
@@ -296,11 +298,15 @@ function flattenFillExtrusion(
     };
 }
 
+function defaultTransform(layer: LayerSpecification): LayerSpecification {
+    return layer.type === 'fill-extrusion'
+        ? flattenFillExtrusion(layer)
+        : layer;
+}
+
 function prepareStyle(
     style: StyleSpecification,
-    transform: NonNullable<
-        InitOptions['transformFillExtrusion']
-    > = flattenFillExtrusion,
+    transform: NonNullable<InitOptions['transformLayers']> = defaultTransform,
 ): StyleSpecification {
     if (!style || typeof style !== 'object' || !Array.isArray(style.layers)) {
         throw new Error('Style must contain a layers array');
@@ -310,17 +316,18 @@ function prepareStyle(
             !layer ||
             typeof layer !== 'object' ||
             !('type' in layer) ||
-            layer.type !== 'fill-extrusion'
+            SUPPORTED_LAYERS.has(layer.type as string)
         )
             return layer;
-        const replacement = transform(layer as FillExtrusionLayer);
+        const replacement = transform(layer as LayerSpecification);
         if (
-            !replacement ||
-            typeof replacement.id !== 'string' ||
-            !SUPPORTED_LAYERS.has(replacement.type)
+            replacement !== layer &&
+            (!replacement ||
+                typeof replacement.id !== 'string' ||
+                !SUPPORTED_LAYERS.has(replacement.type))
         ) {
             throw new Error(
-                `Invalid replacement for fill-extrusion layer ${'id' in layer ? String(layer.id) : ''}`,
+                `Invalid replacement for ${String(layer.type)} layer ${'id' in layer ? String(layer.id) : ''}`,
             );
         }
         return replacement;
@@ -354,7 +361,7 @@ export class MapRenderer {
         if (!Number.isInteger(concurrency) || concurrency < 1)
             throw new RangeError('concurrency must be a positive integer');
         return new MapRenderer(
-            prepareStyle(style, options.transformFillExtrusion),
+            prepareStyle(style, options.transformLayers),
             options.loadResource,
             ttlMs,
             concurrency,
