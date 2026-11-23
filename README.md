@@ -34,10 +34,10 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** Run it from source with [pnpm](https://pnpm.io):
+> **No Docker?** Install the `chiitiler` command from npm (Node.js 24.22.1+):
 > ```bash
-> git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
-> CHIITILER_DEBUG=true pnpm tsx src/main.ts
+> npm install -g chiitiler
+> CHIITILER_DEBUG=true chiitiler   # the server; `chiitiler generate-tile ...` works too
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
 

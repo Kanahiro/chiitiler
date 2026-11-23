@@ -5,6 +5,9 @@
     "description": "Tiny map rendering server for MapLibre Style Spec",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
+    "bin": {
+        "chiitiler": "./dist/main.js"
+    },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -41,7 +44,6 @@
         "@aws-sdk/client-s3": "^3.1168.0",
         "@biomejs/biome": "^2.6.7",
         "@google-cloud/storage": "^8.4.0",
-        "@hono/node-server": "^2.1.8",
         "@maplibre/maplibre-gl-style-spec": "^26.7.0",
         "@napi-rs/image": "^1.16.0",
         "@tsconfig/node24": "^24.0.6",
@@ -50,7 +52,6 @@
         "@vitest/coverage-v8": "^5.1.0",
         "autocannon": "^9.0.0",
         "esbuild": "^0.28.2",
-        "hono": "^4.13.18",
         "image-size": "^2.1.0",
         "tsx": "^4.23.15",
         "typedoc": "^0.28.20",
@@ -58,7 +59,9 @@
         "vitest": "^5.1.0"
     },
     "dependencies": {
+        "@hono/node-server": "^2.1.8",
         "@ml2drender/node": "^0.4.3",
+        "hono": "^4.13.18",
         "lru-cache": "^11.5.3",
         "pmtiles": "^4.5.0"
     },
