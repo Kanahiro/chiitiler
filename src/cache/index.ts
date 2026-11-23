@@ -12,6 +12,19 @@ type Value = Uint8Array;
  * Where fetched source bytes are kept (implement `get` and `set` to bring your own).
  * Keys are resource URLs. Only http(s) sources (including `pmtiles://http(s)://` tiles) use it;
  * The front cache (see `withFrontCache`) serves every source.
+ *
+ * @example A Redis cache, shared between processes or hosts
+ * ```ts
+ * const cache: Cache = {
+ *     get: async (url) => {
+ *         const hit = await redis.getBuffer(url);
+ *         return hit === null ? undefined : new Uint8Array(hit);
+ *     },
+ *     set: async (url, bytes) => {
+ *         await redis.set(url, Buffer.from(bytes), 'EX', 3600);
+ *     },
+ * };
+ * ```
  */
 type Cache = {
     /** A label (built-in caches name their kind). */

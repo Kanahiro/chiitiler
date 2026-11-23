@@ -6,6 +6,15 @@ import type { Cache, Value } from './index.js';
  * TTL starts on insertion, so promotion can extend the backing cache's lifetime
  * by up to ttlSeconds. maxBytes bounds buffer payloads, not total process memory.
  * Either limit set to zero disables the front cache and returns backing unchanged.
+ * The server always uses one (`CHIITILER_FRONT_CACHE_*`); library callers opt in.
+ *
+ * @example The server's defaults
+ * ```ts
+ * const cache = ChiitilerCache.withFrontCache(
+ *     ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 }),
+ *     { ttlSeconds: 10, maxBytes: 64 * 1024 * 1024 },
+ * );
+ * ```
  */
 export function withFrontCache(
     backing: Cache,

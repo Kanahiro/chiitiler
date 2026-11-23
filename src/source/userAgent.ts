@@ -6,7 +6,9 @@ let overrideUserAgent: string | undefined;
 
 /**
  * Override the User-Agent sent with outbound HTTP requests.
- * Takes precedence over the CHIITILER_USER_AGENT environment variable.
+ * Takes precedence over the CHIITILER_USER_AGENT environment variable. Without either, the
+ * runtime's default is sent (Node sends `node`); some tile providers (e.g. OpenStreetMap) require
+ * an identifying one.
  */
 function setUserAgent(userAgent: string | undefined) {
     overrideUserAgent = userAgent;
