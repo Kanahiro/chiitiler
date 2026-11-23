@@ -2,13 +2,13 @@
     "projjson": {
         "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
         "type": "ProjectedCRS",
-        "name": "JGD2011 / Japan Plane Rectangular CS II",
+        "name": "Mexico ITRF2008 / LCC",
         "base_crs": {
             "type": "GeographicCRS",
-            "name": "JGD2011",
+            "name": "Mexico ITRF2008",
             "datum": {
                 "type": "GeodeticReferenceFrame",
-                "name": "Japanese Geodetic Datum 2011",
+                "name": "Mexico ITRF2008",
                 "ellipsoid": {
                     "name": "GRS 1980",
                     "semi_major_axis": 6378137,
@@ -34,63 +34,72 @@
             },
             "id": {
                 "authority": "EPSG",
-                "code": 6668
+                "code": 6365
             },
-            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+            "remarks": "Replaces Mexico ITRF92 (CRS code 4483) from December 2010."
         },
         "conversion": {
-            "name": "Japan Plane Rectangular CS zone II",
+            "name": "Mexico LCC",
             "method": {
-                "name": "Transverse Mercator",
+                "name": "Lambert Conic Conformal (2SP)",
                 "id": {
                     "authority": "EPSG",
-                    "code": 9807
+                    "code": 9802
                 }
             },
             "parameters": [
                 {
-                    "name": "Latitude of natural origin",
-                    "value": 33,
+                    "name": "Latitude of false origin",
+                    "value": 12,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8801
+                        "code": 8821
                     }
                 },
                 {
-                    "name": "Longitude of natural origin",
-                    "value": 131,
+                    "name": "Longitude of false origin",
+                    "value": -102,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8802
+                        "code": 8822
                     }
                 },
                 {
-                    "name": "Scale factor at natural origin",
-                    "value": 0.9999,
-                    "unit": "unity",
+                    "name": "Latitude of 1st standard parallel",
+                    "value": 17.5,
+                    "unit": "degree",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8805
+                        "code": 8823
                     }
                 },
                 {
-                    "name": "False easting",
+                    "name": "Latitude of 2nd standard parallel",
+                    "value": 29.5,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8824
+                    }
+                },
+                {
+                    "name": "Easting at false origin",
+                    "value": 2500000,
+                    "unit": "metre",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8826
+                    }
+                },
+                {
+                    "name": "Northing at false origin",
                     "value": 0,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8806
-                    }
-                },
-                {
-                    "name": "False northing",
-                    "value": 0,
-                    "unit": "metre",
-                    "id": {
-                        "authority": "EPSG",
-                        "code": 8807
+                        "code": 8827
                     }
                 }
             ]
@@ -100,36 +109,36 @@
             "axis": [
                 {
                     "name": "Northing",
-                    "abbreviation": "X",
+                    "abbreviation": "N",
                     "direction": "north",
                     "unit": "metre"
                 },
                 {
                     "name": "Easting",
-                    "abbreviation": "Y",
+                    "abbreviation": "E",
                     "direction": "east",
                     "unit": "metre"
                 }
             ]
         },
-        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
-        "area": "Japan - onshore - Kyushu east of approximately 130\u00b0E - Fukuoka-ken; Saga-ken; Kumamoto-ken; Oita-ken; Miyazaki-ken; Kagoshima-ken (except for area within Japan Plane Rectangular Coordinate System zone I).",
+        "scope": "Topographic mapping (small scale).",
+        "area": "Mexico - onshore and offshore.",
         "bbox": {
-            "south_latitude": 30.18,
-            "west_longitude": 129.76,
-            "north_latitude": 33.99,
-            "east_longitude": 132.05
+            "south_latitude": 12.1,
+            "west_longitude": -122.19,
+            "north_latitude": 32.72,
+            "east_longitude": -84.64
         },
         "id": {
             "authority": "EPSG",
-            "code": 6670
+            "code": 6372
         }
     },
     "tileMatrixSet": {
         "origin": [
-            -119419.18290007113,
-            110486.30433571483
+            278545.2095324695,
+            2428997.539581708
         ],
-        "extentAtZoom0": 423135.9335527416
+        "extentAtZoom0": 4133179.09174734
     }
 }

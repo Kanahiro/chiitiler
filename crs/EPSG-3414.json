@@ -2,17 +2,17 @@
     "projjson": {
         "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
         "type": "ProjectedCRS",
-        "name": "JGD2011 / Japan Plane Rectangular CS XIV",
+        "name": "SVY21 / Singapore TM",
         "base_crs": {
             "type": "GeographicCRS",
-            "name": "JGD2011",
+            "name": "SVY21",
             "datum": {
                 "type": "GeodeticReferenceFrame",
-                "name": "Japanese Geodetic Datum 2011",
+                "name": "SVY21",
                 "ellipsoid": {
-                    "name": "GRS 1980",
+                    "name": "WGS 84",
                     "semi_major_axis": 6378137,
-                    "inverse_flattening": 298.257222101
+                    "inverse_flattening": 298.257223563
                 }
             },
             "coordinate_system": {
@@ -34,12 +34,11 @@
             },
             "id": {
                 "authority": "EPSG",
-                "code": 6668
-            },
-            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+                "code": 4757
+            }
         },
         "conversion": {
-            "name": "Japan Plane Rectangular CS zone XIV",
+            "name": "Singapore Transverse Mercator",
             "method": {
                 "name": "Transverse Mercator",
                 "id": {
@@ -50,7 +49,7 @@
             "parameters": [
                 {
                     "name": "Latitude of natural origin",
-                    "value": 26,
+                    "value": 1.36666666666667,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -59,7 +58,7 @@
                 },
                 {
                     "name": "Longitude of natural origin",
-                    "value": 142,
+                    "value": 103.833333333333,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -68,7 +67,7 @@
                 },
                 {
                     "name": "Scale factor at natural origin",
-                    "value": 0.9999,
+                    "value": 1,
                     "unit": "unity",
                     "id": {
                         "authority": "EPSG",
@@ -77,7 +76,7 @@
                 },
                 {
                     "name": "False easting",
-                    "value": 0,
+                    "value": 28001.642,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
@@ -86,7 +85,7 @@
                 },
                 {
                     "name": "False northing",
-                    "value": 0,
+                    "value": 38744.572,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
@@ -100,36 +99,36 @@
             "axis": [
                 {
                     "name": "Northing",
-                    "abbreviation": "X",
+                    "abbreviation": "N",
                     "direction": "north",
                     "unit": "metre"
                 },
                 {
                     "name": "Easting",
-                    "abbreviation": "Y",
+                    "abbreviation": "E",
                     "direction": "east",
                     "unit": "metre"
                 }
             ]
         },
-        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
-        "area": "Japan - onshore - Tokyo-to south of 28\u00b0N and between 140\u00b030'E and 143\u00b0E.",
+        "scope": "Cadastre, engineering survey, topographic mapping.",
+        "area": "Singapore - onshore and offshore.",
         "bbox": {
-            "south_latitude": 24.67,
-            "west_longitude": 141.2,
-            "north_latitude": 27.8,
-            "east_longitude": 142.33
+            "south_latitude": 1.13,
+            "west_longitude": 103.59,
+            "north_latitude": 1.47,
+            "east_longitude": 104.07
         },
         "id": {
             "authority": "EPSG",
-            "code": 6682
+            "code": 3414
         }
     },
     "tileMatrixSet": {
         "origin": [
-            -80968.06937713007,
-            199680.3361021718
+            919.0500208435915,
+            50172.12595659782
         ],
-        "extentAtZoom0": 347000.0749195058
+        "extentAtZoom0": 53423.1908321608
     }
 }

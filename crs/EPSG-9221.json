@@ -2,17 +2,17 @@
     "projjson": {
         "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
         "type": "ProjectedCRS",
-        "name": "JGD2011 / Japan Plane Rectangular CS XIX",
+        "name": "Hartebeesthoek94 / ZAF BSU Albers 25E",
         "base_crs": {
             "type": "GeographicCRS",
-            "name": "JGD2011",
+            "name": "Hartebeesthoek94",
             "datum": {
                 "type": "GeodeticReferenceFrame",
-                "name": "Japanese Geodetic Datum 2011",
+                "name": "Hartebeesthoek94",
                 "ellipsoid": {
-                    "name": "GRS 1980",
+                    "name": "WGS 84",
                     "semi_major_axis": 6378137,
-                    "inverse_flattening": 298.257222101
+                    "inverse_flattening": 298.257223563
                 }
             },
             "coordinate_system": {
@@ -34,63 +34,72 @@
             },
             "id": {
                 "authority": "EPSG",
-                "code": 6668
+                "code": 4148
             },
-            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+            "remarks": "Replaces Cape (code 4222) from 1999."
         },
         "conversion": {
-            "name": "Japan Plane Rectangular CS zone XIX",
+            "name": "South Africa Basic Survey Unit Albers 25E",
             "method": {
-                "name": "Transverse Mercator",
+                "name": "Albers Equal Area",
                 "id": {
                     "authority": "EPSG",
-                    "code": 9807
+                    "code": 9822
                 }
             },
             "parameters": [
                 {
-                    "name": "Latitude of natural origin",
-                    "value": 26,
+                    "name": "Latitude of false origin",
+                    "value": -30,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8801
+                        "code": 8821
                     }
                 },
                 {
-                    "name": "Longitude of natural origin",
-                    "value": 154,
+                    "name": "Longitude of false origin",
+                    "value": 25,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8802
+                        "code": 8822
                     }
                 },
                 {
-                    "name": "Scale factor at natural origin",
-                    "value": 0.9999,
-                    "unit": "unity",
+                    "name": "Latitude of 1st standard parallel",
+                    "value": -22,
+                    "unit": "degree",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8805
+                        "code": 8823
                     }
                 },
                 {
-                    "name": "False easting",
-                    "value": 0,
+                    "name": "Latitude of 2nd standard parallel",
+                    "value": -38,
+                    "unit": "degree",
+                    "id": {
+                        "authority": "EPSG",
+                        "code": 8824
+                    }
+                },
+                {
+                    "name": "Easting at false origin",
+                    "value": 1400000,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8806
+                        "code": 8826
                     }
                 },
                 {
-                    "name": "False northing",
-                    "value": 0,
+                    "name": "Northing at false origin",
+                    "value": 1300000,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
-                        "code": 8807
+                        "code": 8827
                     }
                 }
             ]
@@ -100,36 +109,36 @@
             "axis": [
                 {
                     "name": "Northing",
-                    "abbreviation": "X",
+                    "abbreviation": "N",
                     "direction": "north",
                     "unit": "metre"
                 },
                 {
                     "name": "Easting",
-                    "abbreviation": "Y",
+                    "abbreviation": "E",
                     "direction": "east",
                     "unit": "metre"
                 }
             ]
         },
-        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
-        "area": "Japan - onshore - Tokyo-to south of 28\u00b0N and east of 143\u00b0E - Minamitori-shima (Marcus Island).",
+        "scope": "Spatial analysis for the purposes of Natural Capital Accounting.",
+        "area": "South Africa - mainland - onshore and offshore.",
         "bbox": {
-            "south_latitude": 24.22,
-            "west_longitude": 153.91,
-            "north_latitude": 24.35,
-            "east_longitude": 154.05
+            "south_latitude": -38.17,
+            "west_longitude": 13.33,
+            "north_latitude": -22.13,
+            "east_longitude": 36.54
         },
         "id": {
             "authority": "EPSG",
-            "code": 6687
+            "code": 9221
         }
     },
     "tileMatrixSet": {
         "origin": [
-            -9141.112772019294,
-            -182758.41912786572
+            198422.56396755716,
+            2177513.913280201
         ],
-        "extentAtZoom0": 14400.622900537943
+        "extentAtZoom0": 2389814.355620293
     }
 }

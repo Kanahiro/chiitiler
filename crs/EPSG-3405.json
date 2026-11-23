@@ -2,17 +2,17 @@
     "projjson": {
         "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
         "type": "ProjectedCRS",
-        "name": "JGD2011 / Japan Plane Rectangular CS X",
+        "name": "VN-2000 / UTM zone 48N",
         "base_crs": {
             "type": "GeographicCRS",
-            "name": "JGD2011",
+            "name": "VN-2000",
             "datum": {
                 "type": "GeodeticReferenceFrame",
-                "name": "Japanese Geodetic Datum 2011",
+                "name": "Vietnam 2000",
                 "ellipsoid": {
-                    "name": "GRS 1980",
+                    "name": "WGS 84",
                     "semi_major_axis": 6378137,
-                    "inverse_flattening": 298.257222101
+                    "inverse_flattening": 298.257223563
                 }
             },
             "coordinate_system": {
@@ -34,12 +34,12 @@
             },
             "id": {
                 "authority": "EPSG",
-                "code": 6668
+                "code": 4756
             },
-            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+            "remarks": "Replaces Hanoi 1972 (CRS code 4147)."
         },
         "conversion": {
-            "name": "Japan Plane Rectangular CS zone X",
+            "name": "UTM zone 48N",
             "method": {
                 "name": "Transverse Mercator",
                 "id": {
@@ -50,7 +50,7 @@
             "parameters": [
                 {
                     "name": "Latitude of natural origin",
-                    "value": 40,
+                    "value": 0,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -59,7 +59,7 @@
                 },
                 {
                     "name": "Longitude of natural origin",
-                    "value": 140.833333333333,
+                    "value": 105,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -68,7 +68,7 @@
                 },
                 {
                     "name": "Scale factor at natural origin",
-                    "value": 0.9999,
+                    "value": 0.9996,
                     "unit": "unity",
                     "id": {
                         "authority": "EPSG",
@@ -77,7 +77,7 @@
                 },
                 {
                     "name": "False easting",
-                    "value": 0,
+                    "value": 500000,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
@@ -99,37 +99,37 @@
             "subtype": "Cartesian",
             "axis": [
                 {
-                    "name": "Northing",
-                    "abbreviation": "X",
-                    "direction": "north",
+                    "name": "Easting",
+                    "abbreviation": "E",
+                    "direction": "east",
                     "unit": "metre"
                 },
                 {
-                    "name": "Easting",
-                    "abbreviation": "Y",
-                    "direction": "east",
+                    "name": "Northing",
+                    "abbreviation": "N",
+                    "direction": "north",
                     "unit": "metre"
                 }
             ]
         },
-        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
-        "area": "Japan - onshore - Honshu north of 38\u00b0N approximately - Aomori-ken; Akita-ken; Yamagata-ken; Iwate-ken; Miyagi-ken.",
+        "scope": "Topographic mapping (medium scale).",
+        "area": "Vietnam - onshore west of 108\u00b0E.",
         "bbox": {
-            "south_latitude": 37.73,
-            "west_longitude": 139.49,
-            "north_latitude": 41.58,
-            "east_longitude": 142.14
+            "south_latitude": 8.33,
+            "west_longitude": 102.14,
+            "north_latitude": 23.4,
+            "east_longitude": 108
         },
         "id": {
             "authority": "EPSG",
-            "code": 6678
+            "code": 3405
         }
     },
     "tileMatrixSet": {
         "origin": [
-            -118410.45564325571,
-            176312.79961954048
+            184767.29506366886,
+            2591097.763517479
         ],
-        "extentAtZoom0": 428286.8121669345
+        "extentAtZoom0": 1670205.1164024118
     }
 }

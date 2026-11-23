@@ -121,9 +121,11 @@ The server comes with the CRSs of [`crs/`](crs) (the default `CHIITILER_CRS_DIR`
 | World | `EPSG-4326` (WGS 84), `EPSG-8857` (Equal Earth) |
 | Polar | `EPSG-3413`, `EPSG-3995` (Arctic), `EPSG-3031` (Antarctic) |
 | Europe | `EPSG-3035` (LAEA Europe), `EPSG-27700` (British National Grid), `EPSG-2154` (Lambert-93), `EPSG-25832` (ETRS89 / UTM 32N), `EPSG-2056` (Swiss LV95) |
-| North America | `EPSG-5070` (Conus Albers), `EPSG-3338` (Alaska Albers), `EPSG-3978` (Canada Atlas Lambert) |
+| North America | `EPSG-5070` (Conus Albers), `EPSG-3338` (Alaska Albers), `EPSG-3978` (Canada Atlas Lambert), `EPSG-6372` (Mexico LCC) |
+| South America | `EPSG-5880` (Brazil Polyconic), `EPSG-9377` (Colombia Origen-Nacional), `EPSG-5348` (POSGAR 2007 / Argentina 6) |
+| Africa | `EPSG-9221` (South Africa Albers), `EPSG-22992` (Egypt Red Belt), `EPSG-21037` (Arc 1960 / UTM 37S, Kenya) |
 | Oceania | `EPSG-3577` (Australian Albers), `EPSG-2193` (NZTM2000) |
-| Asia | `EPSG-5179` (Korea Unified CS), `EPSG-3826` (TWD97 / TM2), `EPSG-6669`–`EPSG-6687` (JGD2011 / Japan Plane Rectangular CS I–XIX) |
+| Asia | `EPSG-2039` (Israeli TM Grid), `EPSG-7755` (India NSF LCC), `EPSG-4548` (CGCS2000 / GK CM 117E), `EPSG-3405` (VN-2000 / UTM 48N), `EPSG-3414` (Singapore TM), `EPSG-3826` (TWD97 / TM2), `EPSG-5179` (Korea Unified CS), `EPSG-6677` (JGD2011 / Japan Plane Rectangular CS IX) |
 
 Their PROJJSON is PROJ's, and their grid is the square from the top-left corner of the CRS's area of use,
 covering it; the world CRSs' (`EPSG-4326`, `EPSG-8857`) is centered on the world instead, as MapLibre GL JS

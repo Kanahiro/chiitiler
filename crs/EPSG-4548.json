@@ -2,15 +2,15 @@
     "projjson": {
         "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
         "type": "ProjectedCRS",
-        "name": "JGD2011 / Japan Plane Rectangular CS IV",
+        "name": "CGCS2000 / 3-degree Gauss-Kruger CM 117E",
         "base_crs": {
             "type": "GeographicCRS",
-            "name": "JGD2011",
+            "name": "China Geodetic Coordinate System 2000",
             "datum": {
                 "type": "GeodeticReferenceFrame",
-                "name": "Japanese Geodetic Datum 2011",
+                "name": "China 2000",
                 "ellipsoid": {
-                    "name": "GRS 1980",
+                    "name": "CGCS2000",
                     "semi_major_axis": 6378137,
                     "inverse_flattening": 298.257222101
                 }
@@ -34,12 +34,12 @@
             },
             "id": {
                 "authority": "EPSG",
-                "code": 6668
+                "code": 4490
             },
-            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+            "remarks": "Adopted July 2008. Replaces Xian 1980 (CRS code 4610)."
         },
         "conversion": {
-            "name": "Japan Plane Rectangular CS zone IV",
+            "name": "Gauss-Kruger CM 117E",
             "method": {
                 "name": "Transverse Mercator",
                 "id": {
@@ -50,7 +50,7 @@
             "parameters": [
                 {
                     "name": "Latitude of natural origin",
-                    "value": 33,
+                    "value": 0,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -59,7 +59,7 @@
                 },
                 {
                     "name": "Longitude of natural origin",
-                    "value": 133.5,
+                    "value": 117,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -68,7 +68,7 @@
                 },
                 {
                     "name": "Scale factor at natural origin",
-                    "value": 0.9999,
+                    "value": 1,
                     "unit": "unity",
                     "id": {
                         "authority": "EPSG",
@@ -77,7 +77,7 @@
                 },
                 {
                     "name": "False easting",
-                    "value": 0,
+                    "value": 500000,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
@@ -112,24 +112,24 @@
                 }
             ]
         },
-        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
-        "area": "Japan - onshore - Shikoku - Kagawa-ken; Ehime-ken; Tokushima-ken; Kochi-ken.",
+        "scope": "Cadastre, engineering survey, topographic mapping (large scale).",
+        "area": "China - onshore between 115\u00b030'E and 118\u00b030'E.",
         "bbox": {
-            "south_latitude": 32.69,
-            "west_longitude": 131.95,
-            "north_latitude": 34.45,
-            "east_longitude": 134.81
+            "south_latitude": 22.6,
+            "west_longitude": 115.5,
+            "north_latitude": 49.88,
+            "east_longitude": 118.5
         },
         "id": {
             "authority": "EPSG",
-            "code": 6672
+            "code": 4548
         }
     },
     "tileMatrixSet": {
         "origin": [
-            -145349.82388383587,
-            161904.1974464255
+            345754.3017207273,
+            5528578.958377667
         ],
-        "extentAtZoom0": 268192.0710982303
+        "extentAtZoom0": 3028337.8704549246
     }
 }

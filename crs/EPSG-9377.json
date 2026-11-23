@@ -2,13 +2,13 @@
     "projjson": {
         "$schema": "https://proj.org/schemas/v0.7/projjson.schema.json",
         "type": "ProjectedCRS",
-        "name": "JGD2011 / Japan Plane Rectangular CS XVI",
+        "name": "MAGNA-SIRGAS 2018 / Origen-Nacional",
         "base_crs": {
             "type": "GeographicCRS",
-            "name": "JGD2011",
+            "name": "MAGNA-SIRGAS 2018",
             "datum": {
                 "type": "GeodeticReferenceFrame",
-                "name": "Japanese Geodetic Datum 2011",
+                "name": "Marco Geocentrico Nacional de Referencia 2018",
                 "ellipsoid": {
                     "name": "GRS 1980",
                     "semi_major_axis": 6378137,
@@ -34,12 +34,12 @@
             },
             "id": {
                 "authority": "EPSG",
-                "code": 6668
+                "code": 20046
             },
-            "remarks": "Replaces JGD2000 (CRS code 4612) with effect from 21st October 2011."
+            "remarks": "Replaces MAGNA-SIRGAS (CRS code 4686) for high accuracy purposes. Change is approximately 0.31m in latitude, 0.02m in longitude. For mapping and cadastral purposes considered equivalent."
         },
         "conversion": {
-            "name": "Japan Plane Rectangular CS zone XVI",
+            "name": "Colombia Transverse Mercator",
             "method": {
                 "name": "Transverse Mercator",
                 "id": {
@@ -50,7 +50,7 @@
             "parameters": [
                 {
                     "name": "Latitude of natural origin",
-                    "value": 26,
+                    "value": 4,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -59,7 +59,7 @@
                 },
                 {
                     "name": "Longitude of natural origin",
-                    "value": 124,
+                    "value": -73,
                     "unit": "degree",
                     "id": {
                         "authority": "EPSG",
@@ -68,7 +68,7 @@
                 },
                 {
                     "name": "Scale factor at natural origin",
-                    "value": 0.9999,
+                    "value": 0.9992,
                     "unit": "unity",
                     "id": {
                         "authority": "EPSG",
@@ -77,7 +77,7 @@
                 },
                 {
                     "name": "False easting",
-                    "value": 0,
+                    "value": 5000000,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
@@ -86,7 +86,7 @@
                 },
                 {
                     "name": "False northing",
-                    "value": 0,
+                    "value": 2000000,
                     "unit": "metre",
                     "id": {
                         "authority": "EPSG",
@@ -100,36 +100,36 @@
             "axis": [
                 {
                     "name": "Northing",
-                    "abbreviation": "X",
+                    "abbreviation": "N",
                     "direction": "north",
                     "unit": "metre"
                 },
                 {
                     "name": "Easting",
-                    "abbreviation": "Y",
+                    "abbreviation": "E",
                     "direction": "east",
                     "unit": "metre"
                 }
             ]
         },
-        "scope": "Cadastre, engineering survey, topographic mapping (large and medium scale).",
-        "area": "Japan - onshore - Okinawa-ken west of 126\u00b0E.",
+        "scope": "Cadastre, topographic mapping.",
+        "area": "Colombia - onshore and offshore. Includes San Andres y Providencia, Malpelo Islands, Roncador Bank, Serrana Bank and Serranilla Bank.",
         "bbox": {
-            "south_latitude": 23.98,
-            "west_longitude": 122.83,
-            "north_latitude": 24.94,
-            "east_longitude": 125.51
+            "south_latitude": -4.23,
+            "west_longitude": -84.77,
+            "north_latitude": 15.51,
+            "east_longitude": -66.87
         },
         "id": {
             "authority": "EPSG",
-            "code": 6684
+            "code": 9377
         }
     },
     "tileMatrixSet": {
         "origin": [
-            -119061.6410094445,
-            -116567.49353079096
+            3681461.1633137837,
+            3307327.9608143494
         ],
-        "extentAtZoom0": 272727.1851722492
+        "extentAtZoom0": 2226711.599496632
     }
 }
