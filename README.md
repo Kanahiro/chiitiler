@@ -23,7 +23,8 @@ Point it at any `style.json` and get back PNG / WebP / JPEG / AVIF tiles, static
 **1. Run the server** — one command, no config file, no database, no API key.
 
 ```bash
-docker run --rm -p 3000:3000 ghcr.io/kanahiro/chiitiler:latest
+npm install -g chiitiler   # Node.js 24.22.1+
+chiitiler
 ```
 
 **2. Open a tile in your browser** — pass any MapLibre style URL as `?url=`.
@@ -34,12 +35,9 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** Install the `chiitiler` command from npm (Node.js 24.22.1+):
-> ```bash
-> npm install -g chiitiler
-> CHIITILER_DEBUG=true chiitiler   # the server; `chiitiler generate-tile ...` works too
-> ```
-> Then visit `http://localhost:3000/debug` to preview styles interactively.
+Start it with `CHIITILER_DEBUG=true chiitiler` and visit `http://localhost:3000/debug` to preview styles interactively.
+
+> **No Node.js?** The Docker image runs the same server: `docker run --rm -p 3000:3000 ghcr.io/kanahiro/chiitiler:latest`
 
 ## Features
 
@@ -292,6 +290,12 @@ chiitiler doesn't override the `User-Agent` on outbound HTTP requests by default
 `generate-tile` renders the tiles of a style into an MBTiles file, without a server:
 
 ```bash
+chiitiler generate-tile --style style.json --output out.mbtiles --maxzoom 8 --bbox 139,35,141,37
+```
+
+With Docker, run `/app/build/main.mjs generate-tile ...` in the image:
+
+```bash
 docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
   /app/build/main.mjs generate-tile --style style.json --output out.mbtiles --maxzoom 8 --bbox 139,35,141,37
 ```
@@ -315,10 +319,8 @@ Sources are cached as configured for the server (`CHIITILER_CACHE_METHOD`, …).
 between runs (e.g. to resume, or to render more zooms later) in a file cache that does not expire:
 
 ```bash
-docker run --rm -v "$PWD:/data" -w /data \
-  -e CHIITILER_CACHE_METHOD=file -e CHIITILER_FILECACHE_DIR=/data/.cache -e CHIITILER_CACHE_TTL_SEC=0 \
-  ghcr.io/kanahiro/chiitiler:latest \
-  /app/build/main.mjs generate-tile --style https://demotiles.maplibre.org/style.json --output out.mbtiles --maxzoom 8
+CHIITILER_CACHE_METHOD=file CHIITILER_FILECACHE_DIR=.cache CHIITILER_CACHE_TTL_SEC=0 \
+  chiitiler generate-tile --style https://demotiles.maplibre.org/style.json --output out.mbtiles --maxzoom 8
 ```
 
 Tiles are drawn by `CHIITILER_PROCESSES` renderer processes (unset or `0`: one per 8 threads of `UV_THREADPOOL_SIZE`, which defaults to the CPU count), sharing the thread pool between them; the main process writes the file and fetches their `http(s)://` sources.
@@ -330,7 +332,8 @@ The server is configured with environment variables only; it takes no command-li
 startup with an error naming the variable.
 
 ```bash
-docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESSES=0 ghcr.io/kanahiro/chiitiler:latest
+CHIITILER_CACHE_METHOD=file CHIITILER_PROCESSES=0 chiitiler
+# Docker: docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESSES=0 ghcr.io/kanahiro/chiitiler:latest
 ```
 
 ### Server
@@ -451,6 +454,7 @@ const cache = ChiitilerCache.withFrontCache(
 
 ## Deployment
 
+- **npm** — `npm install -g chiitiler` installs the `chiitiler` command (Node.js 24.22.1+).
 - **Docker** — `ghcr.io/kanahiro/chiitiler:latest` (configured with `CHIITILER_*` environment variables).
   `latest` is the latest release, `next` the latest prerelease, and `v<version>` each one (npm: `chiitiler@latest` / `chiitiler@next`).
 - **Docker Compose** — see [`docker-compose.yml`](./docker-compose.yml) (includes RustFS + fake-gcs-server for local testing)
