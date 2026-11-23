@@ -463,9 +463,25 @@ const cache = ChiitilerCache.withFrontCache(
 
 ## Migrating from 1.x
 
-2.0 renders with [ml2drender](https://github.com/Kanahiro/ml2drender) instead of MapLibre Native: no GPU, Xvfb or sharp, and about
-a third of the memory. Images are close to MapLibre's but not pixel-identical (antialiasing and label
+2.0 renders with [ml2drender](https://github.com/Kanahiro/ml2drender) instead of MapLibre Native: no GPU, Xvfb or sharp, faster,
+smaller and lighter (below). Images are close to MapLibre's but not pixel-identical (antialiasing and label
 placement differ).
+
+| 1.25.3 → 2.0.2 | 1.25.3 | 2.0.2 | |
+|---|---:|---:|---:|
+| png tiles, 1 connection (req/s) | 23.9 | 43.3 | +81% |
+| png tiles, 10 connections (req/s) | 56.0 | 163.9 | +194% |
+| webp tiles (req/s) | 25.9 | 47.2 | +83% |
+| jpg tiles (req/s) | 31.7 | 42.5 | +36% |
+| 1024×1024 png view (req/s) | 6.9 | 7.8 | +13% |
+| Memory, idle (PSS) | 180 MB | 61 MB | −66% |
+| Memory, peak under load (PSS) | 984 MB | 589 MB | −40% |
+| Docker image, compressed (amd64) | 176 MB | 66 MB | −62% |
+
+Measured on 4 vCPUs, one process, no source cache, with the `tests/benchmark.ts` fixture (Florence,
+z12–z15); 1.x on Xvfb with Mesa's software GL, as in its Docker image. Throughput is the median of 5
+rounds of 10 s; memory is one run, the peak across 20 s each of png at 1 and 10 connections and the
+view at 1 and 4 connections (with Xvfb for 1.x). Memory grows with load and is kept after it.
 
 - **Not rendered:** 3D (`fill-extrusion` is drawn as a flat fill), terrain, globe, sky, bidirectional
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
