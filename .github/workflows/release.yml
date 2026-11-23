@@ -64,6 +64,7 @@ jobs:
                   registry-url: "https://registry.npmjs.org"
             - run: pnpm install --frozen-lockfile
             - run: pnpm exec tsc
+            - run: pnpm build # the chiitiler command (bin)
             - run: npm publish --tag ${{ needs.check.outputs.channel }}
 
     image:

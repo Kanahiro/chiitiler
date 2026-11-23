@@ -166,15 +166,12 @@ importers:
 
   .:
     dependencies:
-      '@hono/node-server':
-        specifier: ^2.1.8
-        version: 2.1.8(hono@4.13.18)
       '@ml2drender/node':
         specifier: ^0.4.3
         version: 0.4.3(@maplibre/maplibre-gl-style-spec@26.7.0)
-      hono:
-        specifier: ^4.13.18
-        version: 4.13.18
+      '@napi-rs/image':
+        specifier: ^1.16.0
+        version: 1.16.0
       lru-cache:
         specifier: ^11.5.3
         version: 11.5.3
@@ -191,12 +188,12 @@ importers:
       '@google-cloud/storage':
         specifier: ^8.4.0
         version: 8.4.0(supports-color@7.2.0)
+      '@hono/node-server':
+        specifier: ^2.1.8
+        version: 2.1.8(hono@4.13.18)
       '@maplibre/maplibre-gl-style-spec':
         specifier: ^26.7.0
         version: 26.7.0
-      '@napi-rs/image':
-        specifier: ^1.16.0
-        version: 1.16.0
       '@tsconfig/node24':
         specifier: ^24.0.6
         version: 24.0.6
@@ -215,6 +212,9 @@ importers:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+      hono:
+        specifier: ^4.13.18
+        version: 4.13.18
       image-size:
         specifier: ^2.1.0
         version: 2.1.0

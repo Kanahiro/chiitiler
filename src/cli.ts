@@ -3,6 +3,7 @@ import cluster from 'node:cluster';
 import { readdirSync, readFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
 import { basename, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { generateTile } from './generate.js';
 import { initServer, type InitServerOptions } from './server/index.js';
@@ -93,12 +94,14 @@ function readCache(env: Env): caches.Cache {
 }
 
 /**
- * The `<id>.json` files of CHIITILER_CRS_DIR, each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`,
+ * The `<id>.json` files of CHIITILER_CRS_DIR (unset: the package's `crs/`), each `{ "projjson": {...}, "tileMatrixSet"?: {...} }`,
  * by id. Read once, at startup: an invalid file stops it.
  */
 function readCrs(env: Env): InitServerOptions['crs'] {
-    const dir = read(env, 'CHIITILER_CRS_DIR');
-    if (dir === undefined) return undefined;
+    // ../crs from src/, dist/ and build/ alike
+    const dir =
+        read(env, 'CHIITILER_CRS_DIR') ??
+        fileURLToPath(new URL('../crs', import.meta.url));
     const crss = new Map<string, Crs>();
     for (const file of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
         const value = JSON.parse(readFileSync(join(dir, file), 'utf8'));

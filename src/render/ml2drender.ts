@@ -487,7 +487,7 @@ async function drawProjected(
 
 type NapiImage = typeof import('@napi-rs/image');
 let napiImage: Promise<NapiImage | null> | undefined;
-/** `@napi-rs/image`, an optional peer dependency for lossy WebP and AVIF: loaded on first use, null if absent. */
+/** `@napi-rs/image`, for lossy WebP and AVIF: loaded on first use, null if it can't be (no addon for the platform). */
 function loadNapiImage(): Promise<NapiImage | null> {
     napiImage ??= import('@napi-rs/image').catch(() => null);
     return napiImage;
