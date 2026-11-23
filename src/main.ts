@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import './threadpool.js'; // first: before anything uses libuv's thread pool
 
 import process from 'node:process';

@@ -169,6 +169,9 @@ importers:
       '@ml2drender/node':
         specifier: ^0.4.3
         version: 0.4.3(@maplibre/maplibre-gl-style-spec@26.7.0)
+      '@napi-rs/image':
+        specifier: ^1.16.0
+        version: 1.16.0
       lru-cache:
         specifier: ^11.5.3
         version: 11.5.3
@@ -191,9 +194,6 @@ importers:
       '@maplibre/maplibre-gl-style-spec':
         specifier: ^26.7.0
         version: 26.7.0
-      '@napi-rs/image':
-        specifier: ^1.16.0
-        version: 1.16.0
       '@tsconfig/node24':
         specifier: ^24.0.6
         version: 24.0.6

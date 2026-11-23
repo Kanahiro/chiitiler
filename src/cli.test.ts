@@ -117,7 +117,7 @@ describe('configuration', () => {
             expect(await crs?.get('EPSG-32654')).toEqual(utm);
             for (const id of ['README', 'missing', '../EPSG-32654', 'toString'])
                 expect(await crs?.get(id), id).toBeUndefined();
-            expect(readConfig({}).crs).toBeUndefined();
+            expect(readConfig({}).crs?.ids).toContain('EPSG-4326');
             // read once, at startup: an invalid file stops it
             writeFileSync(join(dir, 'bad.json'), '{"projjson": "EPSG:4326"}');
             expect(() => readConfig({ CHIITILER_CRS_DIR: dir })).toThrow(

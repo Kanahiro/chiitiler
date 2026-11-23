@@ -34,10 +34,10 @@ http://localhost:3000/tiles/0/0/0.png?url=https://tile.openstreetmap.jp/styles/o
 
 You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibre, OpenLayers, QGIS, Cesium, or anywhere else that speaks `{z}/{x}/{y}`.
 
-> **No Docker?** Run it from source with [pnpm](https://pnpm.io):
+> **No Docker?** Install the `chiitiler` command from npm (Node.js 24.22.1+):
 > ```bash
-> git clone https://github.com/Kanahiro/chiitiler && cd chiitiler && pnpm install
-> CHIITILER_DEBUG=true pnpm tsx src/main.ts
+> npm install -g chiitiler
+> CHIITILER_DEBUG=true chiitiler   # the server; `chiitiler generate-tile ...` works too
 > ```
 > Then visit `http://localhost:3000/debug` to preview styles interactively.
 
@@ -74,7 +74,7 @@ You're done. That same endpoint works as an XYZ tile source for Leaflet, MapLibr
 | `GET` | `/crs`, `/crs/{id}` | Ids of the registered CRSs, and a CRS's `{ projjson, tileMatrixSet }` (see Custom projections) |
 | `GET` | `/debug`, `/editor` | Debug UI (requires `CHIITILER_DEBUG=true`) | — `/debug` switches between the registered CRSs
 
-`ext` is one of `png`, `jpeg`, `jpg`, `webp`, `avif` (`avif` needs `@napi-rs/image`; without it, `500`).
+`ext` is one of `png`, `jpeg`, `jpg`, `webp`, `avif`.
 
 **High-DPI (`@2x`)**: `@{n}x` before the extension (e.g. `/tiles/5/27/12@2x.png`) renders the same
 map in `n` times the pixels: labels, lines and icons keep their size on a high-DPI screen, and the
@@ -88,7 +88,7 @@ CSS pixels, so a client keeps its `tileSize` (e.g. 512) and only changes the URL
 | --- | --- | --- |
 | `url` | — | Style JSON URL (required for `GET`) |
 | `tileSize` | `512` | Tile size in pixels |
-| `quality` | `100` | JPEG and AVIF quality (use less than `100` for AVIF: `100` is near-lossless and large). WebP is lossy below `100` (alpha stays lossless) when `@napi-rs/image` is installed, as in the Docker image, and lossless otherwise |
+| `quality` | `100` | JPEG and AVIF quality (use less than `100` for AVIF: `100` is near-lossless and large). WebP is lossy below `100` (alpha stays lossless) |
 | `margin` | `0` | Pixels rendered on each side of the tile and cropped, e.g. to keep labels across tile edges |
 | `bbox` | — | `/clip` bounding box: `minLon,minLat,maxLon,maxLat` |
 | `size` | `1024` | `/clip` longest edge in pixels |
@@ -114,7 +114,7 @@ render in one with `?crs=<id>` (`GET` and `POST`, every endpoint).
 - The files are read once, at startup; one that is not JSON or has no `projjson` object stops it.
 - `POST` also takes a CRS in the body, in the same form: `{ "style": { ... }, "crs": { "projjson": { ... }, "tileMatrixSet": { ... } } }`. It takes precedence over `?crs=`.
 
-The Docker image comes with the CRSs of [`crs/`](crs) (`CHIITILER_CRS_DIR=/app/crs`), as `?crs=EPSG-<code>`:
+The server comes with the CRSs of [`crs/`](crs) (the default `CHIITILER_CRS_DIR`), as `?crs=EPSG-<code>`:
 
 | | |
 | --- | --- |
@@ -152,13 +152,10 @@ npm install chiitiler @maplibre/maplibre-gl-style-spec
 npm install @aws-sdk/client-s3
 # only for gs:// sources and the GCS cache
 npm install @google-cloud/storage
-# only for lossy WebP (quality below 100) and AVIF
-npm install @napi-rs/image
 ```
 
-`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs and
-`@napi-rs/image` are optional ones, loaded when first used. Without `@napi-rs/image`, WebP is lossless
-at every quality (with a warning the first time a lower quality is asked for), and AVIF throws.
+`@maplibre/maplibre-gl-style-spec` (for its types) is a peer dependency; the AWS and GCP SDKs are
+optional ones, loaded when first used.
 
 ```ts
 import { Chiitiler, ChiitilerCache } from 'chiitiler';
@@ -348,7 +345,7 @@ docker run --rm -p 3000:3000 -e CHIITILER_CACHE_METHOD=file -e CHIITILER_PROCESS
 | `CHIITILER_MAX_RENDERS` | `0` (no limit) |
 | `CHIITILER_CACHE_CONTROL` | (none) |
 | `CHIITILER_CORS` | (none) |
-| `CHIITILER_CRS_DIR` | (none: Web Mercator only; `/app/crs` in the Docker image) |
+| `CHIITILER_CRS_DIR` | the package's [`crs/`](crs) |
 
 `CHIITILER_PROCESSES` runs that many worker processes; `0` uses all available CPUs.
 Within a process, rendering and encoding run on libuv's thread pool, as many renders of a style in
@@ -487,8 +484,7 @@ view at 1 and 4 connections (with Xvfb for 1.x). Memory grows with load and is k
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
   `/camera` is renamed `/view` and has no pitch segment:
   `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
-- **Formats:** WebP is lossless unless `@napi-rs/image` is installed (then `quality` below 100 is
-  lossy; the Docker image includes it); JPEG uses 4:2:0 chroma and
+- **Formats:** WebP is lossy at `quality` below 100 (alpha stays lossless); JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **`margin`** is per side (pixels rendered on each side of the tile), as in other renderers: 1.x's
   was the total, so `margin=100` of 1.x is `margin=50`.
@@ -522,9 +518,8 @@ view at 1 and 4 connections (with Xvfb for 1.x). Memory grows with load and is k
   - `memoryCache` is removed (use `withFrontCache(noneCache(), …)`), `withMemoryCache` is renamed
     `withFrontCache`, and `Cache.memory` is renamed `Cache.front`.
   - New `protocols` option for custom URL schemes.
-  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3`,
-    `@google-cloud/storage` and `@napi-rs/image` optional ones: install them for `s3://` / `gs://`
-    sources and caches, and lossy WebP and AVIF.
+  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
+    `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
   - The renderer comes from `@ml2drender/node`, which has prebuilt addons for linux-x64 and
     linux-arm64 (glibc), darwin-x64, darwin-arm64 and win32-x64.
 

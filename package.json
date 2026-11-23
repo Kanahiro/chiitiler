@@ -5,6 +5,9 @@
     "description": "Tiny map rendering server for MapLibre Style Spec",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
+    "bin": {
+        "chiitiler": "./build/main.mjs"
+    },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -16,7 +19,9 @@
         "node": ">=24.22.1"
     },
     "files": [
-        "dist"
+        "dist",
+        "build",
+        "crs"
     ],
     "scripts": {
         "build": "esbuild --bundle src/main.ts --minify --format=esm --outfile=build/main.mjs --platform=node --external:@ml2drender/node --external:@napi-rs/image --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
@@ -43,7 +48,6 @@
         "@google-cloud/storage": "^8.4.0",
         "@hono/node-server": "^2.1.8",
         "@maplibre/maplibre-gl-style-spec": "^26.7.0",
-        "@napi-rs/image": "^1.16.0",
         "@tsconfig/node24": "^24.0.6",
         "@types/autocannon": "^7.12.7",
         "@types/node": "^26.6.6",
@@ -59,23 +63,20 @@
     },
     "dependencies": {
         "@ml2drender/node": "^0.4.3",
+        "@napi-rs/image": "^1.16.0",
         "lru-cache": "^11.5.3",
         "pmtiles": "^4.5.0"
     },
     "peerDependencies": {
         "@aws-sdk/client-s3": "^3.0.0",
         "@google-cloud/storage": "^8.0.0 || ^9.0.0",
-        "@maplibre/maplibre-gl-style-spec": "^26.4.4",
-        "@napi-rs/image": "^1.16.0"
+        "@maplibre/maplibre-gl-style-spec": "^26.4.4"
     },
     "peerDependenciesMeta": {
         "@aws-sdk/client-s3": {
             "optional": true
         },
         "@google-cloud/storage": {
-            "optional": true
-        },
-        "@napi-rs/image": {
             "optional": true
         }
     },

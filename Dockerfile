@@ -26,6 +26,5 @@ WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=deps /opt/deps/node_modules ./node_modules
 COPY crs ./crs
-ENV CHIITILER_CRS_DIR=/app/crs
 
 CMD ["/app/build/main.mjs"]
