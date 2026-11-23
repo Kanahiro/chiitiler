@@ -12,13 +12,13 @@ Point it at any `style.json` and get back PNG / WebP / JPEG / AVIF tiles, static
 [![codecov](https://codecov.io/gh/Kanahiro/chiitiler/graph/badge.svg?token=9RVLAJG126)](https://codecov.io/gh/Kanahiro/chiitiler)
 [![License](https://img.shields.io/github/license/Kanahiro/chiitiler?color=blue)](./LICENSE)
 
-[Live Demo](https://spatialty-io.github.io/chiitiler-demo/) · [Quickstart](#from-zero-to-a-rendered-tile-in-30-seconds) · [HTTP API](#http-api) · [Library](#library-usage) · [API Reference](https://kanahiro.github.io/chiitiler/) · [Deployment](#deployment)
+[Live Demo](https://spatialty-io.github.io/chiitiler-demo/) · [Quickstart](#quickstart) · [HTTP API](#http-api) · [Library](#library-usage) · [API Reference](https://kanahiro.github.io/chiitiler/) · [Deployment](#deployment)
 
 </div>
 
 ---
 
-## From zero to a rendered tile in 30 seconds
+## Quickstart
 
 **1. Run the server** — one command, no config file, no database, no API key.
 
