@@ -484,8 +484,7 @@ view at 1 and 4 connections (with Xvfb for 1.x). Memory grows with load and is k
   and Arabic text shaping, and glyphs the style's `glyphs` URL doesn't serve (no local font fallback).
   `/camera` is renamed `/view` and has no pitch segment:
   `/view/{zoom}/{lat}/{lon}/{bearing}/{width}x{height}.{ext}`.
-- **Formats:** WebP is lossless unless `@napi-rs/image` is installed (then `quality` below 100 is
-  lossy; the Docker image includes it); JPEG uses 4:2:0 chroma and
+- **Formats:** WebP is lossy at `quality` below 100 (alpha stays lossless); JPEG uses 4:2:0 chroma and
   flattens transparency over black. `.jpg` responses are `image/jpeg` (were `image/jpg`).
 - **`margin`** is per side (pixels rendered on each side of the tile), as in other renderers: 1.x's
   was the total, so `margin=100` of 1.x is `margin=50`.
@@ -519,9 +518,8 @@ view at 1 and 4 connections (with Xvfb for 1.x). Memory grows with load and is k
   - `memoryCache` is removed (use `withFrontCache(noneCache(), …)`), `withMemoryCache` is renamed
     `withFrontCache`, and `Cache.memory` is renamed `Cache.front`.
   - New `protocols` option for custom URL schemes.
-  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3`,
-    `@google-cloud/storage` and `@napi-rs/image` optional ones: install them for `s3://` / `gs://`
-    sources and caches, and lossy WebP and AVIF.
+  - `@maplibre/maplibre-gl-style-spec` is a peer dependency, and `@aws-sdk/client-s3` and
+    `@google-cloud/storage` optional ones: install them for `s3://` / `gs://` sources and caches.
   - The renderer comes from `@ml2drender/node`, which has prebuilt addons for linux-x64 and
     linux-arm64 (glibc), darwin-x64, darwin-arm64 and win32-x64.
 
