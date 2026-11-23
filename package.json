@@ -31,7 +31,7 @@
         "test:coverage": "vitest src --coverage --coverage.provider=v8",
         "test:integration": "vitest tests/integration.test.ts",
         "test:benchmark": "tsx tests/benchmark.ts",
-        "docs": "typedoc src/index.ts --out docs --includeVersion",
+        "docs": "typedoc src/index.ts --out docs --includeVersion --projectDocuments MIGRATION.md",
         "lint": "biome check .",
         "format": "biome check --write ."
     },

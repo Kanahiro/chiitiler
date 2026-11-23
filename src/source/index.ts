@@ -12,7 +12,24 @@ import { type Cache, noneCache } from '../cache/index.js';
  * other failures: the render fails rather than caching a map with holes.
  */
 type Protocol = (url: string) => Promise<Uint8Array | null>;
-/** Custom protocols by scheme (`'myproto'` for `myproto://…`); they take precedence over built-in ones. */
+/**
+ * Custom protocols by scheme (`'myproto'` for `myproto://…`), for the style URL and every source,
+ * sprite and glyph URL in it. They take precedence over built-in ones, so `http` / `https` can be
+ * replaced too (e.g. to add credentials). Results go through the cache's front cache, not the
+ * cache itself (cache inside the loader if needed).
+ *
+ * @example Tiles from a database
+ * ```ts
+ * const protocols: Protocols = {
+ *     db: async (url) => {
+ *         // db://tiles/{z}/{x}/{y}
+ *         const [z, x, y] = url.split('/').slice(-3).map(Number);
+ *         return (await db.tile(z, x, y)) ?? null;
+ *     },
+ * };
+ * const chiitiler = new Chiitiler({ cache, protocols });
+ * ```
+ */
 type Protocols = Record<string, Protocol>;
 
 /**

@@ -68,6 +68,16 @@ const CONCURRENCY = Number(process.env.UV_THREADPOOL_SIZE) || 4;
 /**
  * Encode RGBA pixels (`width` × `height` × 4 bytes, e.g. a `RenderedImage`'s, edited or not) as `ext`.
  * `quality` (default 100) applies to JPEG, AVIF, and WebP below 100.
+ *
+ * @example Encode a grayscale copy of a rendered image
+ * ```ts
+ * const gray = new Uint8Array(image.data);
+ * for (let i = 0; i < gray.length; i += 4) {
+ *     const v = (gray[i] + gray[i + 1] + gray[i + 2]) / 3;
+ *     gray.fill(v, i, i + 3);
+ * }
+ * const webp = await encode({ data: gray, width: image.width, height: image.height }, 'webp', 80);
+ * ```
  */
 function encode(
     pixels: Pick<RenderedImage, 'data' | 'width' | 'height'>,
@@ -124,8 +134,21 @@ function loggingWrites(cache: Cache): Cache {
 
 /**
  * Renders any number of styles, fetching their sources through one cache and set of protocols.
- * Renderers of recently used styles are kept with their decoded tiles, glyphs and sprites: create
- * one instance and render every style with it.
+ * Renderers of the 10 most recently used styles are kept with the tiles, glyphs and sprites they
+ * decoded (for 5 minutes): create one instance and render every style with it. `stylejson` is a URL or a style
+ * object and may differ on every call; a style URL is read again after 60 seconds.
+ *
+ * @example
+ * ```ts
+ * import { Chiitiler, ChiitilerCache } from 'chiitiler';
+ *
+ * const chiitiler = new Chiitiler({ cache: ChiitilerCache.fileCache({ dir: './.cache', ttl: 3600 }) });
+ * const image = await chiitiler.renderTile({
+ *     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
+ *     z: 5, x: 27, y: 12, tileSize: 512, margin: 0,
+ * });
+ * const png = await image.toPng(); // or edit image.data (RGBA) first, then `encode` it
+ * ```
  */
 class Chiitiler {
     private readonly cache: Cache;
@@ -169,6 +192,17 @@ class Chiitiler {
     /**
      * Render a box of `crs` (`bbox` in its units, easting first, y up).
      * `crs` needs no grid.
+     *
+     * @example With a CRS file of the server's crs directory
+     * ```ts
+     * const crs = JSON.parse(await readFile('crs/EPSG-6677.json', 'utf8'));
+     * const image = await chiitiler.renderProjectedBbox({
+     *     stylejson: 'https://tile.openstreetmap.jp/styles/osm-bright/style.json',
+     *     crs,
+     *     bbox: [-20000, -60000, 20000, -30000], // meters of JGD2011 / Japan Plane Rectangular CS IX
+     *     size: 1024,
+     * });
+     * ```
      */
     renderProjectedBbox(
         options: RenderBboxOptions & { crs: Crs },

@@ -15,6 +15,9 @@ export type {
 export type { Cache, Value } from './cache/index.js';
 export type { Protocol, Protocols } from './source/index.js';
 
-// re-exported so consumers can reference exactly the style-spec version
-// chiitiler is built against, without depending on their own resolution
+/**
+ * The style-spec type chiitiler is built against. Prefer it over importing
+ * `@maplibre/maplibre-gl-style-spec` directly: another major of that package in your tree
+ * is not assignable to it.
+ */
 export type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
