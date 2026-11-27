@@ -117,8 +117,35 @@ describe('generateTile', () => {
         }
     });
 
+    it('renders tiles of tile-size × pixel-ratio pixels, a pixel ratio of its own to resume', async () => {
+        const { dir, style, output } = tmp();
+        const args = ['--style', style, '-o', output, '--maxzoom', '0'];
+        try {
+            await generateTile(
+                [...args, '--tile-size', '256', '--pixel-ratio', '2'],
+                noneCache(),
+            );
+            const db = new DatabaseSync(output, { readOnly: true });
+            const png = db.prepare('SELECT tile_data FROM tiles').get()
+                ?.tile_data as Uint8Array;
+            db.close();
+            // PNG IHDR: width and height, big-endian, at bytes 16 and 20
+            const view = new DataView(png.buffer, png.byteOffset);
+            expect([view.getUint32(16), view.getUint32(20)]).toEqual([
+                512, 512,
+            ]);
+            await expect(
+                generateTile([...args, '--tile-size', '256'], noneCache()),
+            ).rejects.toThrow('not generated with these options');
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
     it.each([
         [['--maxzoom', '1'], 'usage'],
+        [['--pixel-ratio', '0'], '--pixel-ratio must be'],
+        [['--pixel-ratio', '1.5'], '--pixel-ratio must be'],
         [['-o', 'x.pmtiles'], 'must be a .mbtiles file'],
         [['--ext', 'gif'], '--ext must be'],
         [['--bbox', '1,2,3'], '--bbox must be'],

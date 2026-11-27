@@ -40,7 +40,7 @@ type Reply =
     | { url: string; bytes?: Uint8Array | null; error?: string };
 
 const USAGE = `usage: chiitiler generate-tile --style <url|path> --output <file.mbtiles> --maxzoom <z>
-    [--minzoom 0] [--bbox minLon,minLat,maxLon,maxLat] [--ext png] [--tile-size 512] [--quality 100] [--margin 0] [--force]`;
+    [--minzoom 0] [--bbox minLon,minLat,maxLon,maxLat] [--ext png] [--tile-size 512] [--pixel-ratio 1] [--quality 100] [--margin 0] [--force]`;
 
 /** The XYZ tiles of zoom `z` covering `bbox`: [minX, minY, maxX, maxY]. */
 function tileRange([w, s, e, n]: Bbox, z: number): Bbox {
@@ -98,6 +98,7 @@ function readArgs(args: string[]) {
             bbox: { type: 'string' },
             ext: { type: 'string', default: 'png' },
             'tile-size': { type: 'string', default: '512' },
+            'pixel-ratio': { type: 'string', default: '1' },
             quality: { type: 'string', default: '100' },
             margin: { type: 'string', default: '0' },
             force: { type: 'boolean', default: false },
@@ -127,6 +128,7 @@ function readArgs(args: string[]) {
         maxzoom: int('maxzoom', maxzoom, minzoom, 30),
         ext: values.ext as SupportedFormat,
         tileSize: int('tile-size', values['tile-size'], 1),
+        pixelRatio: int('pixel-ratio', values['pixel-ratio'], 1),
         quality: int('quality', values.quality, 1, 100),
         margin: int('margin', values.margin, 0),
     };
