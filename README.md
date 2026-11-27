@@ -187,6 +187,7 @@ docker run --rm -v "$PWD:/data" -w /data ghcr.io/kanahiro/chiitiler:latest \
 | `--bbox` | the world | `minLon,minLat,maxLon,maxLat` |
 | `--ext` | `png` | `png`, `jpeg`, `jpg`, `webp` or `avif` |
 | `--tile-size` | `512` | |
+| `--pixel-ratio` | `1` | As the server's `@{n}x`: tiles of `--tile-size` × `n` pixels |
 | `--quality` | `100` | As the server's `quality` |
 | `--margin` | `0` | As the server's `margin` |
 | `--force` | | Delete an existing `--output` first |
